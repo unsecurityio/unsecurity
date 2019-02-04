@@ -1,12 +1,6 @@
 import sbt.Keys.libraryDependencies
 
-organization := "io.unsecurity"
-
 name := "unsecurity-auth0"
-
-version := "0.1-SNAPSHOT"
-
-scalaVersion := "2.12.8"
 
 scalacOptions := Seq(
   "-deprecation",
