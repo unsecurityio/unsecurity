@@ -1,11 +1,13 @@
 package io.unsecurity.auth
 
-import java.net.URLDecoder
+import java.net.{URLDecoder, URLEncoder}
 
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder}
 
-case class UserId(asString: String)
+case class UserId(asString: String) {
+  def urlEncode: String = URLEncoder.encode(asString, "utf8")
+}
 object UserId {
   def urlDecode(url: String): UserId =
     UserId(URLDecoder.decode(url, "utf8"))
