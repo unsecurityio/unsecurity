@@ -10,4 +10,4 @@ lazy val core = project
 lazy val auth0 = project.dependsOn(core)
 
 publishArtifact := false
-
+publishTo := Some(Resolver.file("Unused transient repository", file("target/unusedrepo")))

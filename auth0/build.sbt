@@ -10,7 +10,6 @@ scalacOptions := Seq(
 )
 
 libraryDependencies := Seq(
-//  "io.unsecurity"        %% "unsecurity-core" % "0.1-SNAPSHOT",
   "com.squareup.okhttp3" % "okhttp"           % "3.9.0",
   "com.auth0"            % "auth0"            % "1.5.1",
   "com.auth0"            % "jwks-rsa"         % "0.3.0",

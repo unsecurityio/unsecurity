@@ -2,27 +2,32 @@ package io.unsecurity
 
 import cats.effect.Sync
 import io.circe.{Decoder, Encoder}
-import io.unsecurity.hlinx.HLinx
 import io.unsecurity.hlinx.HLinx._
+import io.unsecurity.hlinx.ReversedTupled
 import no.scalabin.http4s.directives.Conditional.ResponseDirective
 import no.scalabin.http4s.directives.{Directive, Plan}
 import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Method, Response}
 import org.slf4j.Logger
-import Ordering.Implicits._
+import shapeless.HList
+
+import scala.Ordering.Implicits._
 
 abstract class AbstractUnsecurity2[F[_]: Sync, U] {
 
-  case class Endpoint[P <: HLinx.HList, R, W](method: Method,
-                                              path: HLinx[P],
-                                              produces: EntityEncoder[F, W] = Produces.Nothing,
-                                              accepts: EntityDecoder[F, R] = Accepts.EmptyBody)
+  case class Endpoint[P <: HList, R, W](method: Method,
+                                        path: HLinx[P],
+                                        produces: EntityEncoder[F, W] = Produces.Nothing,
+                                        accepts: EntityDecoder[F, R] = Accepts.EmptyBody)
 
   def log: Logger
 
   type PathMatcher[F[_], A] = PartialFunction[String, Directive[F, A]]
 
-  def secure[P <: HList, R, W](endpoint: Endpoint[P, R, W]): Secured[(P, R, U), W]
-  def unsecure[P <: HList, R, W](endpoint: Endpoint[P, R, W]): Completable[(P, R), W]
+  def secure[P <: HList, R, W, TUP](endpoint: Endpoint[P, R, W])(
+      implicit revTup: ReversedTupled.Aux[P, TUP]): Secured[(TUP, R, U), W]
+
+  def unsecure[P <: HList, R, W, TUP](endpoint: Endpoint[P, R, W])(
+      implicit revTup: ReversedTupled.Aux[P, TUP]): Completable[(TUP, R), W]
 
   object Accepts {
     def EmptyBody: EntityDecoder[F, Unit] =

@@ -3,12 +3,14 @@ package unsecurity
 
 import cats.Monad
 import cats.effect.Sync
-import io.unsecurity.hlinx.HLinx.{HLinx, HList, SimpleLinx}
+import io.unsecurity.hlinx.HLinx.{HLinx, SimpleLinx}
+import io.unsecurity.hlinx.ReversedTupled
 import no.scalabin.http4s.directives.Conditional.ResponseDirective
 import no.scalabin.http4s.directives.Directive
 import org.http4s.headers.Allow
 import org.http4s.{EntityDecoder, EntityEncoder, Method, Response, Status}
 import org.slf4j.{Logger, LoggerFactory}
+import shapeless.HList
 
 abstract class Unsecurity2[F[_]: Sync, RU, U] extends AbstractUnsecurity2[F, U] with UnsecurityOps[F] {
 
@@ -78,8 +80,9 @@ abstract class Unsecurity2[F[_]: Sync, RU, U] extends AbstractUnsecurity2[F, U] 
     }
   }
 
-  override def secure[P <: HList, R, W](endpoint: Endpoint[P, R, W]): Secured[(P, R, U), W] = {
-    MySecured[(P, R, U), W](
+  override def secure[P <: HList, R, W, TUP](endpoint: Endpoint[P, R, W])(
+      implicit revTup: ReversedTupled.Aux[P, TUP]): Secured[(TUP, R, U), W] = {
+    MySecured[(TUP, R, U), W](
       key = endpoint.path.toSimple.reverse,
       pathMatcher = createPathMatcher(endpoint.path).asInstanceOf[PathMatcher[F, Any]],
       methodMap = Map(
@@ -102,16 +105,17 @@ abstract class Unsecurity2[F[_]: Sync, RU, U] extends AbstractUnsecurity2[F, U] 
           } yield {
             (pp, r, user)
           }
-        }.asInstanceOf[Any => Directive[F, (P, R, U)]]
+        }.asInstanceOf[Any => Directive[F, (TUP, R, U)]]
       ),
       entityEncoder = endpoint.produces
     )
   }
 
-  override def unsecure[P <: HList, R, W](endpoint: Endpoint[P, R, W]): Completable[(P, R), W] = {
-    MyCompletable[(P, R), W](
+  override def unsecure[P <: HList, R, W, TUP](endpoint: Endpoint[P, R, W])(
+      implicit revTup: ReversedTupled.Aux[P, TUP]): Completable[(TUP, R), W] = {
+    MyCompletable[(TUP, R), W](
       key = endpoint.path.toSimple.reverse,
-      pathMatcher = createPathMatcher[F, P](endpoint.path).asInstanceOf[PathMatcher[F, Any]],
+      pathMatcher = createPathMatcher[F, P, TUP](endpoint.path).asInstanceOf[PathMatcher[F, Any]],
       methodMap = Map(
         endpoint.method -> { pp: P =>
           implicit val entityDecoder: EntityDecoder[F, R] = endpoint.accepts
@@ -120,7 +124,7 @@ abstract class Unsecurity2[F[_]: Sync, RU, U] extends AbstractUnsecurity2[F, U] 
           } yield {
             (pp, r)
           }
-        }.asInstanceOf[Any => Directive[F, (P, R)]]
+        }.asInstanceOf[Any => Directive[F, (TUP, R)]]
       ),
       entityEncoder = endpoint.produces
     )
@@ -192,8 +196,9 @@ abstract class Unsecurity2[F[_]: Sync, RU, U] extends AbstractUnsecurity2[F, U] 
     }
   }
 
-  def createPathMatcher[F[_]: Monad, PathParams <: HList](route: HLinx[PathParams]): PathMatcher[F, PathParams] =
-    new PartialFunction[String, Directive[F, PathParams]] {
+  def createPathMatcher[F[_]: Monad, PathParams <: HList, TUP](route: HLinx[PathParams])(
+      implicit revTup: ReversedTupled.Aux[PathParams, TUP]): PathMatcher[F, TUP] =
+    new PartialFunction[String, Directive[F, TUP]] {
       override def isDefinedAt(x: String): Boolean = {
         if (route.capture(x).isDefined) {
           log.trace(s"""Match: "$x" = /${route.toSimple.reverse.mkString("/")}""")
@@ -204,8 +209,8 @@ abstract class Unsecurity2[F[_]: Sync, RU, U] extends AbstractUnsecurity2[F, U] 
         }
       }
 
-      override def apply(v1: String): Directive[F, PathParams] = {
-        val value: Either[String, PathParams] = route.capture(v1).get
+      override def apply(v1: String): Directive[F, TUP] = {
+        val value: Either[String, TUP] = route.capture(v1).get
 
         value match {
           case Left(errorMsg) =>

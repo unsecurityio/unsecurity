@@ -1,4 +1,7 @@
 import io.unsecurity.hlinx.HLinx._
+
+import shapeless.{::, HList, HNil}
+
 import org.scalatest.FunSpec
 
 class HLinxTest extends FunSpec {
@@ -47,7 +50,7 @@ class HLinxTest extends FunSpec {
         }
 
         it("should match equal path") {
-          assert(link.capture("/foo/str/bar") === Some(Right("str" ::: HNil)))
+          assert(link.capture("/foo/str/bar") === Some(Right("str" :: HNil)))
         }
       }
 
@@ -64,7 +67,7 @@ class HLinxTest extends FunSpec {
         }
 
         it("should match equal path") {
-          assert(link.capture("/foo/str/1/bar") === Some(Right(1 ::: "str" ::: HNil)))
+          assert(link.capture("/foo/str/1/bar") === Some(Right(1 :: "str" :: HNil)))
         }
       }
     }
@@ -99,7 +102,7 @@ class HLinxTest extends FunSpec {
 
     describe("VarFragment") {
       describe("Root / param[String] / bar") {
-        val link: HLinx[String ::: HNil] = Root / param[String]("") / "bar"
+        val link: HLinx[String :: HNil] = Root / param[String]("") / "bar"
 
         it("overlap /foo/bar") {
           assert(link.overlaps(Root / "foo" / "bar"))

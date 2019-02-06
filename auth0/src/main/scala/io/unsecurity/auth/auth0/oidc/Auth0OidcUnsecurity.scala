@@ -6,10 +6,11 @@ import java.net.URI
 
 import cats.effect.Sync
 import io.unsecurity.Unsecurity2
-import io.unsecurity.hlinx.HLinx.{HLinx, HNil}
+import io.unsecurity.hlinx.HLinx.HLinx
 import no.scalabin.http4s.directives.Directive
 import org.http4s.{Method, Response, ResponseCookie}
 import org.slf4j.{Logger, LoggerFactory}
+import shapeless.{::, HList, HNil}
 
 class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HLinx[HNil], val sc: Auth0OidcSecurityContext[F, U])
     extends Unsecurity2[F, OidcAuthenticatedUser, U] {

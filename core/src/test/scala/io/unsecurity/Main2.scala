@@ -37,7 +37,7 @@ object Main2 extends IOApp {
         Produces.json[String]
       )
     ).run {
-      case (collide ::: HNil, _) =>
+      case ((collide), _) =>
         Directive.success(
           s"Hello, $collide"
         )

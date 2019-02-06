@@ -1,31 +1,20 @@
 package io.unsecurity.hlinx
 
-object HLinx {
-  sealed trait HList
-  case class HCons[H, T <: HList](head: H, tail: T) extends HList {
-    def :::[V](v: V): HCons[V, H ::: T] = HCons(v, this)
-  }
-  final class HNil extends HList {
-    def :::[T](v: T): HCons[T, HNil] = HCons(v, this)
-  }
-  val HNil: HNil = new HNil
-  type :::[H, T <: HList] = HCons[H, T]
-  val ::: = HCons
+import shapeless.{::, HList, HNil}
 
+object HLinx {
   def param[A](name: String)(implicit ppc: PathParamConverter[A])   = Param(name, ppc)
   def qParam[A](name: String)(implicit qpc: QueryParamConverter[A]) = QueryParam[A](name)
 
   implicit class QpOps[A](qp: QueryParam[A]) {
-    def &[B](other: QueryParam[B]): QueryParam[B] ::: QueryParam[A] ::: HNil =
-      other ::: qp ::: HNil
+    def &[B](other: QueryParam[B]): QueryParam[B] :: QueryParam[A] :: HNil =
+      other :: qp :: HNil
   }
 
   implicit class HListOfQpOps[A <: HList](qp: A) {
     def &[B](other: QueryParam[B]) =
-      HCons(other, qp)
+      other :: qp
   }
-
-  def splitPath(path: String): List[String] = path.split("/").toList.filter(_.nonEmpty)
 
   // TODO move overlaps functionality into this
   // TODO good error messages when overlapping
@@ -46,6 +35,8 @@ object HLinx {
     override def toString: String = s"{$name}"
   }
 
+  def splitPath(path: String): List[String] = path.split("/").toList.filter(_.nonEmpty)
+
   sealed trait HLinx[T <: HList] {
     def /(element: String): Static[T] = {
       splitPath(element).tail
@@ -54,8 +45,12 @@ object HLinx {
         }
     }
     def /[H](h: Param[H]) = Variable(this, h.converter, h.name)
-    // TODO reverse path params on capture
-    def capture(s: String): Option[Either[String, T]] = extract(splitPath(s).reverse)
+    def capture[R <: HList, TUP](s: String)(
+        implicit revTup: ReversedTupled.Aux[T, TUP]): Option[Either[String, TUP]] = {
+      extract(splitPath(s).reverse)
+        .map(e => e.map(t => revTup(t)))
+    }
+
     def extract(s: List[String]): Option[Either[String, T]]
     def overlaps[O <: HList](other: HLinx[O]): Boolean
     def toSimple: List[SimpleLinx]
@@ -74,6 +69,7 @@ object HLinx {
   }
 
   case class Static[A <: HList](parent: HLinx[A], element: String) extends HLinx[A] {
+    import shapeless.HList.ListCompat.::
     override def extract(s: List[String]): Option[Either[String, A]] = s match {
       case `element` :: rest => parent.extract(rest)
       case _                 => None
@@ -89,8 +85,9 @@ object HLinx {
       SimpleStatic(element) :: parent.toSimple
   }
   case class Variable[H, T <: HList](parent: HLinx[T], P: PathParamConverter[H], element: String)
-      extends HLinx[H ::: T] {
-    override def extract(s: List[String]): Option[Either[String, H ::: T]] = s match {
+      extends HLinx[H :: T] {
+    import shapeless.HList.ListCompat.::
+    override def extract(s: List[String]): Option[Either[String, H :: T]] = s match {
       case h :: rest =>
         parent
           .extract(rest)
@@ -99,7 +96,7 @@ object HLinx {
               hlist          <- t
               convertedParam <- P.convert(h)
             } yield {
-              HCons(convertedParam, hlist)
+              convertedParam :: hlist
           })
       case _ => None
     }
@@ -113,25 +110,5 @@ object HLinx {
     }
     override def toSimple: List[SimpleLinx] =
       SimplePathParam(element) :: parent.toSimple
-  }
-
-  implicit class S0(private val hlist: HNil) extends AnyVal {
-    def tupled(): Unit = ()
-  }
-
-  implicit class S1[A](private val hlist: A ::: HNil) extends AnyVal {
-    def tupled: A = hlist.head
-  }
-
-  implicit class S2[A, B](private val hlist: B ::: A ::: HNil) extends AnyVal {
-    def tupled: (A, B) = (hlist.tail.head, hlist.head)
-  }
-
-  implicit class S3[A, B, C](private val hlist: C ::: B ::: A ::: HNil) extends AnyVal {
-    def tupled: (A, B, C) = (hlist.tail.tail.head, hlist.tail.head, hlist.head)
-  }
-
-  implicit class S4[A, B, C, D](private val hlist: D ::: C ::: B ::: A ::: HNil) extends AnyVal {
-    def tupled: (A, B, C, D) = (hlist.tail.tail.tail.head, hlist.tail.tail.head, hlist.tail.head, hlist.head)
   }
 }
