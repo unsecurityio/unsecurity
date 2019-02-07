@@ -32,17 +32,10 @@ abstract class Unsecurity2[F[_]: Sync, RU, U] extends AbstractUnsecurity2[F, U] 
           a2dc =>
             a2dc.andThen(
               dc =>
-                dc.flatMap(
-                  c =>
-                    if (predicate(c)) {
-                      Directive.success(c)
-                    } else {
-                      Directive.error(
-                        Response[F]()
-                          .withStatus(Status.Forbidden)
-                      )
-                  }
-              )
+                Directive.commit(
+                  dc.filter(
+                    c => predicate(c).orF(Sync[F].pure(Response[F](Status.Forbidden)))
+                  ))
           )),
         entityEncoder = entityEncoder
       )

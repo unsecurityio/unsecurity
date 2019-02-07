@@ -3,7 +3,7 @@ ThisBuild / crossScalaVersions := Seq("2.12.8", "2.11.12")
 ThisBuild / scalaVersion := crossScalaVersions.value.head
 ThisBuild / useGpg := true
 
-lazy val root = (project in file("."))
+lazy val root = (project in file(".")).settings(name := "unsecurity")
   .aggregate(core, auth0)
 
 lazy val core = project
