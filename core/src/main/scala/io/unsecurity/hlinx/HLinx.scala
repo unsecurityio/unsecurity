@@ -45,10 +45,13 @@ object HLinx {
         }
     }
     def /[H](h: Param[H]) = Variable(this, h.converter, h.name)
-    def capture[R <: HList, TUP](s: String)(
-        implicit revTup: ReversedTupled.Aux[T, TUP]): Option[Either[String, TUP]] = {
+    def capture[TUP](s: String)(implicit revTup: ReversedTupled.Aux[T, TUP]): Option[Either[String, TUP]] = {
       extract(splitPath(s).reverse)
         .map(e => e.map(t => revTup(t)))
+    }
+    def captureAs[A](s: String)(implicit revGen: ReversedGeneric.Aux[T, A]): Option[Either[String, A]] = {
+      extract(splitPath(s).reverse)
+        .map(e => e.map(t => revGen(t)))
     }
 
     def extract(s: List[String]): Option[Either[String, T]]
