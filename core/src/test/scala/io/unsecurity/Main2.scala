@@ -43,13 +43,28 @@ object Main2 extends IOApp {
         )
     }
 
+  case class StringAndInt(s: String, i: Int)
+
+  val twoParams =
+    unsecure(
+      Endpoint(
+        Method.GET,
+        Root / 'param1.as[String] / 'param2.as[Int],
+        Produces.json[String]
+      )
+    ).resolve { case ((s, i), _) => StringAndInt(s, i) }
+      .run { sai =>
+        Directive.success(sai.toString)
+      }
+
   override def run(args: List[String]): IO[ExitCode] = {
     import cats.implicits._
 
     val httpRoutes = toHttpRoutes(
       List(
         helloWorld,
-        collidingHello
+        collidingHello,
+        twoParams
       ))
 
     server

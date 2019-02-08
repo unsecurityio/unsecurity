@@ -21,10 +21,6 @@ object HLinx {
       extract(splitPath(s).reverse)
         .map(e => e.map(t => revTup(t)))
     }
-    def captureAs[A](s: String)(implicit revGen: ReversedGeneric.Aux[T, A]): Option[Either[String, A]] = {
-      extract(splitPath(s).reverse)
-        .map(e => e.map(t => revGen(t)))
-    }
 
     def extract(s: List[String]): Option[Either[String, T]]
     def overlaps[O <: HList](other: HLinx[O]): Boolean

@@ -8,7 +8,7 @@ import no.scalabin.http4s.directives.Conditional.ResponseDirective
 import no.scalabin.http4s.directives.{Directive, Plan}
 import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Method, Response}
 import org.slf4j.Logger
-import shapeless.HList
+import shapeless.{Generic, HList, HNil}
 
 import scala.Ordering.Implicits._
 

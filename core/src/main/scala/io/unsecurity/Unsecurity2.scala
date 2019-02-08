@@ -81,7 +81,7 @@ abstract class Unsecurity2[F[_]: Sync, RU, U] extends AbstractUnsecurity2[F, U] 
   }
 
   override def secure[P <: HList, R, W, TUP](endpoint: Endpoint[P, R, W])(
-      implicit revTup: ReversedTupled.Aux[P, TUP]): Secured[(TUP, R, U), W] = {
+      implicit revGen: ReversedTupled.Aux[P, TUP]): Secured[(TUP, R, U), W] = {
     MySecured[(TUP, R, U), W](
       key = endpoint.path.toSimple.reverse,
       pathMatcher = createPathMatcher(endpoint.path).asInstanceOf[PathMatcher[F, Any]],
@@ -112,7 +112,7 @@ abstract class Unsecurity2[F[_]: Sync, RU, U] extends AbstractUnsecurity2[F, U] 
   }
 
   override def unsecure[P <: HList, R, W, TUP](endpoint: Endpoint[P, R, W])(
-      implicit revTup: ReversedTupled.Aux[P, TUP]): Completable[(TUP, R), W] = {
+      implicit revGen: ReversedTupled.Aux[P, TUP]): Completable[(TUP, R), W] = {
     MyCompletable[(TUP, R), W](
       key = endpoint.path.toSimple.reverse,
       pathMatcher = createPathMatcher[F, P, TUP](endpoint.path).asInstanceOf[PathMatcher[F, Any]],
