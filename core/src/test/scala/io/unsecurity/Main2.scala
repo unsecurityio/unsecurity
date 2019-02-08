@@ -33,7 +33,7 @@ object Main2 extends IOApp {
     unsecure(
       Endpoint(
         Method.GET,
-        Root / param[String]("collideWithHello"),
+        Root / 'collideWithHello.as[String],
         Produces.json[String]
       )
     ).run {

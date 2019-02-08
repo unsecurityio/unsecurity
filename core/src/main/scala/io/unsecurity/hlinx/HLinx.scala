@@ -3,39 +3,11 @@ package io.unsecurity.hlinx
 import shapeless.{::, HList, HNil}
 
 object HLinx {
-  def param[A](name: String)(implicit ppc: PathParamConverter[A])   = Param(name, ppc)
-  def qParam[A](name: String)(implicit qpc: QueryParamConverter[A]) = QueryParam[A](name)
+  def param[A: PathParamConverter](name: String) = Param(name, PathParamConverter[A])
 
-  implicit class QpOps[A](qp: QueryParam[A]) {
-    def &[B](other: QueryParam[B]): QueryParam[B] :: QueryParam[A] :: HNil =
-      other :: qp :: HNil
+  implicit class SymbolPimp(s: Symbol) {
+    def as[A: PathParamConverter] = Param(s.name, PathParamConverter[A])
   }
-
-  implicit class HListOfQpOps[A <: HList](qp: A) {
-    def &[B](other: QueryParam[B]) =
-      other :: qp
-  }
-
-  // TODO move overlaps functionality into this
-  // TODO good error messages when overlapping
-  // TODO wrapper class instead of List
-  sealed trait SimpleLinx extends Ordered[SimpleLinx] {
-    override def compare(that: SimpleLinx): Int =
-      (this, that) match {
-        case (a: SimpleStatic, b: SimpleStatic)       => a.segment.compare(b.segment)
-        case (a: SimpleStatic, b: SimplePathParam)    => -1
-        case (a: SimplePathParam, b: SimpleStatic)    => 1
-        case (a: SimplePathParam, b: SimplePathParam) => a.name.compare(b.name)
-      }
-  }
-  case class SimpleStatic(segment: String) extends SimpleLinx {
-    override def toString: String = segment
-  }
-  case class SimplePathParam(name: String) extends SimpleLinx {
-    override def toString: String = s"{$name}"
-  }
-
-  def splitPath(path: String): List[String] = path.split("/").toList.filter(_.nonEmpty)
 
   sealed trait HLinx[T <: HList] {
     def /(element: String): Static[T] = {
@@ -114,4 +86,25 @@ object HLinx {
     override def toSimple: List[SimpleLinx] =
       SimplePathParam(element) :: parent.toSimple
   }
+
+  private def splitPath(path: String): List[String] = path.split("/").toList.filter(_.nonEmpty)
+}
+
+// TODO move overlaps functionality into this
+// TODO good error messages when overlapping
+// TODO wrapper class instead of List
+sealed trait SimpleLinx extends Ordered[SimpleLinx] {
+  override def compare(that: SimpleLinx): Int =
+    (this, that) match {
+      case (a: SimpleStatic, b: SimpleStatic)       => a.segment.compare(b.segment)
+      case (a: SimpleStatic, b: SimplePathParam)    => -1
+      case (a: SimplePathParam, b: SimpleStatic)    => 1
+      case (a: SimplePathParam, b: SimplePathParam) => a.name.compare(b.name)
+    }
+}
+case class SimpleStatic(segment: String) extends SimpleLinx {
+  override def toString: String = segment
+}
+case class SimplePathParam(name: String) extends SimpleLinx {
+  override def toString: String = s"{$name}"
 }

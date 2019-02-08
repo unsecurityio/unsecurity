@@ -3,8 +3,8 @@ package unsecurity
 
 import cats.Monad
 import cats.effect.Sync
-import io.unsecurity.hlinx.HLinx.{HLinx, SimpleLinx}
-import io.unsecurity.hlinx.ReversedTupled
+import io.unsecurity.hlinx.HLinx.HLinx
+import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx}
 import no.scalabin.http4s.directives.Conditional.ResponseDirective
 import no.scalabin.http4s.directives.Directive
 import org.http4s.headers.Allow

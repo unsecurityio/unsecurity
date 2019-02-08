@@ -3,7 +3,7 @@ package io.unsecurity
 import cats.effect.Sync
 import io.circe.{Decoder, Encoder}
 import io.unsecurity.hlinx.HLinx._
-import io.unsecurity.hlinx.ReversedTupled
+import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx}
 import no.scalabin.http4s.directives.Conditional.ResponseDirective
 import no.scalabin.http4s.directives.{Directive, Plan}
 import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Method, Response}
