@@ -1,12 +1,9 @@
 package io.unsecurity.hlinx
 
-import shapeless.HList
+import shapeless.{DepFn1, HList}
 import shapeless.ops.hlist.{Reverse, Tupler}
 
-trait ReversedTupled[L] {
-  type Out
-  def apply(l: L): Out
-}
+trait ReversedTupled[L] extends DepFn1[L]
 
 object ReversedTupled {
   type Aux[L, O] = ReversedTupled[L] { type Out = O }

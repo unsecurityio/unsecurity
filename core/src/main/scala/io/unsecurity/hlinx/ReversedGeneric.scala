@@ -1,12 +1,9 @@
 package io.unsecurity.hlinx
 
-import shapeless.{Generic, HList}
-import shapeless.ops.hlist.{Reverse, Tupler}
+import shapeless.ops.hlist.Reverse
+import shapeless.{DepFn1, Generic, HList}
 
-trait ReversedGeneric[L] {
-  type Out
-  def apply(l: L): Out
-}
+trait ReversedGeneric[L] extends DepFn1[L]
 
 object ReversedGeneric {
   type Aux[L, O] = ReversedGeneric[L] { type Out = O }
