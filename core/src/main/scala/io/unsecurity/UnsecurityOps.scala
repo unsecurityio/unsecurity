@@ -3,16 +3,15 @@ package io.unsecurity
 import java.net.{URI, URISyntaxException}
 
 import cats.Monad
-import cats.data.NonEmptyList
+import cats.data.{EitherT, NonEmptyList}
 import cats.effect.Sync
 import fs2.Stream
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Printer}
 import no.scalabin.http4s.directives.Conditional.ResponseDirective
-import no.scalabin.http4s.directives.{Directive, DirectiveOps, RequestDirectives}
+import no.scalabin.http4s.directives.{Directive, DirectiveOps, RequestDirectives, Result}
 import org.http4s.circe.CirceInstances
-import org.http4s.headers.{Location, `Content-Type`, `WWW-Authenticate`}
-import org.http4s.util.CaseInsensitiveString
+import org.http4s.headers.{`Content-Type`, `WWW-Authenticate`, Location}
 import org.http4s.{Challenge, EntityEncoder, Header, MediaType, RequestCookie, Response, Status, Uri}
 
 import scala.language.{higherKinds, implicitConversions}
@@ -28,8 +27,8 @@ trait UnsecurityOps[F[_]] extends DirectiveOps[F] with RequestDirectives[F] {
   )
   import circeInstances._
 
-  implicit class OptionDirectives[A](opt: Option[A]) {
-    def toSuccess[S[_]: Sync](failure: Directive[S, A]): Directive[S, A] = {
+  implicit class OptionDirectives[A](opt: Option[A])(implicit S: Sync[F]) {
+    def toSuccess(failure: Directive[F, A]): Directive[F, A] = {
       opt match {
         case Some(a) => Directive.success(a)
         case None    => failure
@@ -37,8 +36,8 @@ trait UnsecurityOps[F[_]] extends DirectiveOps[F] with RequestDirectives[F] {
     }
   }
 
-  implicit class EitherDirectives[E, A](either: Either[E, A]) {
-    def toSuccess[S[_]: Sync](failure: E => Directive[S, A]): Directive[S, A] = {
+  implicit class EitherDirectives[E, A](either: Either[E, A])(implicit S: Sync[F]) {
+    def toSuccess(failure: E => Directive[F, A]): Directive[F, A] = {
       either match {
         case Right(a)   => Directive.success(a)
         case Left(left) => failure(left)
@@ -46,24 +45,25 @@ trait UnsecurityOps[F[_]] extends DirectiveOps[F] with RequestDirectives[F] {
     }
   }
 
-  implicit class TryDirectives[A](t: Try[A]) {
-    def toSuccess[S[_]: Sync](failure: Throwable => Directive[S, A]): Directive[S, A] = {
+  implicit class EitherTDirectives[E, A](either: EitherT[F, E, A])(implicit S: Sync[F]) {
+    def toSuccess(failure: E => Response[F]): Directive[F, A] =
+      Directive(_ => either.fold(e => Result.failure(failure(e)), Result.success))
+  }
+
+  implicit class TryDirectives[A](t: Try[A])(implicit S: Sync[F]) {
+    def toSuccess(failure: Throwable => Directive[F, A]): Directive[F, A] = {
       t.toEither.toSuccess(failure)
     }
   }
 
-  implicit class BooleanDirectives(b: Boolean) {
-    def toSuccess[S[_]: Sync](failure: Directive[S, Boolean]): Directive[S, Boolean] = {
+  implicit class BooleanDirectives(b: Boolean)(implicit S: Sync[F]) {
+    def toSuccess(failure: Directive[F, Boolean]): Directive[F, Boolean] = {
       if (b) {
         Directive.success(b)
       } else {
         failure
       }
     }
-  }
-
-  implicit def convertAtoDirFA[F[_] : Monad, A](a: A): Directive[F, A] = {
-    Directive.success[F,A](a)
   }
 
   def asUri(opt: Option[String])(implicit syncEvidence: Sync[F]): Directive[F, Option[URI]] = {
@@ -73,7 +73,7 @@ trait UnsecurityOps[F[_]] extends DirectiveOps[F] with RequestDirectives[F] {
         case None    => Directive.success(None)
       }
     } catch {
-      case _: URISyntaxException =>
+      case _: IllegalArgumentException =>
         BadRequest(s"Malformed URL: ${opt.getOrElse("empty")}")
     }
   }
@@ -99,7 +99,7 @@ trait UnsecurityOps[F[_]] extends DirectiveOps[F] with RequestDirectives[F] {
   }
 
   def requestHeader(name: String)(implicit syncEvidence: Sync[F]): Directive[F, Option[Header]] =
-    request.headers.map(_.get(CaseInsensitiveString(name)))
+    request.header(name)
 
   def queryParam(name: String)(implicit syncEvidence: Sync[F]): Directive[F, Option[String]] = {
     request.queryParam(name)
@@ -140,18 +140,20 @@ trait UnsecurityOps[F[_]] extends DirectiveOps[F] with RequestDirectives[F] {
   }
 
   def Unauthorized[A: Encoder, B](a: A)(implicit syncEvidence: Sync[F]): Directive[F, B] = {
-    Directive.error(
-      Response[F](Status.Unauthorized)
-        .withType(MediaType.application.json)
-        .putHeaders(`WWW-Authenticate`(NonEmptyList(Challenge("Cookie", "klaveness"), Nil))) //TODO: Parameteriser cookie. m2m ???. diskuter med erlend
-        .withEntity(a.asJson)
-    )
+    Directive.error(unauthorizedResponse(a))
+  }
+
+  def unauthorizedResponse[A: Encoder](a: A)(implicit syncEvidence: Sync[F]): Response[F] = {
+    Response[F](Status.Unauthorized)
+      .withContentType(`Content-Type`(MediaType.application.json))
+      .putHeaders(`WWW-Authenticate`(NonEmptyList(Challenge("Cookie", "klaveness"), Nil))) //TODO: Parameteriser cookie. m2m ???. diskuter med erlend
+      .withEntity(a.asJson)
   }
 
   def Forbidden[A](implicit syncEvidence: Sync[F]): Directive[F, A] = {
     Directive.error(
       Response[F](Status.Forbidden)
-        .withType(MediaType.application.json)
+        .withContentType(`Content-Type`(MediaType.application.json))
         .putHeaders(`WWW-Authenticate`(NonEmptyList(Challenge("Cookie", "klaveness"), Nil))) //TODO: Parameteriser cookie
         .withEntity("".asJson)
     )
@@ -182,7 +184,8 @@ trait UnsecurityOps[F[_]] extends DirectiveOps[F] with RequestDirectives[F] {
   }
 
   object StreamResponse {
-    def apply[A](stream: Stream[F, A])(implicit bodyEncoder: EntityEncoder[F, Stream[F, A]], syncEvidence: Sync[F]): ResponseDirective[F] =
+    def apply[A](stream: Stream[F, A])(implicit bodyEncoder: EntityEncoder[F, Stream[F, A]],
+                                       syncEvidence: Sync[F]): ResponseDirective[F] =
       Directive.success(
         Response[F](Status.Ok).withEntity(stream)
       )
