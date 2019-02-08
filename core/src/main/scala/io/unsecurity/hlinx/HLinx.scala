@@ -80,27 +80,8 @@ object HLinx {
       }
     }
     override def toSimple: List[SimpleLinx] =
-      SimplePathParam(element) :: parent.toSimple
+      SimpleVariable(element) :: parent.toSimple
   }
 
   private def splitPath(path: String): List[String] = path.split("/").toList.filter(_.nonEmpty)
-}
-
-// TODO move overlaps functionality into this
-// TODO good error messages when overlapping
-// TODO wrapper class instead of List
-sealed trait SimpleLinx extends Ordered[SimpleLinx] {
-  override def compare(that: SimpleLinx): Int =
-    (this, that) match {
-      case (a: SimpleStatic, b: SimpleStatic)       => a.segment.compare(b.segment)
-      case (a: SimpleStatic, b: SimplePathParam)    => -1
-      case (a: SimplePathParam, b: SimpleStatic)    => 1
-      case (a: SimplePathParam, b: SimplePathParam) => a.name.compare(b.name)
-    }
-}
-case class SimpleStatic(segment: String) extends SimpleLinx {
-  override def toString: String = segment
-}
-case class SimplePathParam(name: String) extends SimpleLinx {
-  override def toString: String = s"{$name}"
 }
