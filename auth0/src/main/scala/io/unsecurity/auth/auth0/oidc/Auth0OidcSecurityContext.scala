@@ -6,7 +6,7 @@ import java.net.URI
 import java.security.interfaces.RSAPublicKey
 
 import cats.data.EitherT
-import cats.effect.Sync
+import cats.effect.{Resource, Sync}
 import cats.syntax.functor._
 import com.auth0.client.auth.AuthAPI
 import com.auth0.jwk.JwkProvider
@@ -25,7 +25,7 @@ import scodec.bits.BitVector
 
 class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
                                               val sessionStore: SessionStore[F, OidcAuthenticatedUser],
-                                              client: Client[F],
+                                              client: Resource[F, Client[F]],
                                               lookup: OidcAuthenticatedUser => Option[U])
     extends SecurityContext[F, OidcAuthenticatedUser, U]
     with UnsecurityOps[F] {
@@ -180,8 +180,9 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
     ).withContentType(org.http4s.headers.`Content-Type`(jsonMediaType, Charset.`UTF-8`))
       .withEntity(payload)
 
-    val res =
-      client.fetch(req)(res => res.attemptAs[String].fold(_ => res.status -> None, s => res.status -> Some(s)))
+    val res = client.use { c =>
+      c.fetch(req)(res => res.attemptAs[String].fold(_ => res.status -> None, s => res.status -> Some(s)))
+    }
 
     EitherT(
       res
