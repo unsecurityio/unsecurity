@@ -62,10 +62,6 @@ trait UnsecurityOps[F[_]] extends DirectiveOps[F] with RequestDirectives[F] {
     }
   }
 
-  implicit def convertAtoDirFA[F[_] : Monad, A](a: A): Directive[F, A] = {
-    Directive.success[F,A](a)
-  }
-
   def asUri(opt: Option[String])(implicit syncEvidence: Sync[F]): Directive[F, Option[URI]] = {
     try {
       opt match {

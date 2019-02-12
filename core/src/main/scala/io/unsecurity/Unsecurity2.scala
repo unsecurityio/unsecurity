@@ -86,7 +86,7 @@ abstract class Unsecurity2[F[_]: Sync, RU, U] extends AbstractUnsecurity2[F, U] 
       key = endpoint.path.toSimple.reverse,
       pathMatcher = createPathMatcher(endpoint.path).asInstanceOf[PathMatcher[F, Any]],
       methodMap = Map(
-        endpoint.method -> { pp: P =>
+        endpoint.method -> { tup: TUP =>
           val checkXsrfOrNothing: Directive[F, String] =
             if (endpoint.method == Method.PUT ||
                 endpoint.method == Method.POST ||
@@ -103,7 +103,7 @@ abstract class Unsecurity2[F[_]: Sync, RU, U] extends AbstractUnsecurity2[F, U] 
             rawUser <- sc.authenticate
             user    <- sc.transformUser(rawUser).toSuccess(Directive.error(Response[F](Status.Unauthorized)))
           } yield {
-            (pp, r, user)
+            (tup, r, user)
           }
         }.asInstanceOf[Any => Directive[F, (TUP, R, U)]]
       ),

@@ -2,7 +2,7 @@ disablePlugins(aether.AetherPlugin)
 enablePlugins(aether.SignedAetherPlugin)
 
 overridePublishSignedSettings
-overridePublishLocalSettings
+//overridePublishLocalSettings
 
 ThisBuild / scmInfo := Some(
   ScmInfo(
