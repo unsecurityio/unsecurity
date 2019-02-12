@@ -117,12 +117,12 @@ abstract class Unsecurity2[F[_]: Sync, RU, U] extends AbstractUnsecurity2[F, U] 
       key = endpoint.path.toSimple.reverse,
       pathMatcher = createPathMatcher[F, P, TUP](endpoint.path).asInstanceOf[PathMatcher[F, Any]],
       methodMap = Map(
-        endpoint.method -> { pp: P =>
+        endpoint.method -> { tup: TUP =>
           implicit val entityDecoder: EntityDecoder[F, R] = endpoint.accepts
           for {
             r <- request.bodyAs[F, R]
           } yield {
-            (pp, r)
+            (tup, r)
           }
         }.asInstanceOf[Any => Directive[F, (TUP, R)]]
       ),
@@ -141,8 +141,7 @@ abstract class Unsecurity2[F[_]: Sync, RU, U] extends AbstractUnsecurity2[F, U] 
         key = key,
         pathMatcher = pathMatcher,
         methodMap = methodMap.mapValues {
-          //noinspection ScalaUnnecessaryParentheses
-          a2dc: (Any => Directive[F, C]) =>
+          a2dc =>
             a2dc.andThen { dc =>
               for {
                 c <- dc
