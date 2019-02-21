@@ -2,10 +2,28 @@ package io.unsecurity.auth
 package auth0
 package oidc
 
+import java.net.{URLDecoder, URLEncoder}
+
 import java.time.OffsetDateTime
 
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
+
+case class UserId(asString: String) {
+  def urlEncode: String = URLEncoder.encode(asString, "utf8")
+}
+object UserId {
+  def urlDecode(url: String): UserId =
+    UserId(URLDecoder.decode(url, "utf8"))
+
+  implicit val userIdEncoder: Encoder[UserId] = Encoder { userId =>
+    userId.asString.asJson
+  }
+
+  implicit val userIdDecoder: Decoder[UserId] = Decoder { c =>
+    c.as[String].map(id => UserId(id))
+  }
+}
 
 case class OidcAuthenticatedUser(nickname: Option[String],
                                  name: String,
@@ -19,7 +37,6 @@ case class OidcAuthenticatedUser(nickname: Option[String],
                                  issuedAt: Long,
                                  expirationTime: Long,
                                  userId: UserId)
-  extends AuthenticatedUserWithMeta
 
 object OidcAuthenticatedUser {
   implicit val authenticatedUserEncoder: Encoder[OidcAuthenticatedUser] = Encoder { au =>
