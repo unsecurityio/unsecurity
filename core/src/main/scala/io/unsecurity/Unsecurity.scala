@@ -1,7 +1,6 @@
 package io
 package unsecurity
 
-import cats.Monad
 import cats.effect.Sync
 import io.unsecurity.hlinx.HLinx.HLinx
 import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx}
@@ -59,28 +58,6 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
         methodMap = methodMap,
         entityEncoder = entityEncoder
       )
-
-    /*
-        override def run(f: C => Directive[F, W]): Complete = {
-          MyComplete(
-            key = key,
-            pathMatcher = pathMatcher,
-            methodMap = methodMap.mapValues(
-              a2dc =>
-                a2dc.andThen(
-                  dc =>
-                    for {
-                      c <- dc
-                      w <- f(c)
-                    } yield {
-                      Response[F]()
-                        .withEntity(w)(entityEncoder)
-                  }
-              )
-            )
-          )
-        }
-    */
   }
 
   override def secure[P <: HList, R, W, TUP](endpoint: Endpoint[P, R, W])(

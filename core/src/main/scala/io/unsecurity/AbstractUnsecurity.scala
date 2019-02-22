@@ -14,10 +14,17 @@ import scala.Ordering.Implicits._
 
 abstract class AbstractUnsecurity[F[_]: Sync, U] {
 
-  case class Endpoint[P <: HList, R, W](method: Method,
-                                        path: HLinx[P],
-                                        produces: EntityEncoder[F, W] = Produces.Nothing,
-                                        accepts: EntityDecoder[F, R] = Accepts.EmptyBody)
+  case class Endpoint[P <: HList, R, W](method: Method, path: HLinx[P], accepts: EntityDecoder[F, R], produces: EntityEncoder[F, W])
+  object Endpoint {
+    def apply[P <: HList, R, W](method: Method, path: HLinx[P]) =
+      new Endpoint[P, Unit, Unit](method, path, Accepts.EmptyBody, Produces.Nothing)
+
+    def apply[P <: HList, W](method: Method, path: HLinx[P], produces: EntityEncoder[F, W]) =
+      new Endpoint[P, Unit, W](method, path, Accepts.EmptyBody, produces)
+
+    def apply[P <: HList, R](method: Method, path: HLinx[P], accepts: EntityDecoder[F, R]) =
+      new Endpoint[P, R, Unit](method, path, accepts, Produces.Nothing)
+  }
 
   def log: Logger
 
