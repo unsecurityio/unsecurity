@@ -18,14 +18,14 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import scala.util.Try
 
-class Auth0M2MSecurityContext[F[_]: Sync](lookup: OauthAuthenticatedApplication => Option[OauthAuthenticatedApplication],
-                                          authDomain: String,
-                                          audience: String,
-                                          jwkProvider: JwkProvider)
-    extends SecurityContext[F, OauthAuthenticatedApplication, OauthAuthenticatedApplication]
+class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplication => Option[U],
+                                             authDomain: String,
+                                             audience: String,
+                                             jwkProvider: JwkProvider)
+    extends SecurityContext[F, OauthAuthenticatedApplication, U]
     with UnsecurityOps[F] {
 
-  val log: Logger = LoggerFactory.getLogger(classOf[Auth0M2MSecurityContext[F]])
+  val log: Logger = LoggerFactory.getLogger(classOf[Auth0M2MSecurityContext[F, U]])
 
   override def authenticate: Directive[F, OauthAuthenticatedApplication] = {
     for {
@@ -39,9 +39,7 @@ class Auth0M2MSecurityContext[F[_]: Sync](lookup: OauthAuthenticatedApplication 
       jwtToken         <- jwtToken(verifiedToken)
       _                <- checkExpiration(jwtToken)
       userProfile      <- extractProfile(jwtToken)
-//      knownProfile     <- verifyKnownProfile(userProfile)
     } yield {
-//      knownProfile
       userProfile
     }
   }
@@ -54,12 +52,12 @@ class Auth0M2MSecurityContext[F[_]: Sync](lookup: OauthAuthenticatedApplication 
     */
   override def xsrfCheck: Directive[F, String] = Directive.success("")
 
-  override def transformUser(rawUser: OauthAuthenticatedApplication): Option[OauthAuthenticatedApplication] = {
+  override def transformUser(rawUser: OauthAuthenticatedApplication): Option[U] = {
     lookup(rawUser)
   }
 
   private def requestAuthToken: Directive[F, String] = {
-    for { //TODO: Check at det er et Bearer. Ta det som er etter Bearer da.
+    for {
       authHeader <- requestHeader("authorization")
       token <- authHeader
                 .map(header => header.value.split(" ").last)
@@ -145,23 +143,9 @@ class Auth0M2MSecurityContext[F[_]: Sync](lookup: OauthAuthenticatedApplication 
     Directive.success(
       OauthAuthenticatedApplication(
         ApplicationId(jwtToken.sub),
-        None,
         jwtToken.scopes
       ))
   }
-
-  /*
-  private def verifyKnownProfile(
-      profile: OauthAuthenticatedApplication): Directive[F, OauthAuthenticatedApplication] = {
-    lookup(profile.applicationId)
-      .toSuccess { error =>
-        log.warn(error)
-        Unauthorized("Unknown application")
-      }
-      .map(name => profile.copy(name = Some(name)))
-  }
- */
-
 }
 
 case class JwtToken(iss: String, sub: String, aud: String, exp: Long, iat: Long, scopes: List[String])

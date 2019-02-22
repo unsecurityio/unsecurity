@@ -20,7 +20,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
 
   case class MySecured[C, W](
       key: List[SimpleLinx],
-      pathMatcher: PathMatcher[F, Any],
+      pathMatcher: PathMatcher[Any],
       methodMap: Map[Method, Any => Directive[F, C]],
       entityEncoder: EntityEncoder[F, W]
   ) extends Secured[C, W] {
@@ -87,7 +87,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       implicit revGen: ReversedTupled.Aux[P, TUP]): Secured[(TUP, R, U), W] = {
     MySecured[(TUP, R, U), W](
       key = endpoint.path.toSimple.reverse,
-      pathMatcher = createPathMatcher(endpoint.path).asInstanceOf[PathMatcher[F, Any]],
+      pathMatcher = createPathMatcher(endpoint.path).asInstanceOf[PathMatcher[Any]],
       methodMap = Map(
         endpoint.method -> { tup: TUP =>
           val checkXsrfOrNothing: Directive[F, String] =
@@ -118,7 +118,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       implicit revGen: ReversedTupled.Aux[P, TUP]): Completable[(TUP, R), W] = {
     MyCompletable[(TUP, R), W](
       key = endpoint.path.toSimple.reverse,
-      pathMatcher = createPathMatcher[F, P, TUP](endpoint.path).asInstanceOf[PathMatcher[F, Any]],
+      pathMatcher = createPathMatcher[P, TUP](endpoint.path).asInstanceOf[PathMatcher[Any]],
       methodMap = Map(
         endpoint.method -> { tup: TUP =>
           implicit val entityDecoder: EntityDecoder[F, R] = endpoint.accepts
@@ -135,7 +135,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
 
   case class MyCompletable[C, W](
       key: List[SimpleLinx],
-      pathMatcher: PathMatcher[F, Any],
+      pathMatcher: PathMatcher[Any],
       methodMap: Map[Method, Any => Directive[F, C]],
       entityEncoder: EntityEncoder[F, W]
   ) extends Completable[C, W] {
@@ -174,7 +174,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
 
   case class MyComplete(
       key: List[SimpleLinx],
-      pathMatcher: PathMatcher[F, Any],
+      pathMatcher: PathMatcher[Any],
       methodMap: Map[Method, Any => ResponseDirective[F]]
   ) extends Complete {
     override def merge(other: AbstractUnsecurity[F, U]#Complete): AbstractUnsecurity[F, U]#Complete = {
@@ -182,7 +182,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
         methodMap = this.methodMap ++ other.methodMap
       )
     }
-    override def compile: PathMatcher[F, Response[F]] = {
+    override def compile: PathMatcher[Response[F]] = {
       def allow(methods: List[Method]): Allow = Allow(methods.head, methods.tail: _*)
 
       pathMatcher.andThen { pathParamsDir =>
@@ -198,8 +198,8 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
     }
   }
 
-  def createPathMatcher[F[_]: Monad, PathParams <: HList, TUP](route: HLinx[PathParams])(
-      implicit revTup: ReversedTupled.Aux[PathParams, TUP]): PathMatcher[F, TUP] =
+  def createPathMatcher[PathParams <: HList, TUP](route: HLinx[PathParams])(
+      implicit revTup: ReversedTupled.Aux[PathParams, TUP]): PathMatcher[TUP] =
     new PartialFunction[String, Directive[F, TUP]] {
       override def isDefinedAt(x: String): Boolean = {
         if (route.capture(x).isDefined) {

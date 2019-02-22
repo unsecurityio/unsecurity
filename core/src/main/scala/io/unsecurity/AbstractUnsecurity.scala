@@ -6,9 +6,9 @@ import io.unsecurity.hlinx.HLinx._
 import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx}
 import no.scalabin.http4s.directives.Conditional.ResponseDirective
 import no.scalabin.http4s.directives.{Directive, Plan}
-import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Method, Response}
+import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Method, Response, ServerSentEvent}
 import org.slf4j.Logger
-import shapeless.{Generic, HList, HNil}
+import shapeless.HList
 
 import scala.Ordering.Implicits._
 
@@ -21,7 +21,7 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
 
   def log: Logger
 
-  type PathMatcher[F[_], A] = PartialFunction[String, Directive[F, A]]
+  type PathMatcher[A] = PartialFunction[String, Directive[F, A]]
 
   def secure[P <: HList, R, W, TUP](endpoint: Endpoint[P, R, W])(
       implicit revTup: ReversedTupled.Aux[P, TUP]): Secured[(TUP, R, U), W]
@@ -47,6 +47,9 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
     def json[W: Encoder]: EntityEncoder[F, W] =
       org.http4s.circe.jsonEncoderOf[F, W]
 
+    def serverSentEvents: EntityEncoder[F, fs2.Stream[F, ServerSentEvent]] =
+      implicitly[EntityEncoder[F, fs2.Stream[F, ServerSentEvent]]]
+
     def raw: EntityEncoder[F, String] =
       implicitly[EntityEncoder[F, String]]
   }
@@ -66,7 +69,7 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
     def key: List[SimpleLinx]
     def merge(other: AbstractUnsecurity[F, U]#Complete): AbstractUnsecurity[F, U]#Complete
     def methodMap: Map[Method, Any => ResponseDirective[F]]
-    def compile: PathMatcher[F, Response[F]]
+    def compile: PathMatcher[Response[F]]
   }
 
   def toHttpRoutes(endpoints: List[AbstractUnsecurity[F, U]#Complete]): HttpRoutes[F] = {
@@ -93,10 +96,10 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
       )
     }
 
-    val compiledRoutes: List[PathMatcher[F, Response[F]]] =
+    val compiledRoutes: List[PathMatcher[Response[F]]] =
       mergedRoutes.map(_.compile)
 
-    val reducedRoutes: PathMatcher[F, Response[F]] = compiledRoutes.reduce(_ orElse _)
+    val reducedRoutes: PathMatcher[Response[F]] = compiledRoutes.reduce(_ orElse _)
 
     val PathMapping = Plan[F]().PathMapping
 
