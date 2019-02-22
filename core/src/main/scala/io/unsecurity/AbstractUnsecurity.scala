@@ -52,13 +52,14 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
   }
 
   trait Completable[C, W] {
-    def run(f: C => Directive[F, W]): Complete
     def resolve[C2](f: C => C2): Completable[C2, W]
+    def run(f: C => Directive[F, W]): Complete
   }
 
-  trait Secured[C, W] extends Completable[C, W] {
+  trait Secured[C, W] {
+    def resolve[C2](f: C => C2): Secured[C2, W]
     def authorization(predicate: C => Boolean): Completable[C, W]
-    override def resolve[C2](f: C => C2): Secured[C2, W]
+    def noAuthorization: Completable[C, W]
   }
 
   trait Complete {

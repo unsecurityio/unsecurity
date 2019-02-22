@@ -1,7 +1,9 @@
 package io.unsecurity.hlinx
 import scala.util.Try
 
-trait PathParamConverter[A] extends ParamConverter[A]
+trait PathParamConverter[A] {
+  def convert(s: String): Either[String, A]
+}
 object PathParamConverter {
   def apply[A: PathParamConverter]: PathParamConverter[A] = implicitly[PathParamConverter[A]]
 
