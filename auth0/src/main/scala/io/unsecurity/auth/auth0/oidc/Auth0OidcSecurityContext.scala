@@ -102,11 +102,6 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
     }
   }
 
-  override def rateLimitCheck(authenticatedIdentity: OidcAuthenticatedUser): Directive[F, Int] = {
-    log.trace("rateLimit")
-    ???
-  }
-
   def userSession(cookie: RequestCookie): Directive[F, OidcAuthenticatedUser] = {
     Directive.getOrElseF(
       sessionStore.getSession(cookie.content),
