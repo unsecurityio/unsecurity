@@ -6,7 +6,7 @@ import java.net.URI
 
 import cats.effect.Sync
 import com.auth0.jwk.JwkProvider
-import io.unsecurity.Unsecurity2
+import io.unsecurity.Unsecurity
 import io.unsecurity.hlinx.HLinx.HLinx
 import no.scalabin.http4s.directives.Directive
 import org.http4s.{Method, Response, ResponseCookie}
@@ -16,7 +16,7 @@ import shapeless.HNil
 class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HLinx[HNil],
                                          val sc: Auth0OidcSecurityContext[F, U],
                                          jwkProvider: JwkProvider)
-    extends Unsecurity2[F, OidcAuthenticatedUser, U] {
+    extends Unsecurity[F, OidcAuthenticatedUser, U] {
 
   override val log: Logger = LoggerFactory.getLogger(classOf[Auth0OidcUnsecurity[F, U]])
 

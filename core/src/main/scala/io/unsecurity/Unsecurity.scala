@@ -12,9 +12,9 @@ import org.http4s.{EntityDecoder, EntityEncoder, Method, Response, Status}
 import org.slf4j.{Logger, LoggerFactory}
 import shapeless.HList
 
-abstract class Unsecurity2[F[_]: Sync, RU, U] extends AbstractUnsecurity2[F, U] with UnsecurityOps[F] {
+abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] with UnsecurityOps[F] {
 
-  override val log: Logger = LoggerFactory.getLogger(classOf[Unsecurity2[F, RU, U]])
+  override val log: Logger = LoggerFactory.getLogger(classOf[Unsecurity[F, RU, U]])
 
   def sc: SecurityContext[F, RU, U]
 
@@ -167,7 +167,7 @@ abstract class Unsecurity2[F[_]: Sync, RU, U] extends AbstractUnsecurity2[F, U] 
       pathMatcher: PathMatcher[F, Any],
       methodMap: Map[Method, Any => ResponseDirective[F]]
   ) extends Complete {
-    override def merge(other: AbstractUnsecurity2[F, U]#Complete): AbstractUnsecurity2[F, U]#Complete = {
+    override def merge(other: AbstractUnsecurity[F, U]#Complete): AbstractUnsecurity[F, U]#Complete = {
       this.copy(
         methodMap = this.methodMap ++ other.methodMap
       )
