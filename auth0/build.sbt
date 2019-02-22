@@ -10,8 +10,8 @@ scalacOptions := Seq(
 )
 
 libraryDependencies := Seq(
-  "com.auth0"            % "auth0"            % "1.5.1",
-  "com.auth0"            % "jwks-rsa"         % "0.3.0",
-  "com.auth0"            % "java-jwt"         % "3.3.0",
+  "com.auth0"            % "auth0"            % "1.10.0",
+  "com.auth0"            % "jwks-rsa"         % "0.7.0",
+  "com.auth0"            % "java-jwt"         % "3.7.0",
   "org.scalatest"        %% "scalatest"       % "3.0.5" % Test
 )
