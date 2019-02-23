@@ -37,7 +37,7 @@ object Main extends IOApp {
         Produces.json[String]
       )
     ).run {
-      case ((collide), _) =>
+      case collide =>
         Directive.success(
           s"Hello, $collide"
         )
@@ -52,7 +52,7 @@ object Main extends IOApp {
         Root / 'param1.as[String] / 'param2.as[Int],
         Produces.json[String]
       )
-    ).resolve { case ((s, i), _) => StringAndInt(s, i) }
+    ).resolve { case (s, i) => StringAndInt(s, i) }
       .run { sai =>
         Directive.success(sai.toString)
       }

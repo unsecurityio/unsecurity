@@ -3,18 +3,22 @@ package io.unsecurity
 import cats.effect.Sync
 import io.circe.{Decoder, Encoder}
 import io.unsecurity.hlinx.HLinx._
-import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx}
+import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, UnwrapTuple1}
 import no.scalabin.http4s.directives.Conditional.ResponseDirective
 import no.scalabin.http4s.directives.{Directive, Plan}
 import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Method, Response, ServerSentEvent}
 import org.slf4j.Logger
 import shapeless.HList
+import shapeless.ops.tuple.{FilterNot, Prepend}
 
 import scala.Ordering.Implicits._
 
 abstract class AbstractUnsecurity[F[_]: Sync, U] {
 
-  case class Endpoint[P <: HList, R, W](method: Method, path: HLinx[P], accepts: EntityDecoder[F, R], produces: EntityEncoder[F, W])
+  case class Endpoint[P <: HList, R, W](method: Method,
+                                        path: HLinx[P],
+                                        accepts: EntityDecoder[F, R],
+                                        produces: EntityEncoder[F, W])
   object Endpoint {
     def apply[P <: HList, R, W](method: Method, path: HLinx[P]) =
       new Endpoint[P, Unit, Unit](method, path, Accepts.EmptyBody, Produces.Nothing)
@@ -30,11 +34,19 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
 
   type PathMatcher[A] = PartialFunction[String, Directive[F, A]]
 
-  def secure[P <: HList, R, W, TUP](endpoint: Endpoint[P, R, W])(
-      implicit revTup: ReversedTupled.Aux[P, TUP]): Secured[(TUP, R, U), W]
+  def secure[P <: HList, R, W, TUP, TUP2, TUP3, TUP4](endpoint: Endpoint[P, R, W])(
+      implicit revTup: ReversedTupled.Aux[P, TUP],
+      append: Prepend.Aux[TUP, (R, U), TUP2],
+      filterNot: FilterNot.Aux[TUP2, Unit, TUP3],
+      unwrapTup1: UnwrapTuple1.Aux[TUP3, TUP4]
+  ): Secured[TUP4, W]
 
-  def unsecure[P <: HList, R, W, TUP](endpoint: Endpoint[P, R, W])(
-      implicit revTup: ReversedTupled.Aux[P, TUP]): Completable[(TUP, R), W]
+  def unsecure[P <: HList, R, W, TUP, TUP2, TUP3, TUP4](endpoint: Endpoint[P, R, W])(
+      implicit revTup: ReversedTupled.Aux[P, TUP],
+      append: Prepend.Aux[TUP, Tuple1[R], TUP2],
+      filterNot: FilterNot.Aux[TUP2, Unit, TUP3],
+      unwrapTup1: UnwrapTuple1.Aux[TUP3, TUP4]
+  ): Completable[TUP4, W]
 
   object Accepts {
     def EmptyBody: EntityDecoder[F, Unit] =

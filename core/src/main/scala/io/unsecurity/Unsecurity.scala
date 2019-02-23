@@ -3,13 +3,14 @@ package unsecurity
 
 import cats.effect.Sync
 import io.unsecurity.hlinx.HLinx.HLinx
-import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx}
+import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, UnwrapTuple1}
 import no.scalabin.http4s.directives.Conditional.ResponseDirective
 import no.scalabin.http4s.directives.Directive
 import org.http4s.headers.Allow
 import org.http4s.{EntityDecoder, EntityEncoder, Method, Response, Status}
 import org.slf4j.{Logger, LoggerFactory}
 import shapeless.HList
+import shapeless.ops.tuple.{FilterNot, Prepend}
 
 abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] with UnsecurityOps[F] {
 
@@ -60,9 +61,13 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       )
   }
 
-  override def secure[P <: HList, R, W, TUP](endpoint: Endpoint[P, R, W])(
-      implicit revGen: ReversedTupled.Aux[P, TUP]): Secured[(TUP, R, U), W] = {
-    MySecured[(TUP, R, U), W](
+  override def secure[P <: HList, R, W, TUP, TUP2, TUP3, TUP4](endpoint: Endpoint[P, R, W])(
+      implicit revGen: ReversedTupled.Aux[P, TUP],
+      append: Prepend.Aux[TUP, (R, U), TUP2],
+      filterNot: FilterNot.Aux[TUP2, Unit, TUP3],
+      unwrapTup1: UnwrapTuple1.Aux[TUP3, TUP4]
+  ): Secured[TUP4, W] = {
+    MySecured[TUP4, W](
       key = endpoint.path.toSimple.reverse,
       pathMatcher = createPathMatcher(endpoint.path).asInstanceOf[PathMatcher[Any]],
       methodMap = Map(
@@ -83,17 +88,21 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
             rawUser <- sc.authenticate
             user    <- sc.transformUser(rawUser).toSuccess(Directive.error(Response[F](Status.Unauthorized)))
           } yield {
-            (tup, r, user)
+            unwrapTup1(filterNot(append(tup, (r, user))))
           }
-        }.asInstanceOf[Any => Directive[F, (TUP, R, U)]]
+        }.asInstanceOf[Any => Directive[F, TUP4]]
       ),
       entityEncoder = endpoint.produces
     )
   }
 
-  override def unsecure[P <: HList, R, W, TUP](endpoint: Endpoint[P, R, W])(
-      implicit revGen: ReversedTupled.Aux[P, TUP]): Completable[(TUP, R), W] = {
-    MyCompletable[(TUP, R), W](
+  override def unsecure[P <: HList, R, W, TUP, TUP2, TUP3, TUP4](endpoint: Endpoint[P, R, W])(
+      implicit revGen: ReversedTupled.Aux[P, TUP],
+      append: Prepend.Aux[TUP, Tuple1[R], TUP2],
+      filterNot: FilterNot.Aux[TUP2, Unit, TUP3],
+      unwrapTup1: UnwrapTuple1.Aux[TUP3, TUP4]
+  ): Completable[TUP4, W] = {
+    MyCompletable[TUP4, W](
       key = endpoint.path.toSimple.reverse,
       pathMatcher = createPathMatcher[P, TUP](endpoint.path).asInstanceOf[PathMatcher[Any]],
       methodMap = Map(
@@ -102,9 +111,9 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
           for {
             r <- request.bodyAs[F, R]
           } yield {
-            (tup, r)
+            unwrapTup1(filterNot(append(tup, Tuple1(r))))
           }
-        }.asInstanceOf[Any => Directive[F, (TUP, R)]]
+        }.asInstanceOf[Any => Directive[F, TUP4]]
       ),
       entityEncoder = endpoint.produces
     )
@@ -120,17 +129,16 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       MyComplete(
         key = key,
         pathMatcher = pathMatcher,
-        methodMap = methodMap.mapValues {
-          a2dc =>
-            a2dc.andThen { dc =>
-              for {
-                c <- dc
-                w <- f(c)
-              } yield {
-                Response[F]()
-                  .withEntity(w)(entityEncoder)
-              }
+        methodMap = methodMap.mapValues { a2dc =>
+          a2dc.andThen { dc =>
+            for {
+              c <- dc
+              w <- f(c)
+            } yield {
+              Response[F]()
+                .withEntity(w)(entityEncoder)
             }
+          }
         }
       )
     }
