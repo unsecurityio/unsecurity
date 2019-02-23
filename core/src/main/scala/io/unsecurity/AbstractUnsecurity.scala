@@ -3,13 +3,12 @@ package io.unsecurity
 import cats.effect.Sync
 import io.circe.{Decoder, Encoder}
 import io.unsecurity.hlinx.HLinx._
-import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams, UnwrapTuple1}
+import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}
 import no.scalabin.http4s.directives.Conditional.ResponseDirective
 import no.scalabin.http4s.directives.{Directive, Plan}
 import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Method, Response, ServerSentEvent}
 import org.slf4j.Logger
 import shapeless.HList
-import shapeless.ops.tuple.{FilterNot, Prepend}
 
 import scala.Ordering.Implicits._
 
