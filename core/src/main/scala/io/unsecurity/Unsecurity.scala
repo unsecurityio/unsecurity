@@ -21,7 +21,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       key: List[SimpleLinx],
       pathMatcher: PathMatcher[Any],
       methodMap: Map[Method, Any => Directive[F, C]],
-      entityEncoder: EntityEncoder[F, W]
+      entityEncoder: W => ResponseDirective[F]
   ) extends Secured[C, W] {
     override def authorization(predicate: C => Boolean): Completable[C, W] = {
       MyCompletable(
@@ -118,9 +118,9 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       key: List[SimpleLinx],
       pathMatcher: PathMatcher[Any],
       methodMap: Map[Method, Any => Directive[F, C]],
-      entityEncoder: EntityEncoder[F, W]
+      entityEncoder: W => ResponseDirective[F]
   ) extends Completable[C, W] {
-    override def run(f: C => Directive[F, W]): Complete = {
+    override def run(f: C => W): Complete = {
       MyComplete(
         key = key,
         pathMatcher = pathMatcher,
@@ -128,10 +128,9 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
           a2dc.andThen { dc =>
             for {
               c <- dc
-              w <- f(c)
+              w <- entityEncoder(f(c))
             } yield {
-              Response[F]()
-                .withEntity(w)(entityEncoder)
+              w
             }
           }
         }
@@ -165,10 +164,10 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
     override def compile: PathMatcher[Response[F]] = {
       def allow(methods: List[Method]): Allow = Allow(methods.head, methods.tail: _*)
 
-      pathMatcher.andThen { pathParamsDir =>
+      pathMatcher.andThen { pathParamsDirective =>
         for {
           req        <- Directive.request
-          pathParams <- pathParamsDir
+          pathParams <- pathParamsDirective
           res <- if (methodMap.isDefinedAt(req.method)) methodMap(req.method)(pathParams)
                 else Directive.error(Response[F](Status.MethodNotAllowed).putHeaders(allow(methodMap.keySet.toList)))
         } yield {

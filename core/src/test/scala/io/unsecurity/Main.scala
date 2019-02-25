@@ -2,23 +2,22 @@ package io.unsecurity
 
 import cats.effect.{ExitCode, IO, IOApp}
 import io.unsecurity.hlinx.HLinx._
-import no.scalabin.http4s.directives.Directive
 import org.http4s.Method
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object Main extends IOApp {
-  val unsecurity2: Unsecurity[IO, String, String] = new Unsecurity[IO, String, String] {
+  val unsecurity: Unsecurity[IO, String, String] = new Unsecurity[IO, String, String] {
     override def sc: SecurityContext[IO, String, String] = ???
   }
-  import unsecurity2._
+  import unsecurity._
 
   val server: Server[IO] = Server[IO](
     port = 8088,
     host = "0.0.0.0"
   )
 
-  val helloWorld: unsecurity2.Complete =
+  val helloWorld: unsecurity.Complete =
     unsecure(
       Endpoint(
         method = Method.GET,
@@ -26,7 +25,7 @@ object Main extends IOApp {
         produces = Produces.json[String]
       )
     ).run { _ =>
-      Directive.success("Hello world")
+      "Hello world"
     }
 
   val collidingHello =
@@ -38,9 +37,7 @@ object Main extends IOApp {
       )
     ).run {
       case collide =>
-        Directive.success(
-          s"Hello, $collide"
-        )
+        s"Hello, $collide"
     }
 
   case class StringAndInt(s: String, i: Int)
@@ -54,7 +51,7 @@ object Main extends IOApp {
       )
     ).resolve { case (s, i) => StringAndInt(s, i) }
       .run { sai =>
-        Directive.success(sai.toString)
+        sai.toString
       }
 
   override def run(args: List[String]): IO[ExitCode] = {

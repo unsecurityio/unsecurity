@@ -24,7 +24,8 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HLinx[HNil],
     unsecure(
       Endpoint(
         method = Method.GET,
-        path = baseUrl / "login"
+        path = baseUrl / "login",
+        Produces.Directive.Nothing
       )
     ).run(
       _ =>
@@ -51,7 +52,8 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HLinx[HNil],
     unsecure(
       Endpoint(
         method = Method.GET,
-        path = baseUrl / "callback"
+        path = baseUrl / "callback",
+        Produces.Directive.Nothing
       )
     ).run(
       _ =>
@@ -97,7 +99,8 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HLinx[HNil],
     unsecure(
       Endpoint(
         method = Method.GET,
-        path = baseUrl / "logout"
+        path = baseUrl / "logout",
+        Produces.Directive.Nothing
       )
     ).run(
       _ =>
