@@ -1,12 +1,14 @@
 package io.unsecurity
 
 import cats.effect.Sync
+import fs2.Stream
 import io.circe.{Decoder, Encoder}
 import io.unsecurity.hlinx.HLinx._
 import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}
 import no.scalabin.http4s.directives.Conditional.ResponseDirective
 import no.scalabin.http4s.directives.{Directive, Plan}
-import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, MediaType, Method, Response, ServerSentEvent, Status}
+import org.http4s.EntityEncoder.entityBodyEncoder
+import org.http4s.{EntityDecoder, EntityEncoder, EventStream, HttpRoutes, MediaType, Method, Response, ServerSentEvent, Status}
 import org.http4s.headers.`Content-Type`
 import org.slf4j.Logger
 import shapeless.HList
@@ -21,13 +23,13 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
                                         produces: W => ResponseDirective[F])
   object Endpoint {
     def apply[P <: HList, R, W](method: Method, path: HLinx[P]) =
-      new Endpoint[P, Unit, Directive[F, Unit]](method, path, Accepts.EmptyBody, Produces.Directive.Nothing)
+      new Endpoint[P, Unit, Directive[F, Unit]](method, path, Accepts.EmptyBody, Produces.Directive.EmptyBody)
 
     def apply[P <: HList, W](method: Method, path: HLinx[P], produces: W => ResponseDirective[F]) =
       new Endpoint[P, Unit, W](method, path, Accepts.EmptyBody, produces)
 
     def apply[P <: HList, R](method: Method, path: HLinx[P], accepts: EntityDecoder[F, R]) =
-      new Endpoint[P, R, Directive[F, Unit]](method, path, accepts, Produces.Directive.Nothing)
+      new Endpoint[P, R, Directive[F, Unit]](method, path, accepts, Produces.Directive.EmptyBody)
   }
 
   def log: Logger
@@ -56,27 +58,8 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
   }
 
   object Produces {
-    object Directive {
-      def json[E: Encoder]: Directive[F, E] => ResponseDirective[F] = { eDir: Directive[F, E] =>
-        eDir.map(
-          e =>
-            Response[F]()
-              .withStatus(Status.Ok)
-              .withContentType(`Content-Type`(MediaType.application.json))
-              .withEntity(e)(org.http4s.circe.jsonEncoderOf[F, E]))
 
-      }
-
-      val Nothing: Directive[F, Unit] => ResponseDirective[F] = { unitDir =>
-        unitDir.map { unit: Unit =>
-          Response[F]()
-            .withStatus(Status.Ok)
-            .withEntity(unit)
-        }
-      }
-    }
-
-    def Nothing: Unit => ResponseDirective[F] = { unit: Unit =>
+    def EmptyBody: Unit => ResponseDirective[F] = { unit: Unit =>
       no.scalabin.http4s.directives.Directive.success(Response[F]().withEntity(unit))
     }
 
@@ -93,9 +76,43 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
     def serverSentEvents: EntityEncoder[F, fs2.Stream[F, ServerSentEvent]] =
       implicitly[EntityEncoder[F, fs2.Stream[F, ServerSentEvent]]]
 
+    def stream[W: Encoder]: Stream[F, W] => ResponseDirective[F] = {
+      w =>
+
+
+
+//      val entityEncoder: EntityEncoder[F, W] = org.http4s.circe.jsonEncoderOf[F, W]
+//
+//      val encoder: EntityEncoder[F, Stream[F, ServerSentEvent]] = entityBodyEncoder[F]
+//        .contramap[Stream[F, ServerSentEvent]] { _.through(ServerSentEvent.encoder) }
+//        .withContentType(`Content-Type`(MediaType.`text/event-stream`))
+
+      ???
+    }
+
     @deprecated
     def raw: EntityEncoder[F, String] =
       implicitly[EntityEncoder[F, String]]
+
+    object Directive {
+      def json[E: Encoder]: Directive[F, E] => ResponseDirective[F] = { eDir: Directive[F, E] =>
+        eDir.map(
+          e =>
+            Response[F]()
+              .withStatus(Status.Ok)
+              .withContentType(`Content-Type`(MediaType.application.json))
+              .withEntity(e)(org.http4s.circe.jsonEncoderOf[F, E]))
+
+      }
+
+      val EmptyBody: Directive[F, Unit] => ResponseDirective[F] = { unitDir =>
+        unitDir.map { unit: Unit =>
+          Response[F]()
+            .withStatus(Status.Ok)
+            .withEntity(unit)
+        }
+      }
+    }
   }
 
   trait Completable[C, W] {
