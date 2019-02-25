@@ -8,8 +8,8 @@ import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}
 import no.scalabin.http4s.directives.Conditional.ResponseDirective
 import no.scalabin.http4s.directives.{Directive, Plan}
 import org.http4s.EntityEncoder.entityBodyEncoder
-import org.http4s.{EntityDecoder, EntityEncoder, EventStream, HttpRoutes, MediaType, Method, Response, ServerSentEvent, Status}
 import org.http4s.headers.`Content-Type`
+import org.http4s.{EntityDecoder, HttpRoutes, MediaType, Method, Response, ServerSentEvent, Status}
 import org.slf4j.Logger
 import shapeless.HList
 
@@ -72,27 +72,28 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
             .withEntity(w)(org.http4s.circe.jsonEncoderOf[F, W])
       )
 
-    @deprecated
-    def serverSentEvents: EntityEncoder[F, fs2.Stream[F, ServerSentEvent]] =
-      implicitly[EntityEncoder[F, fs2.Stream[F, ServerSentEvent]]]
+    def jsonStream[W: Encoder]: Stream[F, W] => ResponseDirective[F] =
+      (s: Stream[F, W]) => {
+        val encoder                = org.http4s.circe.jsonEncoderOf[F, W]
+        val value: Stream[F, Byte] = s.flatMap(w => encoder.toEntity(w).body)
 
-    def stream[W: Encoder]: Stream[F, W] => ResponseDirective[F] = {
-      w =>
+        no.scalabin.http4s.directives.Directive.success(
+          Response[F]()
+            .withStatus(Status.Ok)
+            .withContentType(`Content-Type`(MediaType.application.json))
+            .withEntity(value)
+        )
+      }
 
-
-
-//      val entityEncoder: EntityEncoder[F, W] = org.http4s.circe.jsonEncoderOf[F, W]
-//
-//      val encoder: EntityEncoder[F, Stream[F, ServerSentEvent]] = entityBodyEncoder[F]
-//        .contramap[Stream[F, ServerSentEvent]] { _.through(ServerSentEvent.encoder) }
-//        .withContentType(`Content-Type`(MediaType.`text/event-stream`))
-
-      ???
-    }
-
-    @deprecated
-    def raw: EntityEncoder[F, String] =
-      implicitly[EntityEncoder[F, String]]
+    def serverSentEvents[W: Encoder]: Stream[F, ServerSentEvent] => ResponseDirective[F] =
+      s => {
+        no.scalabin.http4s.directives.Directive.success(
+          Response[F]()
+            .withStatus(Status.Ok)
+            .withContentType(`Content-Type`(MediaType.application.json))
+            .withEntity(s)
+        )
+      }
 
     object Directive {
       def json[E: Encoder]: Directive[F, E] => ResponseDirective[F] = { eDir: Directive[F, E] =>
