@@ -9,7 +9,7 @@ import no.scalabin.http4s.directives.Conditional.ResponseDirective
 import no.scalabin.http4s.directives.{Directive, Plan}
 import org.http4s.EntityEncoder.entityBodyEncoder
 import org.http4s.headers.`Content-Type`
-import org.http4s.{EntityDecoder, HttpRoutes, MediaType, Method, Response, ServerSentEvent, Status}
+import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, MediaType, Method, Response, Status}
 import org.slf4j.Logger
 import shapeless.HList
 
@@ -85,24 +85,26 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
         )
       }
 
-    def serverSentEvents[W: Encoder]: Stream[F, ServerSentEvent] => ResponseDirective[F] =
+    def stream[W](implicit encoder: EntityEncoder[F, Stream[F, W]]): Stream[F, W] => ResponseDirective[F] =
       s => {
         no.scalabin.http4s.directives.Directive.success(
           Response[F]()
             .withStatus(Status.Ok)
             .withContentType(`Content-Type`(MediaType.application.json))
-            .withEntity(s)
+            .withEntity(s)(encoder)
         )
       }
 
     object F {
       def json[W: Encoder]: F[W] => ResponseDirective[F] = f => {
-        no.scalabin.http4s.directives.Directive.liftF(f).map(
-          w =>
-            Response[F]()
-              .withStatus(Status.Ok)
-              .withContentType(`Content-Type`(MediaType.application.json))
-              .withEntity(w)(org.http4s.circe.jsonEncoderOf[F, W]))
+        no.scalabin.http4s.directives.Directive
+          .liftF(f)
+          .map(
+            w =>
+              Response[F]()
+                .withStatus(Status.Ok)
+                .withContentType(`Content-Type`(MediaType.application.json))
+                .withEntity(w)(org.http4s.circe.jsonEncoderOf[F, W]))
       }
     }
 
