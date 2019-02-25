@@ -95,6 +95,17 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
         )
       }
 
+    object F {
+      def json[W: Encoder]: F[W] => ResponseDirective[F] = f => {
+        no.scalabin.http4s.directives.Directive.liftF(f).map(
+          w =>
+            Response[F]()
+              .withStatus(Status.Ok)
+              .withContentType(`Content-Type`(MediaType.application.json))
+              .withEntity(w)(org.http4s.circe.jsonEncoderOf[F, W]))
+      }
+    }
+
     object Directive {
       def json[E: Encoder]: Directive[F, E] => ResponseDirective[F] = { eDir: Directive[F, E] =>
         eDir.map(
