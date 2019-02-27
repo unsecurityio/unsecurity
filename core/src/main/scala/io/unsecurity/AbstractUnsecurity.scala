@@ -20,7 +20,8 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
   case class Endpoint[P <: HList, R, W](method: Method,
                                         path: HLinx[P],
                                         accepts: EntityDecoder[F, R],
-                                        produces: W => ResponseDirective[F])
+                                        produces: W => ResponseDirective[F],
+                                        description: String = "")
   object Endpoint {
     def apply[P <: HList, R, W](method: Method, path: HLinx[P]) =
       new Endpoint[P, Unit, Directive[F, Unit]](method, path, Accepts.EmptyBody, Produces.Directive.EmptyBody)
@@ -30,6 +31,18 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
 
     def apply[P <: HList, R](method: Method, path: HLinx[P], accepts: EntityDecoder[F, R]) =
       new Endpoint[P, R, Directive[F, Unit]](method, path, accepts, Produces.Directive.EmptyBody)
+
+    def apply[P <: HList, R, W](desc: String, method: Method, path: HLinx[P]) =
+      new Endpoint[P, Unit, Directive[F, Unit]](method, path, Accepts.EmptyBody, Produces.Directive.EmptyBody, desc)
+
+    def apply[P <: HList, W](desc: String, method: Method, path: HLinx[P], produces: W => ResponseDirective[F]) =
+      new Endpoint[P, Unit, W](method, path, Accepts.EmptyBody, produces, desc)
+
+    def apply[P <: HList, R](desc: String, method: Method, path: HLinx[P], accepts: EntityDecoder[F, R]) =
+      new Endpoint[P, R, Directive[F, Unit]](method, path, accepts, Produces.Directive.EmptyBody, desc)
+
+    def apply[P <: HList, R, W](desc: String, method: Method, path: HLinx[P], accepts: EntityDecoder[F, R], produces: W => ResponseDirective[F]) =
+      new Endpoint[P, R, W](method, path, accepts, produces, desc)
   }
 
   def log: Logger
