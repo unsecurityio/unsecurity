@@ -23,12 +23,15 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
                                         produces: W => ResponseDirective[F],
                                         description: String = "")
   object Endpoint {
+    @deprecated("use apply[P <: HList, R, W](desc: String, method: Method, path: HLinx[P]) instead", "28/2 2019")
     def apply[P <: HList, R, W](method: Method, path: HLinx[P]) =
       new Endpoint[P, Unit, Directive[F, Unit]](method, path, Accepts.EmptyBody, Produces.Directive.EmptyBody)
 
+    @deprecated("use apply[P <: HList, R, W](desc: String, method: Method, path: HLinx[P], produces: W => ResponseDirective[F]) instead", "28/2 2019")
     def apply[P <: HList, W](method: Method, path: HLinx[P], produces: W => ResponseDirective[F]) =
       new Endpoint[P, Unit, W](method, path, Accepts.EmptyBody, produces)
 
+    @deprecated("use apply[P <: HList, R](desc: String, method: Method, path: HLinx[P], accepts: EntityDecoder[F, R]) instead", "28/2 2019")
     def apply[P <: HList, R](method: Method, path: HLinx[P], accepts: EntityDecoder[F, R]) =
       new Endpoint[P, R, Directive[F, Unit]](method, path, accepts, Produces.Directive.EmptyBody)
 

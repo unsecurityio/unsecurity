@@ -20,9 +20,10 @@ object Main extends IOApp {
   val helloWorld: unsecurity.Complete =
     unsecure(
       Endpoint(
-        method = Method.GET,
-        path = Root / "hello",
-        produces = Produces.json[String]
+        "Hello world; endpoint as simple as it gets",
+        Method.GET,
+        Root / "hello",
+        Produces.json[String]
       )
     ).run { _ =>
       "Hello world"
@@ -31,6 +32,7 @@ object Main extends IOApp {
   val collidingHello =
     unsecure(
       Endpoint(
+        "Endpoint that collides with hello-world-endpoint, showing that static fragments gets precedense over variable fragments",
         Method.GET,
         Root / 'collideWithHello.as[String],
         Produces.json[String]
@@ -45,6 +47,7 @@ object Main extends IOApp {
   val twoParams =
     unsecure(
       Endpoint(
+        "endpoint taking two path params",
         Method.GET,
         Root / 'param1.as[String] / 'param2.as[Int],
         Produces.json[String]

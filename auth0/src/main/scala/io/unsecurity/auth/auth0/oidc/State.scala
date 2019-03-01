@@ -10,10 +10,11 @@ import io.circe.syntax._
 import scala.util.Try
 
 case class State(
-                  state: String,
-                  returnToUrl: URI,
-                  callbackUrl: URI
-                )
+    state: String,
+    returnToUrl: URI,
+    callbackUrl: URI,
+    additionalData: String
+)
 
 object State {
   implicit val decodeURI: Decoder[URI] =
@@ -30,16 +31,18 @@ object State {
     Decoder[State](
       c =>
         for {
-          state <- c.downField("state").as[String]
-          returnToUrl <- c.downField("returnToUrl").as[URI]
-          callbackUrl <- c.downField("callbackUrl").as[URI]
+          state          <- c.downField("state").as[String]
+          returnToUrl    <- c.downField("returnToUrl").as[URI]
+          callbackUrl    <- c.downField("callbackUrl").as[URI]
+          additionalData <- c.downField("additionalData").as[String]
         } yield {
           State(
             state = state,
             returnToUrl = returnToUrl,
-            callbackUrl = callbackUrl
+            callbackUrl = callbackUrl,
+            additionalData = additionalData
           )
-        }
+      }
     )
 
   implicit val encodeState: Encoder[State] =
@@ -47,7 +50,8 @@ object State {
       Json.obj(
         ("state", Json.fromString(s.state)),
         ("returnToUrl", s.returnToUrl.asJson),
-        ("callbackUrl", s.callbackUrl.asJson)
-      )
+        ("callbackUrl", s.callbackUrl.asJson),
+        ("additionalData", s.additionalData.asJson)
+    )
 
 }

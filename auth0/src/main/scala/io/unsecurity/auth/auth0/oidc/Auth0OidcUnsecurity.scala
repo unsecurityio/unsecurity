@@ -23,8 +23,9 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HLinx[HNil],
   val login =
     unsecure(
       Endpoint(
-        method = Method.GET,
-        path = baseUrl / "login",
+        "oidc login endpoint",
+        Method.GET,
+        baseUrl / "login",
         Produces.Directive.EmptyBody
       )
     ).run(
@@ -51,6 +52,7 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HLinx[HNil],
   val callback =
     unsecure(
       Endpoint(
+        "oidc callback endpoint",
         method = Method.GET,
         path = baseUrl / "callback",
         Produces.Directive.EmptyBody
@@ -76,7 +78,6 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HLinx[HNil],
           _ <- sc.sessionStore.storeSession(sessionCookie.content, oidcUser).successF
           returnToUrl = if (sc.isReturnUrlWhitelisted(state.returnToUrl)) {
             state.returnToUrl
-
           } else {
             log.warn(
               s"/callback returnToUrl (${state.returnToUrl}) not whitelisted; falling back to ${sc.authConfig.defaultReturnToUrl}")
@@ -98,8 +99,9 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HLinx[HNil],
   val logout =
     unsecure(
       Endpoint(
-        method = Method.GET,
-        path = baseUrl / "logout",
+        "oidc logout endpoint",
+        Method.POST,
+        baseUrl / "logout",
         Produces.Directive.EmptyBody
       )
     ).run(
