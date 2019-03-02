@@ -71,7 +71,7 @@ object OidcAuthenticatedUser {
       aud            <- c.downField("aud").as[String]
       iat            <- c.downField("iat").as[Long]
       exp            <- c.downField("exp").as[Long]
-      additionalData <- c.downField("additionalData").as[String]
+      additionalData <- c.downField("additionalData").as[Option[String]]
     } yield {
       OidcAuthenticatedUser(
         nickname,
@@ -86,7 +86,7 @@ object OidcAuthenticatedUser {
         iat,
         exp,
         UserId(sub),
-        additionalData
+        additionalData.getOrElse("")
       )
     }
   }

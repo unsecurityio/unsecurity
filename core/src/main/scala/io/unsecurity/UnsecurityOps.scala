@@ -8,16 +8,45 @@ import cats.effect.Sync
 import fs2.Stream
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Printer}
+import io.unsecurity.hlinx.ParamConverter
 import no.scalabin.http4s.directives.Conditional.ResponseDirective
 import no.scalabin.http4s.directives.{Directive, DirectiveOps, RequestDirectives, Result}
 import org.http4s.circe.CirceInstances
-import org.http4s.headers.{`Content-Type`, `WWW-Authenticate`, Location}
+import org.http4s.headers.{Location, `Content-Type`, `WWW-Authenticate`}
 import org.http4s.{Challenge, EntityEncoder, Header, MediaType, RequestCookie, Response, Status, Uri}
 
 import scala.language.{higherKinds, implicitConversions}
 import scala.util.Try
 
 trait UnsecurityOps[F[_]] extends DirectiveOps[F] with RequestDirectives[F] {
+
+  def queryParamAs[A: ParamConverter](name: String)(implicit sync: Sync[F]): Directive[F, Option[A]] = {
+    for {
+      optParamValue <- queryParam(name)
+      convertedParam <- optParamValue match {
+        case None => Directive.success(None)
+        case Some(param) =>
+          eitherToDirective(
+            ParamConverter[A].convert(param),
+            (s: String) => Response[F]().withStatus(Status.BadRequest).withEntity(s)
+          ).map(Some(_))
+      }
+    } yield {
+      convertedParam
+    }
+  }
+
+  def requiredQueryParamAs[A: ParamConverter](name: String)(implicit sync: Sync[F]): Directive[F, A] = {
+    for {
+      paramValue <- requiredQueryParam(name)
+      convertedParam <- eitherToDirective(
+        ParamConverter[A].convert(paramValue),
+        (s: String) => Response[F]().withStatus(Status.BadRequest).withEntity(s)
+      )
+    } yield {
+      convertedParam
+    }
+  }
 
   val circeInstances: CirceInstances = CirceInstances.withPrinter(
     Printer.spaces2.copy(
@@ -44,6 +73,14 @@ trait UnsecurityOps[F[_]] extends DirectiveOps[F] with RequestDirectives[F] {
       }
     }
   }
+
+  def eitherToDirective[E, A](either: Either[E, A], failure: E => Response[F])(implicit F:Monad[F]): Directive[F, A] = {
+    either match {
+      case Right(a)   => Directive.success(a)
+      case Left(left) => Directive.failure(failure(left))
+    }
+  }
+
 
   implicit class EitherTDirectives[E, A](either: EitherT[F, E, A])(implicit S: Sync[F]) {
     def toSuccess(failure: E => Response[F]): Directive[F, A] =

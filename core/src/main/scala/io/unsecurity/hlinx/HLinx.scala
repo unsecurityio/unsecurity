@@ -3,10 +3,10 @@ package io.unsecurity.hlinx
 import shapeless.{::, HList, HNil}
 
 object HLinx {
-  def param[A: PathParamConverter](name: String) = Param(name, PathParamConverter[A])
+  def param[A: ParamConverter](name: String) = Param(name, ParamConverter[A])
 
   implicit class SymbolPimp(s: Symbol) {
-    def as[A: PathParamConverter] = Param(s.name, PathParamConverter[A])
+    def as[A: ParamConverter] = Param(s.name, ParamConverter[A])
   }
 
   sealed trait HLinx[T <: HList] {
@@ -55,7 +55,7 @@ object HLinx {
     def toSimple: List[SimpleLinx] =
       SimpleStatic(element) :: parent.toSimple
   }
-  case class Variable[H, T <: HList](parent: HLinx[T], P: PathParamConverter[H], element: String)
+  case class Variable[H, T <: HList](parent: HLinx[T], P: ParamConverter[H], element: String)
       extends HLinx[H :: T] {
     import shapeless.HList.ListCompat.::
     override def extract(s: List[String]): Option[Either[String, H :: T]] = s match {

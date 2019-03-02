@@ -8,8 +8,9 @@ import cats.effect.Sync
 import com.auth0.jwk.JwkProvider
 import io.unsecurity.Unsecurity
 import io.unsecurity.hlinx.HLinx.HLinx
+import io.unsecurity.hlinx.ParamConverter
 import no.scalabin.http4s.directives.Directive
-import org.http4s.{Method, Response, ResponseCookie}
+import org.http4s.{Method, Response, ResponseCookie, Status}
 import org.slf4j.{Logger, LoggerFactory}
 import shapeless.HNil
 
@@ -19,6 +20,8 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HLinx[HNil],
     extends Unsecurity[F, OidcAuthenticatedUser, U] {
 
   override val log: Logger = LoggerFactory.getLogger(classOf[Auth0OidcUnsecurity[F, U]])
+
+  implicit val uriParamConverter = ParamConverter.createSimple(s => new URI(s))
 
   val login =
     unsecure(
@@ -31,9 +34,9 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HLinx[HNil],
     ).run(
       _ =>
         for {
-          returnToUrlParam      <- queryParam("next").map(_.map(URI.create))
+          returnToUrlParam      <- queryParamAs[URI]("next")
           _                     = log.trace("/login returnToUrlParam: {}", returnToUrlParam)
-          auth0CallbackUrlParam <- queryParam("auth0Callback").map(_.map(URI.create))
+          auth0CallbackUrlParam <- queryParamAs[URI]("auth0Callback")
           _                     = log.trace("/login auth0CallbackUrlParam: {}", auth0CallbackUrlParam)
           state                 <- sc.randomString(32).successF
           callbackUrl           = auth0CallbackUrlParam.getOrElse(sc.authConfig.defaultAuth0CallbackUrl)

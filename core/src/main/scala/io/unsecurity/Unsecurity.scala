@@ -7,7 +7,7 @@ import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}
 import no.scalabin.http4s.directives.Conditional.ResponseDirective
 import no.scalabin.http4s.directives.Directive
 import org.http4s.headers.Allow
-import org.http4s.{EntityDecoder, EntityEncoder, Method, Response, Status}
+import org.http4s.{EntityDecoder, Method, Response, Status}
 import org.slf4j.{Logger, LoggerFactory}
 import shapeless.HList
 
