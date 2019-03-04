@@ -10,7 +10,7 @@ import io.unsecurity.Unsecurity
 import io.unsecurity.hlinx.HLinx.HLinx
 import io.unsecurity.hlinx.ParamConverter
 import no.scalabin.http4s.directives.Directive
-import org.http4s.{Method, Response, ResponseCookie, Status}
+import org.http4s.{Method, Response, ResponseCookie}
 import org.slf4j.{Logger, LoggerFactory}
 import shapeless.HNil
 

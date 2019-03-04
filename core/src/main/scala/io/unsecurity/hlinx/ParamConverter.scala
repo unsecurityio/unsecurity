@@ -1,8 +1,19 @@
 package io.unsecurity.hlinx
+
 import scala.util.Try
 
 trait ParamConverter[A] {
   def convert(s: String): Either[String, A]
+  def map[B](f: A => B): ParamConverter[B] = {
+    ParamConverter.create { s =>
+      convert(s).map(f)
+    }
+  }
+  def flatMap[B](f: A => Either[String, B]): ParamConverter[B] = {
+    ParamConverter.create { s =>
+      convert(s).flatMap(f)
+    }
+  }
 }
 object ParamConverter {
   def create[A](f: String => Either[String, A]): ParamConverter[A] =
