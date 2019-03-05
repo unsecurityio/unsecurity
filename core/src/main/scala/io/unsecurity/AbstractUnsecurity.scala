@@ -1,5 +1,8 @@
 package io.unsecurity
 
+import java.util.UUID
+
+import cats.MonadError
 import cats.effect.Sync
 import fs2.Stream
 import io.circe.{Decoder, Encoder}
@@ -9,7 +12,7 @@ import no.scalabin.http4s.directives.Conditional.ResponseDirective
 import no.scalabin.http4s.directives.{Directive, Plan}
 import org.http4s.EntityEncoder.entityBodyEncoder
 import org.http4s.headers.`Content-Type`
-import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, MediaType, Method, Response, Status}
+import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, MediaType, Method, Request, Response, Status, Uri}
 import org.slf4j.Logger
 import shapeless.HList
 
@@ -27,11 +30,15 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
     def apply[P <: HList, R, W](method: Method, path: HLinx[P]) =
       new Endpoint[P, Unit, Directive[F, Unit]](method, path, Accepts.EmptyBody, Produces.Directive.EmptyBody)
 
-    @deprecated("use apply[P <: HList, R, W](desc: String, method: Method, path: HLinx[P], produces: W => ResponseDirective[F]) instead", "28/2 2019")
+    @deprecated(
+      "use apply[P <: HList, R, W](desc: String, method: Method, path: HLinx[P], produces: W => ResponseDirective[F]) instead",
+      "28/2 2019")
     def apply[P <: HList, W](method: Method, path: HLinx[P], produces: W => ResponseDirective[F]) =
       new Endpoint[P, Unit, W](method, path, Accepts.EmptyBody, produces)
 
-    @deprecated("use apply[P <: HList, R](desc: String, method: Method, path: HLinx[P], accepts: EntityDecoder[F, R]) instead", "28/2 2019")
+    @deprecated(
+      "use apply[P <: HList, R](desc: String, method: Method, path: HLinx[P], accepts: EntityDecoder[F, R]) instead",
+      "28/2 2019")
     def apply[P <: HList, R](method: Method, path: HLinx[P], accepts: EntityDecoder[F, R]) =
       new Endpoint[P, R, Directive[F, Unit]](method, path, accepts, Produces.Directive.EmptyBody)
 
@@ -44,7 +51,11 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
     def apply[P <: HList, R](desc: String, method: Method, path: HLinx[P], accepts: EntityDecoder[F, R]) =
       new Endpoint[P, R, Directive[F, Unit]](method, path, accepts, Produces.Directive.EmptyBody, desc)
 
-    def apply[P <: HList, R, W](desc: String, method: Method, path: HLinx[P], accepts: EntityDecoder[F, R], produces: W => ResponseDirective[F]) =
+    def apply[P <: HList, R, W](desc: String,
+                                method: Method,
+                                path: HLinx[P],
+                                accepts: EntityDecoder[F, R],
+                                produces: W => ResponseDirective[F]) =
       new Endpoint[P, R, W](method, path, accepts, produces, desc)
   }
 
@@ -192,7 +203,8 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
 
     val reducedRoutes: PathMatcher[Response[F]] = compiledRoutes.reduce(_ orElse _)
 
-    val PathMapping = Plan[F]().PathMapping
+
+    val PathMapping = UnsecurityPlan[F](log).PathMapping
 
     val service: HttpRoutes[F] = HttpRoutes.of[F](
       PathMapping(reducedRoutes)

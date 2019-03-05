@@ -2,6 +2,14 @@ package io.unsecurity.hlinx
 
 import scala.util.Try
 
+//trait Converter[A, B] {
+//  def convert(a: A): Either[String, B]
+//  def map[C](f: B => C): Converter[A, C]
+//  def flatMap[C](f: Converter[B, C]): Converter[A, C]
+//}
+//
+//type PConverter[A] = Converter[String, A]
+
 trait ParamConverter[A] {
   def convert(s: String): Either[String, A]
   def map[B](f: A => B): ParamConverter[B] = {

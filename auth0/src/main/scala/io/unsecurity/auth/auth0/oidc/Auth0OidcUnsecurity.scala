@@ -11,15 +11,15 @@ import io.unsecurity.hlinx.HLinx.HLinx
 import io.unsecurity.hlinx.ParamConverter
 import no.scalabin.http4s.directives.Directive
 import org.http4s.{Method, Response, ResponseCookie}
-import org.slf4j.{Logger, LoggerFactory}
+import org.slf4j.Logger
 import shapeless.HNil
 
 class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HLinx[HNil],
                                          val sc: Auth0OidcSecurityContext[F, U],
-                                         jwkProvider: JwkProvider)
+                                         jwkProvider: JwkProvider,
+                                         val log: Logger
+                                        )
     extends Unsecurity[F, OidcAuthenticatedUser, U] {
-
-  override val log: Logger = LoggerFactory.getLogger(classOf[Auth0OidcUnsecurity[F, U]])
 
   implicit val uriParamConverter = ParamConverter.createSimple(s => new URI(s))
 
@@ -100,31 +100,32 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HLinx[HNil],
     )
 
   val logout =
-    unsecure(
+    secure(
       Endpoint(
         "oidc logout endpoint",
         Method.POST,
         baseUrl / "logout",
         Produces.Directive.EmptyBody
       )
-    ).run(
-      _ =>
-        for {
-          cookie <- sc.sessionCookie
-          _      <- sc.sessionStore.removeSession(cookie.content).successF
-          _ <- break(
-                Redirect(sc.authConfig.afterLogoutUrl)
-                  .addCookie(
-                    ResponseCookie(name = sc.Cookies.Keys.K_SESSION_ID, content = "", maxAge = Option(-1))
-                  )
-                  .addCookie(
-                    ResponseCookie(name = sc.Cookies.Keys.XSRF, content = "", maxAge = Option(-1), httpOnly = false)
-                  )
-              )
-        } yield {
-          ()
-      }
-    )
+    ).noAuthorization
+      .run(
+        _ =>
+          for {
+            cookie <- sc.sessionCookie
+            _      <- sc.sessionStore.removeSession(cookie.content).successF
+            _ <- break(
+                  Redirect(sc.authConfig.afterLogoutUrl)
+                    .addCookie(
+                      ResponseCookie(name = sc.Cookies.Keys.K_SESSION_ID, content = "", maxAge = Option(-1))
+                    )
+                    .addCookie(
+                      ResponseCookie(name = sc.Cookies.Keys.XSRF, content = "", maxAge = Option(-1), httpOnly = false)
+                    )
+                )
+          } yield {
+            ()
+        }
+      )
 
   val endpoints = List(login, callback, logout)
 

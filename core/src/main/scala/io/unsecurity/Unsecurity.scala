@@ -8,12 +8,9 @@ import no.scalabin.http4s.directives.Conditional.ResponseDirective
 import no.scalabin.http4s.directives.Directive
 import org.http4s.headers.Allow
 import org.http4s.{EntityDecoder, Method, Response, Status}
-import org.slf4j.{Logger, LoggerFactory}
 import shapeless.HList
 
 abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] with UnsecurityOps[F] {
-
-  override val log: Logger = LoggerFactory.getLogger(classOf[Unsecurity[F, RU, U]])
 
   def sc: SecurityContext[F, RU, U]
 
@@ -181,16 +178,11 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       implicit revTup: ReversedTupled.Aux[PathParams, TUP]): PathMatcher[TUP] =
     new PartialFunction[String, Directive[F, TUP]] {
       override def isDefinedAt(x: String): Boolean = {
-        if (route.capture(x).isDefined) {
-          log.trace(s"""Match: "$x" = /${route.toSimple.reverse.mkString("/")}""")
-          true
-        } else {
-//          log.trace(s"""Not match: "$x" != ${route.toSimple.reverse.mkString("/")}""")
-          false
-        }
+        route.capture(x).isDefined
       }
 
       override def apply(v1: String): Directive[F, TUP] = {
+        log.trace(s"""Match: "$v1" = /${route.toSimple.reverse.mkString("/")}""")
         val value: Either[String, TUP] = route.capture(v1).get
 
         value match {
