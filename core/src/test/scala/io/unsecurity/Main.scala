@@ -54,7 +54,7 @@ object Main extends IOApp {
         Root / 'param1.as[String] / 'param2.as[Int],
         Produces.json[String]
       )
-    ).resolve { case (s, i) => StringAndInt(s, i) }
+    ).map { case (s, i) => StringAndInt(s, i) }
       .run { sai =>
         sai.toString
       }

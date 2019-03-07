@@ -36,7 +36,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
         entityEncoder = entityEncoder
       )
     }
-    override def resolve[C2](f: C => C2): Secured[C2, W] = {
+    override def map[C2](f: C => C2): Secured[C2, W] = {
       MySecured(
         key = key,
         pathMatcher = pathMatcher,
@@ -48,7 +48,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
         entityEncoder = entityEncoder,
       )
     }
-    override def resolveF[C2](f: C => F[C2]): Secured[C2, W] = {
+    override def mapF[C2](f: C => F[C2]): Secured[C2, W] = {
       MySecured(
         key = key,
         pathMatcher = pathMatcher,
@@ -146,7 +146,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       )
     }
 
-    override def resolve[C2](f: C => C2): Completable[C2, W] = {
+    override def map[C2](f: C => C2): Completable[C2, W] = {
       MyCompletable(
         key = key,
         pathMatcher = pathMatcher,
@@ -159,7 +159,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       )
     }
 
-    override def resolveF[C2](f: C => F[C2]): Completable[C2, W] = {
+    override def mapF[C2](f: C => F[C2]): Completable[C2, W] = {
       MyCompletable(
         key = key,
         pathMatcher = pathMatcher,

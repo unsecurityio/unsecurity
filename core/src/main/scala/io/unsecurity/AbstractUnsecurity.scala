@@ -154,14 +154,14 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
   }
 
   trait Completable[C, W] {
-    def resolve[C2](f: C => C2): Completable[C2, W]
-    def resolveF[C2](f: C => F[C2]): Completable[C2, W]
+    def map[C2](f: C => C2): Completable[C2, W]
+    def mapF[C2](f: C => F[C2]): Completable[C2, W]
     def run(f: C => W): Complete
   }
 
   trait Secured[C, W] {
-    def resolve[C2](f: C => C2): Secured[C2, W]
-    def resolveF[C2](f: C => F[C2]): Secured[C2, W]
+    def map[C2](f: C => C2): Secured[C2, W]
+    def mapF[C2](f: C => F[C2]): Secured[C2, W]
     def authorization(predicate: C => Boolean): Completable[C, W]
     def noAuthorization: Completable[C, W]
   }
