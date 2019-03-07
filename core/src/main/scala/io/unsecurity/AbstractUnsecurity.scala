@@ -1,18 +1,15 @@
 package io.unsecurity
 
-import java.util.UUID
-
-import cats.MonadError
 import cats.effect.Sync
 import fs2.Stream
 import io.circe.{Decoder, Encoder}
 import io.unsecurity.hlinx.HLinx._
 import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}
 import no.scalabin.http4s.directives.Conditional.ResponseDirective
-import no.scalabin.http4s.directives.{Directive, Plan}
+import no.scalabin.http4s.directives.Directive
 import org.http4s.EntityEncoder.entityBodyEncoder
 import org.http4s.headers.`Content-Type`
-import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, MediaType, Method, Request, Response, Status, Uri}
+import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, MediaType, Method, Response, Status}
 import org.slf4j.Logger
 import shapeless.HList
 
@@ -158,11 +155,13 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
 
   trait Completable[C, W] {
     def resolve[C2](f: C => C2): Completable[C2, W]
+    def resolveF[C2](f: C => F[C2]): Completable[C2, W]
     def run(f: C => W): Complete
   }
 
   trait Secured[C, W] {
     def resolve[C2](f: C => C2): Secured[C2, W]
+    def resolveF[C2](f: C => F[C2]): Secured[C2, W]
     def authorization(predicate: C => Boolean): Completable[C, W]
     def noAuthorization: Completable[C, W]
   }
