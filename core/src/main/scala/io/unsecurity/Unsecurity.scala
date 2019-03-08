@@ -92,7 +92,14 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
             _       <- checkXsrfOrNothing
             r       <- request.bodyAs[F, R]
             rawUser <- sc.authenticate
-            user    <- sc.transformUser(rawUser).toSuccess(Directive.error(Response[F](Status.Unauthorized)))
+            user <- Directive.commit(
+                     Directive.getOrElseF(
+                       sc.transformUser(rawUser),
+                       Sync[F].pure(
+                         Response[F](Status.Unauthorized)
+                       )
+                     )
+                   )
           } yield {
             transformParams(tup, (r, user))
           }

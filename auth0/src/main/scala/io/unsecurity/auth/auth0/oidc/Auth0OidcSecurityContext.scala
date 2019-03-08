@@ -26,12 +26,12 @@ import scodec.bits.BitVector
 class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
                                               val sessionStore: SessionStore[F, OidcAuthenticatedUser],
                                               client: Resource[F, Client[F]],
-                                              lookup: OidcAuthenticatedUser => Option[U])
+                                              lookup: OidcAuthenticatedUser => F[Option[U]])
     extends SecurityContext[F, OidcAuthenticatedUser, U]
     with UnsecurityOps[F] {
   val log: Logger = LoggerFactory.getLogger(classOf[Auth0OidcSecurityContext[F, U]])
 
-  override def transformUser(u: OidcAuthenticatedUser): Option[U] = lookup(u)
+  override def transformUser(u: OidcAuthenticatedUser): F[Option[U]] = lookup(u)
 
   override def authenticate: Directive[F, OidcAuthenticatedUser] = {
     log.trace("trying to authenticate")

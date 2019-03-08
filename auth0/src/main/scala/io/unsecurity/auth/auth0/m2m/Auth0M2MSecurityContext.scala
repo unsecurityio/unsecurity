@@ -18,7 +18,7 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import scala.util.Try
 
-class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplication => Option[U],
+class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplication => F[Option[U]],
                                              authDomain: String,
                                              audience: String,
                                              jwkProvider: JwkProvider)
@@ -52,7 +52,7 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
     */
   override def xsrfCheck: Directive[F, String] = Directive.success("")
 
-  override def transformUser(rawUser: OauthAuthenticatedApplication): Option[U] = {
+  override def transformUser(rawUser: OauthAuthenticatedApplication): F[Option[U]] = {
     lookup(rawUser)
   }
 
