@@ -31,6 +31,8 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
     with UnsecurityOps[F] {
   val log: Logger = LoggerFactory.getLogger(classOf[Auth0OidcSecurityContext[F, U]])
 
+  import responses._
+
   override def transformUser(u: OidcAuthenticatedUser): F[Option[U]] = lookup(u)
 
   override def authenticate: Directive[F, OidcAuthenticatedUser] = {
