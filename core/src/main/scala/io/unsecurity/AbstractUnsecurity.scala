@@ -6,7 +6,7 @@ import io.circe.{Decoder, Encoder}
 import io.unsecurity.hlinx.HLinx._
 import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}
 import no.scalabin.http4s.directives.Conditional.ResponseDirective
-import no.scalabin.http4s.directives.Directive
+import no.scalabin.http4s.directives.{Directive => Http4sDirective}
 import org.http4s.EntityEncoder.entityBodyEncoder
 import org.http4s.headers.`Content-Type`
 import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, MediaType, Method, Response, Status}
@@ -17,48 +17,29 @@ import scala.Ordering.Implicits._
 
 abstract class AbstractUnsecurity[F[_]: Sync, U] {
 
-  case class Endpoint[P <: HList, R, W](method: Method,
+  case class Endpoint[P <: HList, R, W](description: String = "",
+                                        method: Method,
                                         path: HLinx[P],
                                         accepts: EntityDecoder[F, R],
-                                        produces: W => ResponseDirective[F],
-                                        description: String = "")
+                                        produces: W => ResponseDirective[F])
   object Endpoint {
-    @deprecated("use apply[P <: HList, R, W](desc: String, method: Method, path: HLinx[P]) instead", "28/2 2019")
-    def apply[P <: HList, R, W](method: Method, path: HLinx[P]) =
-      new Endpoint[P, Unit, Directive[F, Unit]](method, path, Accepts.EmptyBody, Produces.Directive.EmptyBody)
-
-    @deprecated(
-      "use apply[P <: HList, R, W](desc: String, method: Method, path: HLinx[P], produces: W => ResponseDirective[F]) instead",
-      "28/2 2019")
-    def apply[P <: HList, W](method: Method, path: HLinx[P], produces: W => ResponseDirective[F]) =
-      new Endpoint[P, Unit, W](method, path, Accepts.EmptyBody, produces)
-
-    @deprecated(
-      "use apply[P <: HList, R](desc: String, method: Method, path: HLinx[P], accepts: EntityDecoder[F, R]) instead",
-      "28/2 2019")
-    def apply[P <: HList, R](method: Method, path: HLinx[P], accepts: EntityDecoder[F, R]) =
-      new Endpoint[P, R, Directive[F, Unit]](method, path, accepts, Produces.Directive.EmptyBody)
-
     def apply[P <: HList, R, W](desc: String, method: Method, path: HLinx[P]) =
-      new Endpoint[P, Unit, Directive[F, Unit]](method, path, Accepts.EmptyBody, Produces.Directive.EmptyBody, desc)
+      new Endpoint[P, Unit, Http4sDirective[F, Unit]](desc,
+                                                      method,
+                                                      path,
+                                                      Accepts.EmptyBody,
+                                                      Produces.Directive.EmptyBody)
 
     def apply[P <: HList, W](desc: String, method: Method, path: HLinx[P], produces: W => ResponseDirective[F]) =
-      new Endpoint[P, Unit, W](method, path, Accepts.EmptyBody, produces, desc)
+      new Endpoint[P, Unit, W](desc, method, path, Accepts.EmptyBody, produces)
 
     def apply[P <: HList, R](desc: String, method: Method, path: HLinx[P], accepts: EntityDecoder[F, R]) =
-      new Endpoint[P, R, Directive[F, Unit]](method, path, accepts, Produces.Directive.EmptyBody, desc)
-
-    def apply[P <: HList, R, W](desc: String,
-                                method: Method,
-                                path: HLinx[P],
-                                accepts: EntityDecoder[F, R],
-                                produces: W => ResponseDirective[F]) =
-      new Endpoint[P, R, W](method, path, accepts, produces, desc)
+      new Endpoint[P, R, Http4sDirective[F, Unit]](desc, method, path, accepts, Produces.Directive.EmptyBody)
   }
 
   def log: Logger
 
-  type PathMatcher[A] = PartialFunction[String, Directive[F, A]]
+  type PathMatcher[A] = PartialFunction[String, Http4sDirective[F, A]]
 
   def secure[P <: HList, R, W, TUP, TUP2](endpoint: Endpoint[P, R, W])(
       implicit revTup: ReversedTupled.Aux[P, TUP],
@@ -83,15 +64,14 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
 
   object Produces {
 
-    def EmptyBody: Unit => ResponseDirective[F] = { unit: Unit =>
-      no.scalabin.http4s.directives.Directive.success(Response[F]().withEntity(unit))
+    def EmptyBody: Unit => ResponseDirective[F] = { _: Unit =>
+      Http4sDirective.success(Response[F](Status.NoContent))
     }
 
     def json[W: Encoder]: W => ResponseDirective[F] =
       w =>
-        no.scalabin.http4s.directives.Directive.success(
-          Response[F]()
-            .withStatus(Status.Ok)
+        Http4sDirective.success(
+          Response[F](Status.Ok)
             .withContentType(`Content-Type`(MediaType.application.json))
             .withEntity(w)(org.http4s.circe.jsonEncoderOf[F, W])
       )
@@ -101,9 +81,8 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
         val encoder                = org.http4s.circe.jsonEncoderOf[F, W]
         val value: Stream[F, Byte] = s.flatMap(w => encoder.toEntity(w).body)
 
-        no.scalabin.http4s.directives.Directive.success(
-          Response[F]()
-            .withStatus(Status.Ok)
+        Http4sDirective.success(
+          Response[F](Status.Ok)
             .withContentType(`Content-Type`(MediaType.application.json))
             .withEntity(value)
         )
@@ -111,43 +90,35 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
 
     def stream[W](implicit encoder: EntityEncoder[F, Stream[F, W]]): Stream[F, W] => ResponseDirective[F] =
       s => {
-        no.scalabin.http4s.directives.Directive.success(
-          Response[F]()
-            .withStatus(Status.Ok)
-            .withContentType(`Content-Type`(MediaType.application.json))
-            .withEntity(s)(encoder)
+        Http4sDirective.success(
+          Response[F](Status.Ok)
+            .withEntity(s)
         )
       }
 
     object F {
       def json[W: Encoder]: F[W] => ResponseDirective[F] = f => {
-        no.scalabin.http4s.directives.Directive
+        Http4sDirective
           .liftF(f)
           .map(
             w =>
-              Response[F]()
-                .withStatus(Status.Ok)
-                .withContentType(`Content-Type`(MediaType.application.json))
+              Response[F](Status.Ok)
                 .withEntity(w)(org.http4s.circe.jsonEncoderOf[F, W]))
       }
     }
 
     object Directive {
-      def json[E: Encoder]: Directive[F, E] => ResponseDirective[F] = { eDir: Directive[F, E] =>
+      def json[E: Encoder]: Http4sDirective[F, E] => ResponseDirective[F] = { eDir: Http4sDirective[F, E] =>
         eDir.map(
           e =>
-            Response[F]()
-              .withStatus(Status.Ok)
-              .withContentType(`Content-Type`(MediaType.application.json))
+            Response[F](Status.Ok)
               .withEntity(e)(org.http4s.circe.jsonEncoderOf[F, E]))
 
       }
 
-      val EmptyBody: Directive[F, Unit] => ResponseDirective[F] = { unitDir =>
-        unitDir.map { unit: Unit =>
-          Response[F]()
-            .withStatus(Status.Ok)
-            .withEntity(unit)
+      val EmptyBody: Http4sDirective[F, Unit] => ResponseDirective[F] = { unitDir =>
+        unitDir.map { _: Unit =>
+          Response[F](Status.NoContent)
         }
       }
     }
@@ -174,13 +145,6 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
   }
 
   def toHttpRoutes(endpoints: List[AbstractUnsecurity[F, U]#Complete]): HttpRoutes[F] = {
-//    log.trace("all endpoints")
-//    endpoints.foreach { e =>
-//      e.methodMap.keys.foreach { method =>
-//        log.trace(s"""${method.name}: /${e.key.mkString("/")}""")
-//      }
-//    }
-
     val linxesToList: Map[List[SimpleLinx], List[AbstractUnsecurity[F, U]#Complete]] = endpoints.groupBy(_.key)
 
     val mergedRoutes: List[AbstractUnsecurity[F, U]#Complete] =
@@ -201,7 +165,6 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
       mergedRoutes.map(_.compile)
 
     val reducedRoutes: PathMatcher[Response[F]] = compiledRoutes.reduce(_ orElse _)
-
 
     val PathMapping = UnsecurityPlan[F](log).PathMapping
 
