@@ -70,8 +70,8 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
 
   def xsrfHeader(xForwardedFor: Option[String]): Directive[F, String] = {
     for {
-      header <- requestHeader("x-xsrf-token")
-      xsrfToken <- Directive.getOrElse(
+      header <- request.header("x-xsrf-token")
+      xsrfToken <- Directive.getOrElseF(
                     header,
                     Sync[F].delay {
                       log.error("No x-xsrf-token header, possible CSRF-attack!")
@@ -90,7 +90,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
     for {
       maybeCookie   <- request.cookie("xsrf-token")
       xForwardedfor <- requestHeader("X-Forwarded-For")
-      xsrfCookie <- Directive.getOrElse(
+      xsrfCookie <- Directive.getOrElseF(
                      maybeCookie, {
                        log.error(
                          s"No xsrf-cookie, possible CSRF-Attack from ${xForwardedfor.map(_.value).getOrElse("")}")
@@ -149,7 +149,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
   def sessionCookie: Directive[F, RequestCookie] = {
     for {
       maybeCookie <- request.cookie(authConfig.cookieName)
-      cookie <- Directive.getOrElse(
+      cookie <- Directive.getOrElseF(
                  maybeCookie,
                  Sync[F].delay(ResponseJson("Session cookie not found. Please login", Status.Unauthorized)))
 

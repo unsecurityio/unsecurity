@@ -53,7 +53,7 @@ trait UnsecurityOps[F[_]] extends DirectiveOps[F] with RequestDirectives[F] {
       preserveOrder = true,
       dropNullValues = true
     )
-  )
+  ).build
   import circeInstances._
 
   implicit class OptionDirectives[A](opt: Option[A])(implicit S: Sync[F]) {
