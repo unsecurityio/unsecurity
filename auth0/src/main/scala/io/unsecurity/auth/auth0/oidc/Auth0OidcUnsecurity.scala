@@ -65,7 +65,7 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HLinx[HNil],
         for {
           stateCookie   <- cookie(sc.Cookies.Keys.STATE)
           stateParam    <- requiredQueryParam("state")
-          xForwardedFor <- requestHeader("X-Forwarded-For")
+          xForwardedFor <- request.header("X-Forwarded-For")
           state         <- sc.validateState(stateCookie, stateParam, xForwardedFor.map(_.value))
           _             = log.trace("/callback state cookie matches state param")
           codeParam     <- requiredQueryParam("code")

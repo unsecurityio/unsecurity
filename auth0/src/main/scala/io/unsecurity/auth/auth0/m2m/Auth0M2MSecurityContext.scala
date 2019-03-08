@@ -58,7 +58,7 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
 
   private def requestAuthToken: Directive[F, String] = {
     for {
-      authHeader <- requestHeader("authorization")
+      authHeader <- request.header("authorization")
       token <- authHeader
                 .map(header => header.value.split(" ").last)
                 .toSuccess(Unauthorized("Authorization header not found. Please log in"))

@@ -45,7 +45,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
 
   override def xsrfCheck: Directive[F, String] = {
     for {
-      xForwardedFor   <- requestHeader("X-Forwarded-For")
+      xForwardedFor   <- request.header("X-Forwarded-For")
       xsrfHeader      <- xsrfHeader(xForwardedFor.map(_.value))
       xsrfCookie      <- xsrfCookie()
       validatedHeader <- validateXsrf(xsrfHeader, xsrfCookie, xForwardedFor.map(_.value))
@@ -89,7 +89,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
   def xsrfCookie(): Directive[F, String] = {
     for {
       maybeCookie   <- request.cookie("xsrf-token")
-      xForwardedfor <- requestHeader("X-Forwarded-For")
+      xForwardedfor <- request.header("X-Forwarded-For")
       xsrfCookie <- Directive.getOrElseF(
                      maybeCookie, {
                        log.error(
