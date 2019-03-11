@@ -83,7 +83,6 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
 
         Http4sDirective.success(
           Response[F](Status.Ok)
-            .withContentType(`Content-Type`(MediaType.application.json))
             .withEntity(value)
         )
       }
