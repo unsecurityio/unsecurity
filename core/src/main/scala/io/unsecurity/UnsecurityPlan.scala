@@ -21,7 +21,7 @@ case class UnsecurityPlan[F[_]](log: Logger)(implicit M: MonadError[F, Throwable
           _.fold(
             { t =>
               val errorId = UUID.randomUUID().toString
-              log.error(s"${req.uri.path} failed. Assigned errorId(${errorId}):", t)
+              log.error(s"${req.uri.path} failed. Assigned errorId($errorId):", t)
               M.pure(Response[F](Status.InternalServerError).withEntity(errorId))
             },
             M.pure
