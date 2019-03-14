@@ -160,6 +160,9 @@ trait Responses[F[_]] {
     def apply[A: Encoder](value: A, status: Status)(implicit monad: Monad[F]): Response[F] =
       Response[F](status)
         .withEntity(value)(jsonEncoderOf[F, A])
+    def apply[A: Encoder](status: Status, value: A)(implicit monad: Monad[F]): Response[F] =
+      Response[F](status)
+        .withEntity(value)(jsonEncoderOf[F, A])
   }
 
   def unauthorizedResponse[A: Encoder](a: A)(implicit sync: Sync[F]): Response[F] = {

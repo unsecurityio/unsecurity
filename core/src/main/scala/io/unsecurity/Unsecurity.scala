@@ -36,6 +36,18 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
         entityEncoder = entityEncoder
       )
     }
+    override def mapD[C2](f: C => Directive[F, C2]): Secured[C2, W] = {
+      MySecured(
+        key = key,
+        pathMatcher = pathMatcher,
+        methodMap = methodMap.mapValues { a2dc =>
+          a2dc.andThen { dc =>
+            dc.flatMap(c => f(c))
+          }
+        },
+        entityEncoder = entityEncoder,
+      )
+    }
     override def map[C2](f: C => C2): Secured[C2, W] = {
       MySecured(
         key = key,
