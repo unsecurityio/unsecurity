@@ -126,6 +126,7 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
   trait Completable[C, W] {
     def map[C2](f: C => C2): Completable[C2, W]
     def mapF[C2](f: C => F[C2]): Completable[C2, W]
+    def mapD[C2](f: C => Http4sDirective[F, C2]): Completable[C2, W]
     def run(f: C => W): Complete
   }
 

@@ -178,6 +178,19 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       )
     }
 
+    override def mapD[C2](f: C => Directive[F, C2]): Completable[C2, W] = {
+      MyCompletable(
+        key = key,
+        pathMatcher = pathMatcher,
+        methodMap = methodMap.mapValues { a2dc =>
+          a2dc.andThen { dc =>
+            dc.flatMap(c => f(c))
+          }
+        },
+        entityEncoder = entityEncoder
+      )
+    }
+
     override def mapF[C2](f: C => F[C2]): Completable[C2, W] = {
       MyCompletable(
         key = key,
