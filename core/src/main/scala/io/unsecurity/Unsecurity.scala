@@ -235,7 +235,14 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       implicit revTup: ReversedTupled.Aux[PathParams, TUP]): PathMatcher[TUP] =
     new PartialFunction[String, Directive[F, TUP]] {
       override def isDefinedAt(x: String): Boolean = {
-        route.capture(x).isDefined
+        if (route.capture(x).isDefined) {
+          log.trace(s"""'$x' did match /${route.toSimple.reverse.mkString("/")}""")
+          true
+        }
+        else {
+          log.trace(s"""'$x' did not match /${route.toSimple.reverse.mkString("/")}""")
+          false
+        }
       }
 
       override def apply(v1: String): Directive[F, TUP] = {
