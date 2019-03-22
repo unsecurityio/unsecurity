@@ -246,11 +246,14 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       }
 
       override def apply(v1: String): Directive[F, TUP] = {
-        log.trace(s"""Match: "$v1" = /${route.toSimple.reverse.mkString("/")}""")
+        val simpleRoute = route.toSimple.reverse.mkString("/", "/", "")
+        log.trace(s"""Match: "$v1" = $simpleRoute""")
         val value: Either[String, TUP] = route.capture(v1).get
 
         value match {
           case Left(errorMsg) =>
+            log.error(s"""Error converting "$v1" = $simpleRoute: $errorMsg""")
+
             Directive.failure(
               Response(Status.BadRequest)
                 .withEntity(errorMsg)
