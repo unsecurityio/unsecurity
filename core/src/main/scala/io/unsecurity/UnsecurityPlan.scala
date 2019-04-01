@@ -15,13 +15,21 @@ case class UnsecurityPlan[F[_]](log: Logger)(implicit M: MonadError[F, Throwable
     case req if pf.isDefinedAt(req) =>
       pf(req)
         .run(req)
-        .map(_.response)
+        .map { value =>
+          if (!value.response.status.isSuccess) {
+            log.warn(
+              s"${req.uri.renderString} returned error code [${value.response.status.code.toString}]"
+            )
+          }
+
+          value.response
+        }
         .attempt
         .flatMap(
           _.fold(
             { t =>
               val errorId = UUID.randomUUID().toString
-              log.error(s"${req.uri.path} failed. Assigned errorId($errorId):", t)
+              log.error(s"${req.uri.path} failed. Assigned errorId [$errorId]:", t)
               M.pure(Response[F](Status.InternalServerError).withEntity(errorId))
             },
             M.pure
