@@ -6,15 +6,11 @@ import scala.util.Try
 
 trait ParamConverter[A] {
   def convert(s: String): Either[String, A]
-  def map[B](f: A => B): ParamConverter[B] = {
-    ParamConverter.create { s =>
-      convert(s).map(f)
-    }
+  def map[B](f: A => B): ParamConverter[B] = { s =>
+    convert(s).map(f)
   }
-  def flatMap[B](f: A => Either[String, B]): ParamConverter[B] = {
-    ParamConverter.create { s =>
-      convert(s).flatMap(f)
-    }
+  def flatMap[B](f: A => Either[String, B]): ParamConverter[B] = { s =>
+    convert(s).flatMap(f)
   }
 }
 object ParamConverter {
@@ -32,10 +28,10 @@ object ParamConverter {
 
   def create[A](f: String => Either[String, A]): ParamConverter[A] =
     stringParamConverter.flatMap { (urlDecodedString: String) =>
-    Try {
-      f(urlDecodedString)
-    }.toEither.left.map(_.getMessage).flatMap(id => id)
-  }
+      Try {
+        f(urlDecodedString)
+      }.toEither.left.map(_.getMessage).flatMap(id => id)
+    }
 
   def createSimple[A](f: String => A): ParamConverter[A] =
     stringParamConverter.flatMap { (urlDecodedString: String) =>
