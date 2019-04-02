@@ -7,7 +7,7 @@ import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}
 import no.scalabin.http4s.directives.Conditional.ResponseDirective
 import no.scalabin.http4s.directives.Directive
 import org.http4s.headers.Allow
-import org.http4s.{EntityDecoder, Method, Response, Status}
+import org.http4s.{DecodeFailure, EntityDecoder, Method, Response, Status}
 import shapeless.HList
 
 abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] with UnsecurityOps[F] {
@@ -101,8 +101,11 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
 
           implicit val entityDecoder: EntityDecoder[F, R] = endpoint.accepts
           for {
-            _       <- checkXsrfOrNothing
-            r       <- request.bodyAs[F, R]
+            _ <- checkXsrfOrNothing
+            r <- request.bodyAs[F, R] { (decodeFailuer: DecodeFailure) =>
+                  log.error(decodeFailuer.getMessage())
+                  Response[F](Status.InternalServerError)
+                }
             rawUser <- sc.authenticate
             user <- Directive.commit(
                      Directive.getOrElseF(
@@ -132,7 +135,10 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
         endpoint.method -> { tup: TUP =>
           implicit val entityDecoder: EntityDecoder[F, R] = endpoint.accepts
           for {
-            r <- request.bodyAs[F, R]
+            r <- request.bodyAs[F, R] { (decodeFailuer: DecodeFailure) =>
+              log.error(decodeFailuer.getMessage())
+              Response[F](Status.InternalServerError)
+            }
           } yield {
             transformParam(tup, Tuple1(r))
           }
@@ -238,8 +244,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
         if (route.capture(x).isDefined) {
           log.trace(s"""'$x' did match /${route.toSimple.reverse.mkString("/")}""")
           true
-        }
-        else {
+        } else {
           log.trace(s"""'$x' did not match /${route.toSimple.reverse.mkString("/")}""")
           false
         }

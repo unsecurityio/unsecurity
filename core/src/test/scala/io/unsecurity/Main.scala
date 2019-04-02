@@ -1,16 +1,17 @@
 package io.unsecurity
 
 import cats.effect.{ExitCode, IO, IOApp}
+import io.circe.Decoder
 import io.unsecurity.hlinx.HLinx._
 import org.http4s.Method
-import org.slf4j.Logger
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object Main extends IOApp {
   val unsecurity: Unsecurity[IO, String, String] = new Unsecurity[IO, String, String] {
     override def sc: SecurityContext[IO, String, String] = ???
-    override def log: Logger = ???
+    override def log: Logger = LoggerFactory.getLogger("fjon")
   }
   import unsecurity._
 
@@ -59,6 +60,33 @@ object Main extends IOApp {
         sai.toString
       }
 
+  case class Fjon(name: String)
+  implicit val fjonDecoder: Decoder[Fjon] = Decoder {
+    c =>
+      for {
+        name <- c.downField("name").as[String]
+      } yield {
+        Fjon(name)
+      }
+  }
+
+  val post =
+    unsecure(
+      Endpoint(
+        "Check if a post request carshes if x09 is sent",
+        Method.POST,
+        Root / "does" / "this" / "work",
+        Accepts.json[Fjon],
+        Produces.json[String]
+      )
+    ).run {
+      case body =>
+        println(body)
+        "OK"
+    }
+
+
+
   override def run(args: List[String]): IO[ExitCode] = {
     import cats.implicits._
 
@@ -66,7 +94,8 @@ object Main extends IOApp {
       List(
         helloWorld,
         collidingHello,
-        twoParams
+        twoParams,
+        post
       ))
 
     server
