@@ -2,6 +2,7 @@ package io
 package unsecurity
 
 import cats.effect.Sync
+import io.circe.Decoder
 import io.unsecurity.hlinx.HLinx.HLinx
 import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}
 import no.scalabin.http4s.directives.Conditional.ResponseDirective
@@ -101,20 +102,20 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
 
           implicit val entityDecoder: EntityDecoder[F, R] = endpoint.accepts
           for {
-            _ <- checkXsrfOrNothing
-            r <- request.bodyAs[F, R] { (decodeFailuer: DecodeFailure) =>
-                  log.error(decodeFailuer.getMessage())
-                  Response[F](Status.InternalServerError)
-                }
+            _       <- checkXsrfOrNothing
             rawUser <- sc.authenticate
             user <- Directive.commit(
-                     Directive.getOrElseF(
-                       sc.transformUser(rawUser),
-                       Sync[F].pure(
-                         Response[F](Status.Unauthorized)
-                       )
-                     )
-                   )
+              Directive.getOrElseF(
+                sc.transformUser(rawUser),
+                Sync[F].pure(
+                  Response[F](Status.Unauthorized)
+                )
+              )
+            )
+            r <- request.bodyAs[F, R] { (decodeFailure: DecodeFailure) =>
+                  log.error(decodeFailure.getMessage())
+                  Response[F](Status.InternalServerError)
+                }
           } yield {
             transformParams(tup, (r, user))
           }
@@ -136,9 +137,9 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
           implicit val entityDecoder: EntityDecoder[F, R] = endpoint.accepts
           for {
             r <- request.bodyAs[F, R] { (decodeFailuer: DecodeFailure) =>
-              log.error(decodeFailuer.getMessage())
-              Response[F](Status.InternalServerError)
-            }
+                  log.error(decodeFailuer.getMessage())
+                  Response[F](Status.InternalServerError)
+                }
           } yield {
             transformParam(tup, Tuple1(r))
           }
