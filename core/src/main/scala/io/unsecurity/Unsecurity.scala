@@ -105,14 +105,17 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
             _       <- checkXsrfOrNothing
             rawUser <- sc.authenticate
             user <- Directive.commit(
-              Directive.getOrElseF(
-                sc.transformUser(rawUser),
-                Sync[F].pure(
-                  Response[F](Status.Unauthorized)
-                )
-              )
-            )
+                     Directive.getOrElseF(
+                       sc.transformUser(rawUser),
+                       Sync[F].pure(
+                         Response[F](Status.Unauthorized)
+                       )
+                     )
+                   )
             r <- request.bodyAs[F, R] { (decodeFailure: DecodeFailure) =>
+                  decodeFailure.cause.foreach { cause =>
+                    log.error("oops: ", cause)
+                  }
                   log.error(decodeFailure.getMessage())
                   Response[F](Status.InternalServerError)
                 }
@@ -136,8 +139,8 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
         endpoint.method -> { tup: TUP =>
           implicit val entityDecoder: EntityDecoder[F, R] = endpoint.accepts
           for {
-            r <- request.bodyAs[F, R] { (decodeFailuer: DecodeFailure) =>
-                  log.error(decodeFailuer.getMessage())
+            r <- request.bodyAs[F, R] { (decodeFailure: DecodeFailure) =>
+                  log.error(decodeFailure.getMessage())
                   Response[F](Status.InternalServerError)
                 }
           } yield {
