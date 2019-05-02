@@ -6,19 +6,12 @@ import io.unsecurity.hlinx.HLinx._
 import org.http4s.Method
 import org.slf4j.{Logger, LoggerFactory}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
 object Main extends IOApp {
   val unsecurity: Unsecurity[IO, String, String] = new Unsecurity[IO, String, String] {
     override def sc: SecurityContext[IO, String, String] = ???
-    override def log: Logger = LoggerFactory.getLogger("fjon")
+    override def log: Logger                             = LoggerFactory.getLogger("fjon")
   }
   import unsecurity._
-
-  val server: Server[IO] = Server[IO](
-    port = 8088,
-    host = "0.0.0.0"
-  )
 
   val helloWorld: unsecurity.Complete =
     unsecure(
@@ -61,13 +54,12 @@ object Main extends IOApp {
       }
 
   case class Fjon(name: String)
-  implicit val fjonDecoder: Decoder[Fjon] = Decoder {
-    c =>
-      for {
-        name <- c.downField("name").as[String]
-      } yield {
-        Fjon(name)
-      }
+  implicit val fjonDecoder: Decoder[Fjon] = Decoder { c =>
+    for {
+      name <- c.downField("name").as[String]
+    } yield {
+      Fjon(name)
+    }
   }
 
   val post =
@@ -85,21 +77,17 @@ object Main extends IOApp {
         "OK"
     }
 
-
-
   override def run(args: List[String]): IO[ExitCode] = {
     import cats.implicits._
 
-    val httpRoutes = toHttpRoutes(
-      List(
-        helloWorld,
-        collidingHello,
-        twoParams,
-        post
-      ))
-
-    server
-      .serve(httpRoutes)
+    Server(port = 8088, host = "0.0.0.0", httpExecutionContext = scala.concurrent.ExecutionContext.Implicits.global)
+      .serve(
+        List(
+          helloWorld,
+          collidingHello,
+          twoParams,
+          post
+        ))
       .compile
       .drain
       .as(ExitCode.Success)

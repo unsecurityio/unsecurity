@@ -2,10 +2,8 @@ package io
 package unsecurity
 
 import cats.effect.Sync
-import io.circe.Decoder
 import io.unsecurity.hlinx.HLinx.HLinx
 import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}
-import no.scalabin.http4s.directives.Conditional.ResponseDirective
 import no.scalabin.http4s.directives.Directive
 import org.http4s.headers.Allow
 import org.http4s.{DecodeFailure, EntityDecoder, Method, Response, Status}
@@ -112,7 +110,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
                        )
                      )
                    )
-            r <- request.bodyAs[F, R] { (decodeFailure: DecodeFailure) =>
+            r <- request.bodyAs[R] { decodeFailure: DecodeFailure =>
                   decodeFailure.cause.foreach { cause =>
                     log.error("oops: ", cause)
                   }
@@ -139,7 +137,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
         endpoint.method -> { tup: TUP =>
           implicit val entityDecoder: EntityDecoder[F, R] = endpoint.accepts
           for {
-            r <- request.bodyAs[F, R] { (decodeFailure: DecodeFailure) =>
+            r <- request.bodyAs[R] { decodeFailure: DecodeFailure =>
                   log.error(decodeFailure.getMessage())
                   Response[F](Status.InternalServerError)
                 }

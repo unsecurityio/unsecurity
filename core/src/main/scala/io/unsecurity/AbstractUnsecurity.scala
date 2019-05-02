@@ -1,19 +1,18 @@
 package io.unsecurity
 
-import cats.effect.Sync
+import cats.effect.{ConcurrentEffect, Sync, Timer}
 import fs2.Stream
 import io.circe.{Decoder, Encoder}
 import io.unsecurity.hlinx.HLinx._
 import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}
-import no.scalabin.http4s.directives.Conditional.ResponseDirective
 import no.scalabin.http4s.directives.{Directive => Http4sDirective}
 import org.http4s.EntityEncoder.entityBodyEncoder
 import org.http4s.headers.`Content-Type`
-import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, MediaType, Method, Response, Status}
+import org.http4s.{EntityDecoder, EntityEncoder, MediaType, Method, Response, Status}
 import org.slf4j.Logger
 import shapeless.HList
 
-import scala.Ordering.Implicits._
+import scala.concurrent.ExecutionContext
 
 abstract class AbstractUnsecurity[F[_]: Sync, U] {
 
@@ -123,6 +122,11 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
     }
   }
 
+  def Server(port: Int, host: String, httpExecutionContext: ExecutionContext)(implicit C: ConcurrentEffect[F],
+                                                                              T: Timer[F]): Server[F] = {
+    new Server[F](port, host, httpExecutionContext, log)
+  }
+
   trait Completable[C, W] {
     def map[C2](f: C => C2): Completable[C2, W]
     def mapF[C2](f: C => F[C2]): Completable[C2, W]
@@ -143,36 +147,5 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
     def merge(other: AbstractUnsecurity[F, U]#Complete): AbstractUnsecurity[F, U]#Complete
     def methodMap: Map[Method, Any => ResponseDirective[F]]
     def compile: PathMatcher[Response[F]]
-  }
-
-  def toHttpRoutes(endpoints: List[AbstractUnsecurity[F, U]#Complete]): HttpRoutes[F] = {
-    val linxesToList: Map[List[SimpleLinx], List[AbstractUnsecurity[F, U]#Complete]] = endpoints.groupBy(_.key)
-
-    val mergedRoutes: List[AbstractUnsecurity[F, U]#Complete] =
-      linxesToList.toList
-        .map {
-          case (_, groupedEndpoints) => groupedEndpoints.reduce(_ merge _)
-        }
-        .sortBy(_.key)
-
-    log.trace("Ordered and grouped endpoints:")
-    mergedRoutes.foreach { r =>
-      log.info(
-        s"""/${r.key.mkString("/")}: ${r.methodMap.keys.map { _.name }.mkString(", ")}"""
-      )
-    }
-
-    val compiledRoutes: List[PathMatcher[Response[F]]] =
-      mergedRoutes.map(_.compile)
-
-    val reducedRoutes: PathMatcher[Response[F]] = compiledRoutes.reduce(_ orElse _)
-
-    val PathMapping = UnsecurityPlan[F](log).PathMapping
-
-    val service: HttpRoutes[F] = HttpRoutes.of[F](
-      PathMapping(reducedRoutes)
-    )
-
-    service
   }
 }

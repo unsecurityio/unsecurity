@@ -196,7 +196,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
               Left(Json.obj("msg" := "Invalid response from IDP"))
             }
         })
-      .toSuccess(ResponseJson(_, Status.InternalServerError))
+      .toSuccess(failure => Directive.failure(ResponseJson(failure, Status.InternalServerError)))
   }
 
   def verifyTokenAndGetOidcUser(tokenResponse: TokenResponse,
@@ -218,7 +218,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
       oidcUser
     }
 
-    eitherUser.toSuccess(ResponseJson(_, Status.InternalServerError))
+    eitherUser.toSuccess(failure => Directive.failure(ResponseJson(failure, Status.InternalServerError)))
   }
 
   def randomString(lengthInBytes: Int)(implicit randomProvider: RandomProvider[F]): F[String] = {
