@@ -244,7 +244,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
           httpOnly = false,
           path = Some("/"),
           maxAge = Some(authConfig.sessionCookieTtl.toSeconds),
-          extension = Some("SameSite=Strict")
+          extension = Some("SameSite=Lax")
         )
       }
     }
