@@ -2,7 +2,7 @@ disablePlugins(aether.AetherPlugin)
 enablePlugins(aether.SignedAetherPlugin)
 
 overridePublishSignedSettings
-//overridePublishLocalSettings
+overridePublishLocalSettings
 
 ThisBuild / scmInfo := Some(
   ScmInfo(
@@ -65,7 +65,7 @@ ThisBuild / startYear := Some(2019)
 
 ThisBuild / publishArtifact in Test := false
 
-//releaseCrossBuild := true
+ThisBuild / releaseCrossBuild := true
 
 ThisBuild / releasePublishArtifactsAction := PgpKeys.publishSigned.value
 
