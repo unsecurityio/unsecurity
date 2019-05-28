@@ -18,7 +18,7 @@ case class UnsecurityPlan[F[_]](log: Logger)(implicit M: MonadError[F, Throwable
         .map { value =>
           if (!value.response.status.isSuccess) {
             log.warn(
-              s"${req.uri.renderString} returned error code [${value.response.status.code.toString}]"
+              s"${req.uri.renderString} returned status code [${value.response.status.code.toString}]"
             )
           }
 
