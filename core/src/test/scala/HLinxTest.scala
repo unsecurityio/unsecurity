@@ -50,7 +50,7 @@ class HLinxTest extends FunSpec {
         }
 
         it("should match equal path") {
-          assert(link.capture("/foo/str/bar") === Some(Right("str" :: HNil)))
+          assert(link.capture("/foo/str/bar") === Some(Right(Tuple1("str"))))
         }
       }
 
@@ -67,7 +67,7 @@ class HLinxTest extends FunSpec {
         }
 
         it("should match equal path") {
-          assert(link.capture("/foo/str/1/bar") === Some(Right(1 :: "str" :: HNil)))
+          assert(link.capture("/foo/str/1/bar") === Some(Right(("str", 1))))
         }
       }
     }
