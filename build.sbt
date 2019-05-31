@@ -1,6 +1,5 @@
 ThisBuild / organization := "io.unsecurity"
-ThisBuild / crossScalaVersions := Seq("2.12.8", "2.11.12")
-ThisBuild / scalaVersion := crossScalaVersions.value.head
+ThisBuild / scalaVersion := "2.12.8"
 ThisBuild / useGpg := true
 
 lazy val root = (project in file(".")).settings(name := "unsecurity")

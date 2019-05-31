@@ -65,11 +65,10 @@ startYear := Some(2019)
 
 publishArtifact in Test := false
 
-releaseCrossBuild := true
+releaseCrossBuild := false
 
 releasePublishArtifactsAction := PgpKeys.publishSigned.value
 
-useGpg := true
 pgpSecretRing := pgpPublicRing.value
 
 
