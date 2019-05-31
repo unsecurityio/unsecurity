@@ -69,4 +69,7 @@ ThisBuild / releaseCrossBuild := true
 
 ThisBuild / releasePublishArtifactsAction := PgpKeys.publishSigned.value
 
+ThisBuild / useGpg := true
+ThisBuild / pgpSecretRing := pgpPublicRing.value
+
 
