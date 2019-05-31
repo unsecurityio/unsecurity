@@ -4,14 +4,14 @@ enablePlugins(aether.SignedAetherPlugin)
 overridePublishSignedSettings
 overridePublishLocalSettings
 
-ThisBuild / scmInfo := Some(
+scmInfo := Some(
   ScmInfo(
     new URL("https://github.com/unsecurityio/unsecurity"),
     "scm:git:git@github.com:unsecurityio/unsecurity.git",
     Some("scm:git:git@github.com:unsecurityio/unsecurity.git")
   ))
 
-ThisBuild / developers := List(
+developers := List(
   Developer(
     id = "eirikm",
     name = "Eirik Meland",
@@ -27,18 +27,18 @@ ThisBuild / developers := List(
 
 )
 
-ThisBuild / licenses := Seq("MIT" -> url("https://raw.githubusercontent.com/unsecurityio/unsecurity/master/LICENSE"))
-ThisBuild / homepage := Some(url("https://unsecurity.io"))
+licenses := Seq("MIT" -> url("https://raw.githubusercontent.com/unsecurityio/unsecurity/master/LICENSE"))
+homepage := Some(url("https://unsecurity.io"))
 
-ThisBuild / pomIncludeRepository := { x => false }
-ThisBuild / publishTo := {
+pomIncludeRepository := { x => false }
+publishTo := {
   val nexus = "https://oss.sonatype.org/"
   if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
   else Some("releases" at nexus + "service/local/staging/deploy/maven2")
 }
-ThisBuild / publishMavenStyle := true
+publishMavenStyle := true
 
-ThisBuild / packageOptions += {
+packageOptions += {
   val title  = name.value
   val ver    = version.value
   val vendor = organization.value
@@ -57,19 +57,19 @@ ThisBuild / packageOptions += {
   )
 }
 
-ThisBuild / credentials ++= Seq(
+credentials ++= Seq(
   Credentials(Path.userHome / ".sbt" / "sonatype_credential")
 )
 
-ThisBuild / startYear := Some(2019)
+startYear := Some(2019)
 
-ThisBuild / publishArtifact in Test := false
+publishArtifact in Test := false
 
-ThisBuild / releaseCrossBuild := true
+releaseCrossBuild := true
 
-ThisBuild / releasePublishArtifactsAction := PgpKeys.publishSigned.value
+releasePublishArtifactsAction := PgpKeys.publishSigned.value
 
-ThisBuild / useGpg := true
-ThisBuild / pgpSecretRing := pgpPublicRing.value
+useGpg := true
+pgpSecretRing := pgpPublicRing.value
 
 
