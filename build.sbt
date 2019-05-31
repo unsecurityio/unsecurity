@@ -1,6 +1,5 @@
 ThisBuild / organization := "io.unsecurity"
 ThisBuild / scalaVersion := "2.12.8"
-ThisBuild / parallelExecution := false
 
 lazy val root = (project in file(".")).settings(name := "unsecurity")
   .aggregate(core, auth0)

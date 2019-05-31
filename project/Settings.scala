@@ -2,8 +2,8 @@ import com.typesafe.sbt.pgp.PgpKeys
 import sbt._
 import sbt.Keys._
 import sbtrelease.ReleasePlugin.autoImport._
-import aether.SignedAetherPlugin.autoImport._
-import aether.AetherPlugin.autoImport._
+//import aether.SignedAetherPlugin.autoImport._
+//import aether.AetherPlugin.autoImport._
 
 object Settings {
 
@@ -69,10 +69,10 @@ object Settings {
           releasePublishArtifactsAction := PgpKeys.publishSigned.value
         )
       )
-      .settings(overridePublishLocalSettings)
-      .settings(overridePublishSignedSettings)
-      .enablePlugins(aether.SignedAetherPlugin)
-      .disablePlugins(aether.AetherPlugin)
+//      .settings(overridePublishLocalSettings)
+//      .settings(overridePublishSignedSettings)
+//      .enablePlugins(aether.SignedAetherPlugin)
+//      .disablePlugins(aether.AetherPlugin)
   }
 
 }
