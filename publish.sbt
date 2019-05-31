@@ -27,18 +27,18 @@ developers := List(
 
 )
 
-licenses := Seq("MIT" -> url("https://raw.githubusercontent.com/unsecurityio/unsecurity/master/LICENSE"))
-homepage := Some(url("https://unsecurity.io"))
+ThisBuild / licenses := Seq("MIT" -> url("https://raw.githubusercontent.com/unsecurityio/unsecurity/master/LICENSE"))
+ThisBuild / homepage := Some(url("https://unsecurity.io"))
 
-pomIncludeRepository := { x => false }
-publishTo := {
+ThisBuild / pomIncludeRepository := { x => false }
+ThisBuild / publishTo := {
   val nexus = "https://oss.sonatype.org/"
   if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
   else Some("releases" at nexus + "service/local/staging/deploy/maven2")
 }
-publishMavenStyle := true
+ThisBuild / publishMavenStyle := true
 
-packageOptions += {
+ThisBuild / packageOptions += {
   val title  = name.value
   val ver    = version.value
   val vendor = organization.value
@@ -61,7 +61,7 @@ credentials ++= Seq(
   Credentials(Path.userHome / ".sbt" / "sonatype_credential")
 )
 
-startYear := Some(2019)
+ThisBuild / startYear := Some(2019)
 
 publishArtifact in Test := false
 
