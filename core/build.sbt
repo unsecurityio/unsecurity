@@ -1,5 +1,3 @@
-import sbt.Keys.libraryDependencies
-
 name := "unsecurity-core"
 
 scalacOptions := Seq("-deprecation", "-Ypartial-unification", "-language:higherKinds", "-Ywarn-value-discard")

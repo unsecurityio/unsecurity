@@ -1,5 +1,3 @@
-import sbt.Keys.libraryDependencies
-
 name := "unsecurity-auth0"
 
 scalacOptions := Seq(
