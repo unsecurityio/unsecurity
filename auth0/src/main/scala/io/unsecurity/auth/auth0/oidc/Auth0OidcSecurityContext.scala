@@ -93,10 +93,11 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
       maybeCookie   <- request.cookie("xsrf-token")
       xForwardedfor <- request.header("X-Forwarded-For")
       xsrfCookie <- Directive.getOrElseF(
-                     maybeCookie, {
+                     maybeCookie,
+                     Sync[F].delay {
                        log.error(
                          s"No xsrf-cookie, possible CSRF-Attack from ${xForwardedfor.map(_.value).getOrElse("")}")
-                       Sync[F].pure(ResponseJson("No xsrf-token cookie found", Status.BadRequest))
+                       ResponseJson("No xsrf-token cookie found", Status.BadRequest)
                      }
                    )
     } yield {
