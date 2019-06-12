@@ -5,7 +5,7 @@ import java.util.UUID
 import cats.MonadError
 import cats.implicits._
 import no.scalabin.http4s.directives.Directive
-import org.http4s.{Request, Response, Status, Uri}
+import org.http4s.{Query, Request, Response, Status, Uri}
 import org.slf4j.Logger
 
 case class UnsecurityPlan[F[_]](log: Logger)(implicit M: MonadError[F, Throwable]) {
@@ -17,8 +17,9 @@ case class UnsecurityPlan[F[_]](log: Logger)(implicit M: MonadError[F, Throwable
         .run(req)
         .map { value =>
           if (!value.response.status.isSuccess) {
+            val uriWithoutQueryParams = req.uri.copy(query = Query.empty).renderString
             log.warn(
-              s"${req.uri.renderString} returned status code [${value.response.status.code.toString}]"
+              s"$uriWithoutQueryParams returned status code [${value.response.status.code.toString}]"
             )
           }
 
