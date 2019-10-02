@@ -146,7 +146,6 @@ trait Responses[F[_]] {
   val circeInstances: CirceInstances = CirceInstances
     .withPrinter(
       Printer.spaces2.copy(
-        preserveOrder = true,
         dropNullValues = true
       )
     )
