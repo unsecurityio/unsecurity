@@ -23,15 +23,17 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       MyCompletable(
         key = key,
         pathMatcher = pathMatcher,
-        methodMap = methodMap.mapValues(
-          a2dc =>
-            a2dc.andThen(
-              dc =>
-                Directive.commit(
-                  dc.filter(
-                    c => predicate(c).orF(Sync[F].pure(Response[F](Status.Forbidden)))
-                  ))
-          )),
+        methodMap = methodMap.map {
+          case (method, a2dc) =>
+            method ->
+              a2dc.andThen(
+                dc =>
+                  Directive.commit(
+                    dc.filter(
+                      c => predicate(c).orF(Sync[F].pure(Response[F](Status.Forbidden)))
+                    ))
+              )
+        },
         entityEncoder = entityEncoder
       )
     }
@@ -39,10 +41,11 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       MySecured(
         key = key,
         pathMatcher = pathMatcher,
-        methodMap = methodMap.mapValues { a2dc =>
-          a2dc.andThen { dc =>
-            dc.flatMap(c => f(c))
-          }
+        methodMap = methodMap.map {
+          case (method, a2dc) =>
+            method -> a2dc.andThen { dc =>
+              dc.flatMap(c => f(c))
+            }
         },
         entityEncoder = entityEncoder,
       )
@@ -51,10 +54,11 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       MySecured(
         key = key,
         pathMatcher = pathMatcher,
-        methodMap = methodMap.mapValues { a2dc =>
-          a2dc.andThen { dc =>
-            dc.map(c => f(c))
-          }
+        methodMap = methodMap.map {
+          case (method, a2dc) =>
+            method -> a2dc.andThen { dc =>
+              dc.map(c => f(c))
+            }
         },
         entityEncoder = entityEncoder,
       )
@@ -63,10 +67,11 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       MySecured(
         key = key,
         pathMatcher = pathMatcher,
-        methodMap = methodMap.mapValues { a2dc =>
-          a2dc.andThen { dc =>
-            dc.flatMap(c => f(c).successF)
-          }
+        methodMap = methodMap.map {
+          case (method, a2dc) =>
+            method -> a2dc.andThen { dc =>
+              dc.flatMap(c => f(c).successF)
+            }
         },
         entityEncoder = entityEncoder,
       )
@@ -160,15 +165,16 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       MyComplete(
         key = key,
         pathMatcher = pathMatcher,
-        methodMap = methodMap.mapValues { a2dc =>
-          a2dc.andThen { dc =>
-            for {
-              c <- dc
-              w <- entityEncoder(f(c))
-            } yield {
-              w
+        methodMap = methodMap.map {
+          case (method, a2dc) =>
+            method -> a2dc.andThen { dc =>
+              for {
+                c <- dc
+                w <- entityEncoder(f(c))
+              } yield {
+                w
+              }
             }
-          }
         }
       )
     }
@@ -177,10 +183,11 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       MyCompletable(
         key = key,
         pathMatcher = pathMatcher,
-        methodMap = methodMap.mapValues { a2dc =>
-          a2dc.andThen { dc =>
-            dc.map(c => f(c))
-          }
+        methodMap = methodMap.map {
+          case (method, a2dc) =>
+            method -> a2dc.andThen { dc =>
+              dc.map(c => f(c))
+            }
         },
         entityEncoder = entityEncoder
       )
@@ -190,10 +197,11 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       MyCompletable(
         key = key,
         pathMatcher = pathMatcher,
-        methodMap = methodMap.mapValues { a2dc =>
-          a2dc.andThen { dc =>
-            dc.flatMap(c => f(c))
-          }
+        methodMap = methodMap.map {
+          case (method, a2dc) =>
+            method -> a2dc.andThen { dc =>
+              dc.flatMap(c => f(c))
+            }
         },
         entityEncoder = entityEncoder
       )
@@ -203,10 +211,11 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       MyCompletable(
         key = key,
         pathMatcher = pathMatcher,
-        methodMap = methodMap.mapValues { a2dc =>
-          a2dc.andThen { dc =>
-            dc.flatMap(c => f(c).successF)
-          }
+        methodMap = methodMap.map {
+          case (method, a2dc) =>
+            method -> a2dc.andThen { dc =>
+              dc.flatMap(c => f(c).successF)
+            }
         },
         entityEncoder = entityEncoder
       )
