@@ -1,6 +1,15 @@
 name := "unsecurity-core"
 
-scalacOptions := Seq("-deprecation", "-language:higherKinds", "-Ywarn-value-discard")
+scalacOptions := Seq(
+  "-deprecation",
+  "-language:higherKinds",
+  "-Ywarn-value-discard"
+)
+
+scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) match {
+  case Some((2, v)) if v <= 12 => Seq("-Ypartial-unification")
+  case _                       => Seq.empty
+})
 
 val circeVersion      = "0.12.1"
 val http4sVersion     = "0.21.0-M5"

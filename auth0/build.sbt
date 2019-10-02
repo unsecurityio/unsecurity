@@ -6,9 +6,14 @@ scalacOptions := Seq(
   "-Ywarn-value-discard"
 )
 
+scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) match {
+  case Some((2, v)) if v <= 12 => Seq("-Ypartial-unification")
+  case _                       => Seq.empty
+})
+
 libraryDependencies := Seq(
-  "com.auth0"            % "auth0"            % "1.14.2",
-  "com.auth0"            % "jwks-rsa"         % "0.8.3",
-  "com.auth0"            % "java-jwt"         % "3.8.2",
-  "org.scalatest"        %% "scalatest"       % "3.0.8" % Test
+  "com.auth0"     % "auth0"      % "1.14.2",
+  "com.auth0"     % "jwks-rsa"   % "0.8.3",
+  "com.auth0"     % "java-jwt"   % "3.8.2",
+  "org.scalatest" %% "scalatest" % "3.0.8" % Test
 )
