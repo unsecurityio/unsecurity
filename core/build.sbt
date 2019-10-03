@@ -3,7 +3,7 @@ name := "unsecurity-core"
 scalacOptions := Seq("-deprecation", "-Ypartial-unification", "-language:higherKinds", "-Ywarn-value-discard")
 
 val circeVersion      = "0.11.1"
-val http4sVersion     = "0.20.9"
+val http4sVersion     = "0.20.11"
 val directivesVersion = "0.12.0"
 
 libraryDependencies := Seq(
