@@ -1,4 +1,4 @@
-import com.typesafe.sbt.pgp.PgpKeys
+import com.jsuereth.sbtpgp.PgpKeys
 import sbt._
 import sbt.Keys._
 import sbtrelease.ReleasePlugin.autoImport._
