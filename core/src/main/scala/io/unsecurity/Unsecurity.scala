@@ -224,14 +224,14 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       )
     }
     override def compile: PathMatcher[Response[F]] = {
-      def allow(methods: List[Method]): Allow = Allow(methods.head, methods.tail: _*)
+      def allow(methods: Set[Method]): Allow = Allow(methods)
 
       pathMatcher.andThen { pathParamsDirective =>
         for {
           req        <- Directive.request
           pathParams <- pathParamsDirective
           res <- if (methodMap.isDefinedAt(req.method)) methodMap(req.method)(pathParams)
-                else Directive.error(Response[F](Status.MethodNotAllowed).putHeaders(allow(methodMap.keySet.toList)))
+                else Directive.error(Response[F](Status.MethodNotAllowed).putHeaders(allow(methodMap.keySet)))
         } yield {
           res
         }
