@@ -2,8 +2,6 @@ import com.jsuereth.sbtpgp.PgpKeys
 import sbt._
 import sbt.Keys._
 import sbtrelease.ReleasePlugin.autoImport._
-//import aether.SignedAetherPlugin.autoImport._
-//import aether.AetherPlugin.autoImport._
 
 object Settings {
 
@@ -65,14 +63,10 @@ object Settings {
           ),
           startYear := Some(2019),
           publishArtifact in Test := false,
-          releaseCrossBuild := false,
+          releaseCrossBuild := true,
           releasePublishArtifactsAction := PgpKeys.publishSigned.value
         )
       )
-//      .settings(overridePublishLocalSettings)
-//      .settings(overridePublishSignedSettings)
-//      .enablePlugins(aether.SignedAetherPlugin)
-//      .disablePlugins(aether.AetherPlugin)
   }
 
 }
