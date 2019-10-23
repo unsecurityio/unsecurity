@@ -5,7 +5,7 @@ import java.net.URI
 
 case class AuthConfig(clientId: String,
                       clientSecret: String,
-                      authDomain: String,
+                      issuer: String,
                       defaultAuth0CallbackUrl: URI,
                       defaultReturnToUrl: URI,
                       returnToUrlDomainWhitelist: List[String],

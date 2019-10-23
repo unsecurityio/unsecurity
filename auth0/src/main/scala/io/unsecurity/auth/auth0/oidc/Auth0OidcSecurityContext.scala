@@ -116,7 +116,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
   }
 
   def createAuth0Url(state: String, auth0CallbackUrl: URI): String = {
-    new AuthAPI(authConfig.authDomain, authConfig.clientId, authConfig.clientSecret)
+    new AuthAPI(authConfig.issuer, authConfig.clientId, authConfig.clientSecret)
       .authorizeUrl(auth0CallbackUrl.toString)
       .withScope("openid profile email")
       .withState(state)
@@ -162,7 +162,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
   }
 
   def fetchTokenFromAuth0(code: String, auth0CallbackUrl: URI): Directive[F, TokenResponse] = {
-    val tokenUrl      = Uri.unsafeFromString(s"https://${authConfig.authDomain}/oauth/token")
+    val tokenUrl      = Uri.unsafeFromString(authConfig.issuer) / "oauth" / "token"
     val jsonMediaType = MediaType.application.json
     val payload = TokenRequest(grantType = "authorization_code",
                                clientId = authConfig.clientId,
@@ -214,7 +214,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
       alg       = Algorithm.RSA256(TokenVerifier.createPublicKeyProvider(publicKey))
       oidcUser <- EitherT.fromEither(
                    TokenVerifier
-                     .validateIdToken(alg, authConfig.authDomain, authConfig.clientId, tokenResponse.idToken))
+                     .validateIdToken(alg, authConfig.issuer, authConfig.clientId, tokenResponse.idToken))
     } yield {
       oidcUser
     }

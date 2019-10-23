@@ -1,6 +1,7 @@
 package io
 package unsecurity
 
+import cats.data.NonEmptyList
 import cats.effect.Sync
 import io.unsecurity.hlinx.HLinx.HLinx
 import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}
@@ -224,7 +225,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       )
     }
     override def compile: PathMatcher[Response[F]] = {
-      def allow(methods: Set[Method]): Allow = Allow(methods)
+      def allow(methods: Set[Method]): Allow = Allow(NonEmptyList.fromListUnsafe(methods.toList))
 
       pathMatcher.andThen { pathParamsDirective =>
         for {
