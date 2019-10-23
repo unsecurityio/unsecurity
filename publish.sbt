@@ -4,7 +4,7 @@ enablePlugins(aether.SignedAetherPlugin)
 overridePublishSignedSettings
 overridePublishLocalSettings
 
-publishTo := {
+publishTo in ThisBuild := {
   if (isSnapshot.value) {
     Some(Opts.resolver.sonatypeSnapshots)
   } else {
@@ -12,11 +12,11 @@ publishTo := {
   }
 }
 
-pomIncludeRepository := { x =>
+pomIncludeRepository in ThisBuild := { x =>
   false
 }
 
-packageOptions += {
+packageOptions in ThisBuild += {
   val title  = name.value
   val ver    = version.value
   val vendor = organization.value
@@ -35,38 +35,38 @@ packageOptions += {
   )
 }
 
-credentials ++= Seq(
+credentials in ThisBuild ++= Seq(
   Credentials(Path.userHome / ".sbt" / "sonatype_credential"),
 )
 
-homepage := Some(url("https://unsecurity.io"))
+homepage in ThisBuild := Some(url("https://unsecurity.io"))
 
-startYear := Some(2019)
+startYear in ThisBuild := Some(2019)
 
-licenses := Seq(
+licenses in ThisBuild := Seq(
   "MIT" -> url("https://raw.githubusercontent.com/unsecurityio/unsecurity/master/LICENSE")
 )
 
-publishMavenStyle := true
+publishMavenStyle in ThisBuild := true
 
 publishArtifact in Test := false
 
-pomIncludeRepository := { _ =>
+pomIncludeRepository in ThisBuild := { _ =>
   false
 }
 
-releaseCrossBuild := true
+releaseCrossBuild in ThisBuild := true
 
-releasePublishArtifactsAction := PgpKeys.publishSigned.value
+releasePublishArtifactsAction in ThisBuild := PgpKeys.publishSigned.value
 
-scmInfo := Some(
+scmInfo in ThisBuild := Some(
   ScmInfo(
     new URL("https://github.com/unsecurityio/unsecurity"),
     "scm:git:git@github.com:unsecurityio/unsecurity.git",
     Some("scm:git:git@github.com:unsecurityio/unsecurity.git")
   ))
 
-developers ++= List(
+developers in ThisBuild ++= List(
   Developer(
     id = "eirikm",
     name = "Eirik Meland",
