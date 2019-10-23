@@ -1,6 +1,7 @@
 package io
 package unsecurity
 
+import cats.data.NonEmptyList
 import cats.effect.Sync
 import io.unsecurity.hlinx.HLinx.HLinx
 import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}

@@ -12,8 +12,11 @@ scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) match {
 })
 
 val http4sVersion     = "0.21.0-M5"
-val circeVersion      = "0.12.2"
+val circeVersion      = "0.12.3"
 val directivesVersion = "0.14.0"
+val shapelessVersion  = "2.3.3"
+val scalaTestVersion  = "3.0.8"
+val logbackVersion    = "1.2.3"
 
 libraryDependencies := Seq(
   "io.circe"           %% "circe-parser"        % circeVersion,
@@ -21,7 +24,7 @@ libraryDependencies := Seq(
   "org.http4s"         %% "http4s-blaze-server" % http4sVersion,
   "org.http4s"         %% "http4s-circe"        % http4sVersion,
   "no.scalabin.http4s" %% "http4s-directives"   % directivesVersion,
-  "com.chuusai"        %% "shapeless"           % "2.3.3",
-  "org.scalatest"      %% "scalatest"           % "3.0.8" % Test,
-  "ch.qos.logback"     % "logback-classic"      % "1.2.3" % Test
+  "com.chuusai"        %% "shapeless"           % shapelessVersion,
+  "org.scalatest"      %% "scalatest"           % scalaTestVersion % Test,
+  "ch.qos.logback"     % "logback-classic"      % logbackVersion % Test
 )

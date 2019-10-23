@@ -33,12 +33,12 @@ object TokenVerifier {
   }
 
   def validateIdToken(alg: Algorithm,
-                      authDomain: String,
+                      issuer: String,
                       clientId: String,
                       idToken: String): Either[String, OidcAuthenticatedUser] = {
     val verifier = JWT
       .require(alg)
-      .withIssuer(s"https://$authDomain/")
+      .withIssuer(issuer)
       .withAudience(clientId)
       .build()
 
