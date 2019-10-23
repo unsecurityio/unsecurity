@@ -1,7 +1,9 @@
 ThisBuild / organization := "io.unsecurity"
 ThisBuild / scalaVersion := "2.12.8"
 
-lazy val root = (project in file(".")).settings(name := "unsecurity")
+lazy val root = (project in file("."))
+  .settings(name := "unsecurity")
+  .configure(PublishSettings(_))
   .aggregate(core, auth0)
 
 lazy val core = project.configure(PublishSettings(_))
