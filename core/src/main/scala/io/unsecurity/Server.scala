@@ -1,5 +1,6 @@
 package io.unsecurity
 
+
 import cats.effect.{ConcurrentEffect, ExitCode, Timer}
 import io.unsecurity.hlinx.SimpleLinx
 import no.scalabin.http4s.directives.{Directive => Http4sDirective}
@@ -15,14 +16,12 @@ class Server[F[_]](port: Int, host: String, httpExecutionContext: ExecutionConte
     implicit eff: ConcurrentEffect[F],
     timer: Timer[F]) {
 
-  type PathMatcher[A] = PartialFunction[String, Http4sDirective[F, A]]
-
   def serve[U](endpoints: AbstractUnsecurity[F, U]#Complete*): fs2.Stream[F, ExitCode] = {
-    serve(toHttpRoutes[U](endpoints.toList))
+    serve(Server.toHttpRoutes(endpoints.toList, log))
   }
 
   def serve[U](endpoints: List[AbstractUnsecurity[F, U]#Complete]): fs2.Stream[F, ExitCode] = {
-    serve(toHttpRoutes[U](endpoints))
+    serve(Server.toHttpRoutes(endpoints, log))
   }
 
   def serve(routes: HttpRoutes[F]): fs2.Stream[F, ExitCode] = {
@@ -42,7 +41,18 @@ class Server[F[_]](port: Int, host: String, httpExecutionContext: ExecutionConte
     } yield ExitCode.Success
   }
 
+  @deprecated("Use companion object Server.toHttpRoutes", "1.1")
   def toHttpRoutes[U](endpoints: List[AbstractUnsecurity[F, U]#Complete]): HttpRoutes[F] = {
+    Server.toHttpRoutes(endpoints, log)
+  }
+}
+
+object Server {
+
+
+  def toHttpRoutes[U, F[_]](endpoints: List[AbstractUnsecurity[F, U]#Complete], log: Logger)(implicit eff: ConcurrentEffect[F]) : HttpRoutes[F] = {
+    type PathMatcher[A] = PartialFunction[String, Http4sDirective[F, A]]
+
     val linxesToList: Map[List[SimpleLinx], List[AbstractUnsecurity[F, U]#Complete]] = endpoints.groupBy(_.key)
 
     val mergedRoutes: List[AbstractUnsecurity[F, U]#Complete] =

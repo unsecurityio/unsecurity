@@ -57,6 +57,9 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
     def json[R: Decoder]: EntityDecoder[F, R] =
       org.http4s.circe.jsonOf[F, R]
 
+    def jsonWithMediaType[R: Decoder](mediaType: MediaType): EntityDecoder[F, R] =
+      org.http4s.circe.jsonOfWithMedia[F, R](mediaType)
+
     def raw: EntityDecoder[F, String] =
       implicitly[EntityDecoder[F, String]]
   }
@@ -68,10 +71,13 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
     }
 
     def json[W: Encoder]: W => ResponseDirective[F] =
+      jsonWithContentType(`Content-Type`(MediaType.application.json))
+
+    def jsonWithContentType[W: Encoder] (contentType: `Content-Type`): W => ResponseDirective[F] =
       w =>
         Http4sDirective.success(
           Response[F](Status.Ok)
-            .withContentType(`Content-Type`(MediaType.application.json))
+            .withContentType(contentType)
             .withEntity(w)(org.http4s.circe.jsonEncoderOf[F, W])
       )
 
@@ -103,6 +109,18 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
               Response[F](Status.Ok)
                 .withEntity(w)(org.http4s.circe.jsonEncoderOf[F, W]))
       }
+
+      def jsonWithContentType[W: Encoder](contentType: `Content-Type`): F[W] => ResponseDirective[F] = f => {
+        Http4sDirective
+          .liftF(f)
+          .map(
+            w =>
+              Response[F](Status.Ok)
+                .withEntity(w)(org.http4s.circe.jsonEncoderOf[F, W])
+                .withContentType(contentType))
+      }
+
+
     }
 
     object Directive {
