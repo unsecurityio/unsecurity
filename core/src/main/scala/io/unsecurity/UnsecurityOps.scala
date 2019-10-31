@@ -6,11 +6,11 @@ import cats.Monad
 import cats.data.NonEmptyList
 import cats.effect.Sync
 import fs2.Stream
-import io.circe.{Encoder, Printer}
+import io.circe.{Encoder, Json, Printer}
 import io.unsecurity.hlinx.ParamConverter
 import no.scalabin.http4s.directives.{Directive, DirectiveOps, RequestDirectives}
 import org.http4s.circe.CirceInstances
-import org.http4s.headers.{`WWW-Authenticate`, Location}
+import org.http4s.headers.{Location, `WWW-Authenticate`}
 import org.http4s.{Challenge, EntityEncoder, RequestCookie, Response, Status, Uri}
 
 import scala.language.{higherKinds, implicitConversions}
@@ -44,7 +44,8 @@ trait UnsecurityOps[F[_]] extends DirectiveOps[F] with RequestDirectives[F] {
   }
 
   def cookie(cookieName: String)(implicit sync: Sync[F]): Directive[F, RequestCookie] = {
-    request.cookie(cookieName).flatMap(opt => opt.toSuccess(BadRequest(s"Cookie '$cookieName' not found in request")))
+//    request.cookie(cookieName).flatMap(opt => opt.toSuccess(BadRequest(s"Cookie '$cookieName' not found in request")))
+    request.cookie(cookieName).flatMap(opt => opt.toSuccess(HttpProblem.badRequest(s"Cookie '$cookieName' not found in request").toDirectiveError[F, RequestCookie]))
   }
 
   def requestCookies()(implicit sync: Sync[F]): Directive[F, List[RequestCookie]] = {
@@ -59,7 +60,7 @@ trait UnsecurityOps[F[_]] extends DirectiveOps[F] with RequestDirectives[F] {
                          case Some(param) =>
                            eitherToDirective(
                              ParamConverter[A].convert(param),
-                             (s: String) => Response[F](Status.BadRequest).withEntity(s)
+                             (s: String) => HttpProblem.badRequest(s).toResponse
                            ).map(Some(_))
                        }
     } yield {
@@ -76,7 +77,7 @@ trait UnsecurityOps[F[_]] extends DirectiveOps[F] with RequestDirectives[F] {
       paramValue <- requiredQueryParam(name)
       convertedParam <- eitherToDirective(
                          ParamConverter[A].convert(paramValue),
-                         (s: String) => Response[F](Status.BadRequest).withEntity(s)
+                         (s: String) => HttpProblem.badRequest(s).toResponse
                        )
     } yield {
       convertedParam
@@ -91,31 +92,27 @@ trait UnsecurityOps[F[_]] extends DirectiveOps[F] with RequestDirectives[F] {
 
   def Redirect(uri: URI)(implicit sync: Sync[F]): Response[F] = Redirect(Uri.unsafeFromString(uri.toString))
 
-  def BadRequest[A: Encoder, B](a: A)(implicit sync: Sync[F]): Directive[F, B] = {
-    Directive.error(
-      responses.ResponseJson(a, Status.BadRequest)
-    )
+  def BadRequest[B](detail: String)(implicit sync: Sync[F]): Directive[F, B] = {
+    HttpProblem.badRequest("Bad Request", Some(detail)).toDirectiveError[F, B]
   }
 
   def NotFound[A](implicit sync: Sync[F]): Directive[F, A] = {
-    Directive.error(
-      Response[F](Status.NotFound)
-    )
+      HttpProblem.notFound.toDirectiveError[F,A]
   }
 
-  def Unauthorized[A: Encoder, B](a: A)(implicit sync: Sync[F]): Directive[F, B] = {
-    Directive.error(responses.unauthorizedResponse(a))
+  def Unauthorized[B](details: String)(implicit sync: Sync[F]): Directive[F, B] = {
+    Directive.error(responses.unauthorizedResponse(Some(details)))
   }
 
   def Forbidden[A](implicit syncEvidence: Sync[F]): Directive[F, A] = {
     Directive.error(
-      Response[F](Status.Forbidden)
+      HttpProblem.forbidden("Forbidden").toResponse
     )
   }
 
-  def InternalServerError[A: Encoder, B](a: A)(implicit syncEvidence: Sync[F]): Directive[F, B] = {
+  def InternalServerError[B](title: String, detail: Option[String] = None)(implicit syncEvidence: Sync[F]): Directive[F, B] = {
     Directive.error(
-      responses.ResponseJson(a, Status.InternalServerError)
+      HttpProblem.internalServerError(title, detail).toResponse
     )
   }
 
@@ -162,9 +159,8 @@ trait Responses[F[_]] {
         .withEntity(value)(jsonEncoderOf[F, A])
   }
 
-  def unauthorizedResponse[A: Encoder](a: A)(implicit sync: Sync[F]): Response[F] = {
-    ResponseJson(a, Status.Unauthorized)
-      .putHeaders(`WWW-Authenticate`(NonEmptyList(Challenge("Cookie", "klaveness"), Nil))) //TODO: Parameteriser cookie. m2m ???. diskuter med erlend
+  def unauthorizedResponse(details: Option[String])(implicit sync: Sync[F]): Response[F] = {
+    HttpProblem.unauthorized("Unauthorized", details).toResponse.putHeaders(`WWW-Authenticate`(NonEmptyList(Challenge("Cookie", "klaveness"), Nil))) //TODO: Parameteriser cookie. m2m ???. diskuter med erlend
   }
 
 }

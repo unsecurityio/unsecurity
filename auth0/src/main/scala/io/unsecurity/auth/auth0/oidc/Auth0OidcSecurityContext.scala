@@ -65,7 +65,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
             log.error(
               s"XsrfCookie does not match Xsrf header, possible CSRF-Attack! X-Forwarded-For: ${xForwardedFor.getOrElse("")}"
             )
-            ResponseJson("xsrf check failed", Status.BadRequest)
+            HttpProblem.badRequest("xsrf check failed").toResponse[F]
           }
       ))
   }
@@ -77,10 +77,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
                     header,
                     Sync[F].delay {
                       log.error("No x-xsrf-token header, possible CSRF-attack!")
-                      ResponseJson(
-                        s"No x-xsrf-token header found. X-Forwarded-For: ${xForwardedFor.getOrElse("")}",
-                        Status.BadRequest
-                      )
+                      HttpProblem.badRequest( s"No x-xsrf-token header found. X-Forwarded-For: ${xForwardedFor.getOrElse("")}").toResponse
                     }
                   )
     } yield {
@@ -97,7 +94,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
                      Sync[F].delay {
                        log.error(
                          s"No xsrf-cookie, possible CSRF-Attack from ${xForwardedfor.map(_.value).getOrElse("")}")
-                       ResponseJson("No xsrf-token cookie found", Status.BadRequest)
+                       HttpProblem.badRequest("No xsrf-token cookie found").toResponse
                      }
                    )
     } yield {
@@ -110,7 +107,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
       sessionStore.getSession(cookie.content),
       Sync[F].delay {
         log.warn("Could not extract user profile: {}, session timed out")
-        unauthorizedResponse("Could not extract user profile from the cookie")
+        unauthorizedResponse(Some("Could not extract user profile from the cookie"))
       }
     )
   }
@@ -131,7 +128,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
                        Sync[F].delay {
                          log.error(
                            s"Invalid state, possible CSRF-attack on login. X-Forwarded-For: ${xForwardedFor.getOrElse("")}")
-                         ResponseJson("Invalid state, possible csrf-attack", Status.BadRequest)
+                         HttpProblem.badRequest("Invalid state, possible csrf-attack").toResponse
                        }
                      )
       if (state == sessionState.state).orF(
@@ -139,7 +136,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
           log.error(
             s"State values does not match, possible XSRF-attack! X-Forwarded-For: ${xForwardedFor.getOrElse("")} "
           )
-          ResponseJson("Illegal state value", Status.BadRequest)
+          HttpProblem.badRequest("Illegal state value").toResponse
         }
       )
     } yield sessionState
@@ -154,7 +151,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
       maybeCookie <- request.cookie(authConfig.cookieName)
       cookie <- Directive.getOrElseF(
                  maybeCookie,
-                 Sync[F].delay(ResponseJson("Session cookie not found. Please login", Status.Unauthorized)))
+                 Sync[F].delay(HttpProblem.unauthorized("Session cookie not found. Please login").toResponse))
 
     } yield {
       cookie
@@ -197,7 +194,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
               Left(Json.obj("msg" := "Invalid response from IDP"))
             }
         })
-      .toSuccess(failure => Directive.failure(ResponseJson(failure, Status.InternalServerError)))
+      .toSuccess(failure => Directive.failure(HttpProblem.internalServerError("Internal Server Error", None, Some(failure)).toResponse))
   }
 
   def verifyTokenAndGetOidcUser(tokenResponse: TokenResponse,
@@ -219,7 +216,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
       oidcUser
     }
 
-    eitherUser.toSuccess(failure => Directive.failure(ResponseJson(failure, Status.InternalServerError)))
+    eitherUser.toSuccess(failure => Directive.failure(HttpProblem.internalServerError(failure).toResponse))
   }
 
   def randomString(lengthInBytes: Int)(implicit randomProvider: RandomProvider[F]): F[String] = {

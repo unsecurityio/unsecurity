@@ -1,13 +1,15 @@
 package io.unsecurity
 
 
-import cats.effect.{ConcurrentEffect, ExitCode, Timer}
+import cats.Monad
+import cats.effect.{ConcurrentEffect, ExitCode, IO, Timer}
 import io.unsecurity.hlinx.SimpleLinx
 import no.scalabin.http4s.directives.{Directive => Http4sDirective}
 import org.http4s.implicits._
+import org.http4s.server.{DefaultServiceErrorHandler, ServiceErrorHandler}
 import org.http4s.server.blaze.BlazeServerBuilder
 import org.http4s.{HttpRoutes, Response}
-import org.slf4j.Logger
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.Ordering.Implicits._
 import scala.concurrent.ExecutionContext
@@ -37,6 +39,7 @@ class Server[F[_]](port: Int, host: String, httpExecutionContext: ExecutionConte
             .withNio2(true)
             .withConnectorPoolSize(4)
             .withHttpApp(httpApp)
+            .withServiceErrorHandler(Server.httpProblemErrorHandler)
             .serve
     } yield ExitCode.Success
   }
@@ -48,6 +51,17 @@ class Server[F[_]](port: Int, host: String, httpExecutionContext: ExecutionConte
 }
 
 object Server {
+
+  private val log = LoggerFactory.getLogger(Server.getClass)
+
+  def httpProblemErrorHandler[F[_] : Monad] : ServiceErrorHandler[F] = req => {
+    HttpProblem.handleError
+    .andThen{
+      problem => log.error(problem.toString, problem)
+      problem
+    }
+    .andThen(_.toResponseF[F]).orElse(DefaultServiceErrorHandler[F].apply(req))
+  }
 
 
   def toHttpRoutes[U, F[_]](endpoints: List[AbstractUnsecurity[F, U]#Complete], log: Logger)(implicit eff: ConcurrentEffect[F]) : HttpRoutes[F] = {
