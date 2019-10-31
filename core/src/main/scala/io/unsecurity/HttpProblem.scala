@@ -37,8 +37,9 @@ object HttpProblem {
         "type" := "about:blank",
         "title" := p.title,
         "status" := p.status.code,
-        "detail" := p.detail.map(_.concat( s", uuid: $p.uuid")).getOrElse(p.uuid),
-        "data" := p.data
+        "detail" := p.detail,
+        "data" := p.data,
+        "errorId" := p.uuid,
       )
   )
 
@@ -70,19 +71,19 @@ object HttpProblem {
     case InvalidMessageBodyFailure(details, Some(failure: DecodingFailure)) =>
       HttpProblem(
         Status.BadRequest,
-        "Could not decode JSON",
+        "Could not decode JSON1",
         Some(details),
         Some(Json.arr(decodingFailure(failure)))
       )
     case MalformedMessageBodyFailure(details, Some(DecodingFailures(failures))) =>
       HttpProblem(
         Status.BadRequest,
-        "Could not decode JSON",
+        "Could not decode JSON2",
         Some(details), Some(failures.map(decodingFailure).asJson)
       )
     case d: DecodeFailure => HttpProblem(
       Status.BadRequest,
-      "Could not decode JSON",
+      "Could not decode JSON3",
       Some(d.message), None
     )
     case NonFatal(e) => HttpProblem.internalServerError("Internal server error", Option(e.getMessage))
