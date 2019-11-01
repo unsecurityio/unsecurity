@@ -1,14 +1,14 @@
 package io.unsecurity
 
-
 import cats.Monad
-import cats.effect.{ConcurrentEffect, ExitCode, IO, Timer}
+import cats.data.OptionT
+import cats.effect.{ConcurrentEffect, ExitCode, Sync, Timer}
 import io.unsecurity.hlinx.SimpleLinx
 import no.scalabin.http4s.directives.{Directive => Http4sDirective}
 import org.http4s.implicits._
-import org.http4s.server.{DefaultServiceErrorHandler, ServiceErrorHandler}
 import org.http4s.server.blaze.BlazeServerBuilder
-import org.http4s.{HttpRoutes, Response}
+import org.http4s.server.{DefaultServiceErrorHandler, ServiceErrorHandler}
+import org.http4s.{HttpRoutes, Request, Response, Status}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.Ordering.Implicits._
@@ -28,7 +28,7 @@ class Server[F[_]](port: Int, host: String, httpExecutionContext: ExecutionConte
 
   def serve(routes: HttpRoutes[F]): fs2.Stream[F, ExitCode] = {
 
-    val httpApp = routes.orNotFound
+    val httpApp = Server.loggingMiddleware(routes).orNotFound
 
     for {
       _ <- BlazeServerBuilder[F]
@@ -39,7 +39,6 @@ class Server[F[_]](port: Int, host: String, httpExecutionContext: ExecutionConte
             .withNio2(true)
             .withConnectorPoolSize(4)
             .withHttpApp(httpApp)
-            .withServiceErrorHandler(Server.httpProblemErrorHandler)
             .serve
     } yield ExitCode.Success
   }
@@ -54,19 +53,30 @@ object Server {
 
   private val log = LoggerFactory.getLogger(Server.getClass)
 
-  def httpProblemErrorHandler[F[_] : Monad] : ServiceErrorHandler[F] = req => {
-    HttpProblem.handleError
-    .andThen{
-      problem => {
-        log.error(problem.toString, problem)
-        problem
+  def loggingMiddleware[F[_]: Sync](service: HttpRoutes[F]): HttpRoutes[F] = cats.data.Kleisli { req: Request[F] =>
+    try {
+      service(req).map {
+        case Status.ClientError(resp) =>
+          val contentType = resp.contentType
+          val loggedResp = resp.withEntity(resp.bodyAsText.evalTap(body => Sync[F].delay(log.error(s"Error processing: ${req.pathInfo}, message: $body"))))
+          contentType.fold(loggedResp)(ct => loggedResp.putHeaders(ct))
+        case Status.ServerError(resp) =>
+          val contentType = resp.contentType
+          val loggedResp = resp.withEntity(resp.bodyAsText.evalTap(body => Sync[F].delay(log.error(s"Error processing: ${req.pathInfo}, message: $body"))))
+          contentType.fold(loggedResp)(ct => loggedResp.putHeaders(ct))
+        case resp =>
+          resp
       }
+    } catch {
+      case t: Throwable =>
+        val problem = HttpProblem.handleError(t)
+        log.error(problem.toString, problem)
+        OptionT.pure(problem.toResponse[F])
     }
-    .andThen(_.toResponseF[F]).orElse(DefaultServiceErrorHandler[F].apply(req))
   }
 
-
-  def toHttpRoutes[U, F[_]](endpoints: List[AbstractUnsecurity[F, U]#Complete], log: Logger)(implicit eff: ConcurrentEffect[F]) : HttpRoutes[F] = {
+  def toHttpRoutes[U, F[_]](endpoints: List[AbstractUnsecurity[F, U]#Complete], log: Logger)(
+      implicit eff: ConcurrentEffect[F]): HttpRoutes[F] = {
     type PathMatcher[A] = PartialFunction[String, Http4sDirective[F, A]]
 
     val linxesToList: Map[List[SimpleLinx], List[AbstractUnsecurity[F, U]#Complete]] = endpoints.groupBy(_.key)
