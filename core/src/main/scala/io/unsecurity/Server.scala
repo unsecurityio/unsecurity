@@ -57,8 +57,10 @@ object Server {
   def httpProblemErrorHandler[F[_] : Monad] : ServiceErrorHandler[F] = req => {
     HttpProblem.handleError
     .andThen{
-      problem => log.error(problem.toString, problem)
-      problem
+      problem => {
+        log.error(problem.toString, problem)
+        problem
+      }
     }
     .andThen(_.toResponseF[F]).orElse(DefaultServiceErrorHandler[F].apply(req))
   }

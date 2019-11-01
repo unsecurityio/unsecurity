@@ -14,7 +14,7 @@ import scala.util.control.NonFatal
 // https://tools.ietf.org/html/rfc7807
 
 //TODDO: Add logging and assign id to errors.. to make it easier to find the error in logs later
-case class HttpProblem(status: Status, title: String, detail: Option[String], data: Option[Json], uuid:String = UUID.randomUUID().toString) extends RuntimeException {
+case class HttpProblem(status: Status, title: String, detail: Option[String], data: Option[Json], uuid:String = UUID.randomUUID().toString, cause: Option[Throwable] = None) extends RuntimeException(detail.getOrElse(title).concat(s", uuid: $uuid"), cause.orNull) {
   def toResponse[F[_]: Applicative]: Response[F] =
     Response[F](status)
       .withContentType(
@@ -71,21 +71,26 @@ object HttpProblem {
     case InvalidMessageBodyFailure(details, Some(failure: DecodingFailure)) =>
       HttpProblem(
         Status.BadRequest,
-        "Could not decode JSON1",
+        "Could not decode JSON",
         Some(details),
         Some(Json.arr(decodingFailure(failure)))
       )
     case MalformedMessageBodyFailure(details, Some(DecodingFailures(failures))) =>
       HttpProblem(
         Status.BadRequest,
-        "Could not decode JSON2",
+        "Could not decode JSON",
         Some(details), Some(failures.map(decodingFailure).asJson)
       )
     case d: DecodeFailure => HttpProblem(
       Status.BadRequest,
-      "Could not decode JSON3",
+      "Could not decode JSON",
       Some(d.message), None
     )
-    case NonFatal(e) => HttpProblem.internalServerError("Internal server error", Option(e.getMessage))
+    case NonFatal(e) => HttpProblem(
+      status = Status.InternalServerError,
+      title = "Internal server error",
+      detail = Option(e.getMessage),
+      data = None,
+      cause=Some(e))
   }
 }
