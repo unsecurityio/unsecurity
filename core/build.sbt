@@ -12,6 +12,7 @@ scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) match {
 })
 
 val http4sVersion     = "0.21.0-M5"
+val fs2Version        = "2.0.1"
 val circeVersion      = "0.12.3"
 val directivesVersion = "0.14.0"
 val shapelessVersion  = "2.3.3"
@@ -23,6 +24,8 @@ libraryDependencies := Seq(
   "org.http4s"         %% "http4s-blaze-client" % http4sVersion,
   "org.http4s"         %% "http4s-blaze-server" % http4sVersion,
   "org.http4s"         %% "http4s-circe"        % http4sVersion,
+  "co.fs2"             %% "fs2-core"            % fs2Version,
+  "co.fs2"             %% "fs2-io"              % fs2Version,
   "no.scalabin.http4s" %% "http4s-directives"   % directivesVersion,
   "com.chuusai"        %% "shapeless"           % shapelessVersion,
   "org.scalatest"      %% "scalatest"           % scalaTestVersion % Test,
