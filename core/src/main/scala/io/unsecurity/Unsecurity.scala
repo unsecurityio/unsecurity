@@ -7,7 +7,7 @@ import io.unsecurity.hlinx.HLinx.HLinx
 import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}
 import no.scalabin.http4s.directives.Directive
 import org.http4s.headers.Allow
-import org.http4s.{DecodeFailure, EntityDecoder, Method, Response, Status}
+import org.http4s.{DecodeFailure, Method, Response, Status}
 import shapeless.HList
 
 abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] with UnsecurityOps[F] {
@@ -31,7 +31,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
                 dc =>
                   Directive.commit(
                     dc.filter(
-                      c => predicate(c).orF(Sync[F].pure(Response[F](Status.Forbidden)))
+                     c => predicate(c).orF(HttpProblem.forbidden("Forbidden").toResponseF)
                     ))
               )
         },
@@ -104,25 +104,18 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
               Directive.success("xsrf not checked")
             }
 
-          implicit val entityDecoder: EntityDecoder[F, R] = endpoint.accepts
           for {
             _       <- checkXsrfOrNothing
             rawUser <- sc.authenticate
             user <- Directive.commit(
                      Directive.getOrElseF(
                        sc.transformUser(rawUser),
-                       Sync[F].pure(
-                         Response[F](Status.Unauthorized)
-                       )
+                       HttpProblem.unauthorized("Unauthorized").toResponseF[F]
                      )
                    )
-            r <- request.bodyAs[R] { decodeFailure: DecodeFailure =>
-                  decodeFailure.cause.foreach { cause =>
-                    log.error("oops: ", cause)
-                  }
-                  log.error(decodeFailure.getMessage())
-                  Response[F](Status.InternalServerError)
-                }
+            r <- request.bodyAs[R] { error: DecodeFailure =>
+                  HttpProblem.handleError(error).toResponse[F]
+                }(endpoint.accepts, Sync[F])
           } yield {
             transformParams(tup, (r, user))
           }
@@ -141,12 +134,10 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       pathMatcher = createPathMatcher[P, TUP](endpoint.path).asInstanceOf[PathMatcher[Any]],
       methodMap = Map(
         endpoint.method -> { tup: TUP =>
-          implicit val entityDecoder: EntityDecoder[F, R] = endpoint.accepts
           for {
-            r <- request.bodyAs[R] { decodeFailure: DecodeFailure =>
-                  log.error(decodeFailure.getMessage())
-                  Response[F](Status.InternalServerError)
-                }
+            r <- request.bodyAs[R] { error: DecodeFailure =>
+                  HttpProblem.handleError(error).toResponse[F]
+                }(endpoint.accepts, Sync[F])
           } yield {
             transformParam(tup, Tuple1(r))
           }
@@ -241,7 +232,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
           req        <- Directive.request
           pathParams <- pathParamsDirective
           res <- if (methodMap.isDefinedAt(req.method)) methodMap(req.method)(pathParams)
-                else Directive.error(Response[F](Status.MethodNotAllowed).putHeaders(allow(methodMap.keySet)))
+          else Directive.error(HttpProblem.methodNotAllowed("Method not allowed", methodMap.keySet).toResponse.putHeaders(allow(methodMap.keySet)))
         } yield {
           res
         }
@@ -272,8 +263,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
             log.error(s"""Error converting "$v1" = $simpleRoute: $errorMsg""")
 
             Directive.failure(
-              Response(Status.BadRequest)
-                .withEntity(errorMsg)
+              HttpProblem.badRequest("Bad Request", Some(errorMsg)).toResponse
             )
 
           case Right(params) =>
