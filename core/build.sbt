@@ -7,7 +7,7 @@ scalacOptions := Seq(
   "-Ywarn-value-discard"
 )
 
-val http4sVersion     = "0.20.12"
+val http4sVersion     = "0.20.13"
 val circeVersion      = "0.12.2"
 val directivesVersion = "0.13.0"
 val shapelessVersion  = "2.3.3"
