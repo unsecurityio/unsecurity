@@ -8,7 +8,7 @@ import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}
 import no.scalabin.http4s.directives.{Directive => Http4sDirective}
 import org.http4s.EntityEncoder.entityBodyEncoder
 import org.http4s.headers.`Content-Type`
-import org.http4s.{EntityDecoder, EntityEncoder, MediaType, Method, Response, Status}
+import org.http4s.{EntityDecoder, EntityEncoder, MediaRange, MediaType, Method, Response, Status}
 import org.slf4j.Logger
 import shapeless.HList
 
@@ -165,5 +165,6 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
     def merge(other: AbstractUnsecurity[F, U]#Complete): AbstractUnsecurity[F, U]#Complete
     def methodMap: Map[Method, Any => ResponseDirective[F]]
     def compile: PathMatcher[Response[F]]
+    def consumes: Set[MediaRange]
   }
 }
