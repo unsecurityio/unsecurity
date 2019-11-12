@@ -1,4 +1,5 @@
 package io.unsecurity.auth.auth0.oidc
+
 import java.security.SecureRandom
 
 import cats.effect.Sync

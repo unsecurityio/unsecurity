@@ -1,11 +1,10 @@
 package io.unsecurity
 
 import cats.effect.IO
-import org.http4s.{Header, Headers, MediaRange, MediaType, Method, Request}
-import org.scalatest.{FlatSpec, Matchers}
+import org.http4s.{Header, Headers, MediaRange, Method, Request, _}
 import org.scalatest.EitherValues._
 import org.scalatest.OptionValues._
-import org.http4s._
+import org.scalatest.{FlatSpec, Matchers}
 
 class ConNegTest extends FlatSpec with Matchers {
 
@@ -26,7 +25,6 @@ class ConNegTest extends FlatSpec with Matchers {
                           headers = Headers(Header("content-type", "application/foobar") :: Nil))
     val result = Unsecurity.validateContentType(req, supportedContentTypes)
     result.left.value.detail.value should startWith("Content-Type not supported")
-    import io.circe.syntax._
   }
 
   "Supported content-type" should "return MediaType" in {

@@ -8,7 +8,7 @@ import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}
 import no.scalabin.http4s.directives.Directive
 import org.http4s.headers.Allow
 import org.http4s.util.CaseInsensitiveString
-import org.http4s.{DecodeFailure, EntityDecoder, MediaRange, MediaType, Method, Request, Response, Status}
+import org.http4s.{DecodeFailure, MediaRange, MediaType, Method, Request, Response}
 import shapeless.HList
 
 abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] with UnsecurityOps[F] {
