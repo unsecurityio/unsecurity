@@ -13,8 +13,10 @@ class ConNegTest extends FlatSpec with Matchers {
 
   "Invalid content type" should "return Invalid Media-Type error" in {
     val req =
-      Request[IO](method = Method.GET, uri = uri"/whatever", headers = Headers(Header("content-type", "foobar") :: Nil))
-    val result = Unsecurity.validateContentType(req, supportedContentTypes)
+      Request[IO](method = Method.GET, uri = uri"/whatever", headers = Headers.of(Header("content-type", "foobar")))
+
+    val result: Either[HttpProblem, MediaRange] = Unsecurity.validateContentType(req, supportedContentTypes)
+
     assert(result.isLeft)
     result.left.value.detail.value should startWith("Invalid Media-Type")
   }
@@ -22,7 +24,7 @@ class ConNegTest extends FlatSpec with Matchers {
   "Unsupported content-type" should "return Usupported Media-Type error" in {
     val req = Request[IO](method = Method.GET,
                           uri = uri"/whatever",
-                          headers = Headers(Header("content-type", "application/foobar") :: Nil))
+                          headers = Headers.of(Header("content-type", "application/foobar")))
     val result = Unsecurity.validateContentType(req, supportedContentTypes)
     result.left.value.detail.value should startWith("Content-Type not supported")
   }
@@ -30,7 +32,7 @@ class ConNegTest extends FlatSpec with Matchers {
   "Supported content-type" should "return MediaType" in {
     val req = Request[IO](method = Method.GET,
                           uri = uri"/whatever",
-                          headers = Headers(Header("content-type", "application/vnd.testing+json") :: Nil))
+                          headers = Headers.of(Header("content-type", "application/vnd.testing+json")))
     val result = Unsecurity.validateContentType(req, supportedContentTypes)
     result.right.value shouldBe (vndMediaType)
   }
