@@ -77,7 +77,9 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
                     header,
                     Sync[F].delay {
                       log.error("No x-xsrf-token header, possible CSRF-attack!")
-                      HttpProblem.badRequest( s"No x-xsrf-token header found. X-Forwarded-For: ${xForwardedFor.getOrElse("")}").toResponse
+                      HttpProblem
+                        .badRequest(s"No x-xsrf-token header found. X-Forwarded-For: ${xForwardedFor.getOrElse("")}")
+                        .toResponse
                     }
                   )
     } yield {
@@ -194,7 +196,8 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
               Left(Json.obj("msg" := "Invalid response from IDP"))
             }
         })
-      .toSuccess(failure => Directive.failure(HttpProblem.internalServerError("Internal Server Error", None, Some(failure)).toResponse))
+      .toSuccess(failure =>
+        Directive.failure(HttpProblem.internalServerError("Internal Server Error", None, Some(failure)).toResponse))
   }
 
   def verifyTokenAndGetOidcUser(tokenResponse: TokenResponse,

@@ -7,7 +7,16 @@ import io.circe._
 import io.circe.syntax._
 import no.scalabin.http4s.directives.Directive
 import org.http4s.circe.DecodingFailures
-import org.http4s.{DecodeFailure, InvalidMessageBodyFailure, MalformedMessageBodyFailure, MediaRange, MediaType, Method, Response, Status}
+import org.http4s.{
+  DecodeFailure,
+  InvalidMessageBodyFailure,
+  MalformedMessageBodyFailure,
+  MediaRange,
+  MediaType,
+  Method,
+  Response,
+  Status
+}
 
 import scala.util.control.NonFatal
 
@@ -67,7 +76,15 @@ object HttpProblem {
 
   def notFound = HttpProblem(Status.NotFound, "Not Found", None, None)
 
-  def unsupportedMediaType(detail:String, supportedRanges:Set[MediaRange]) = HttpProblem(Status.UnsupportedMediaType, "Unsupported Media-Type", Some(detail), Some(Json.obj("supportedTypes" := Json.arr(supportedRanges.map(range => Json.fromString(range.toString())).toSeq: _*))))
+  def unsupportedMediaType(detail: String, supportedRanges: Set[MediaRange]) =
+    HttpProblem(
+      Status.UnsupportedMediaType,
+      "Unsupported Media-Type",
+      Some(detail),
+      Some(
+        Json.obj(
+          "supportedTypes" := Json.arr(supportedRanges.map(range => Json.fromString(range.toString())).toSeq: _*)))
+    )
 
   def decodingFailure(failure: DecodingFailure) =
     Json.obj(

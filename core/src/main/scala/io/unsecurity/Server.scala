@@ -58,11 +58,13 @@ object Server {
       service(req).map {
         case Status.ClientError(resp) =>
           val contentType = resp.contentType
-          val loggedResp = resp.withEntity(resp.bodyAsText.evalTap(body => Sync[F].delay(log.error(s"Error processing: ${req.pathInfo}, message: $body"))))
+          val loggedResp = resp.withEntity(resp.bodyAsText.evalTap(body =>
+            Sync[F].delay(log.error(s"Error processing: ${req.pathInfo}, message: $body"))))
           contentType.fold(loggedResp)(ct => loggedResp.putHeaders(ct))
         case Status.ServerError(resp) =>
           val contentType = resp.contentType
-          val loggedResp = resp.withEntity(resp.bodyAsText.evalTap(body => Sync[F].delay(log.error(s"Error processing: ${req.pathInfo}, message: $body"))))
+          val loggedResp = resp.withEntity(resp.bodyAsText.evalTap(body =>
+            Sync[F].delay(log.error(s"Error processing: ${req.pathInfo}, message: $body"))))
           contentType.fold(loggedResp)(ct => loggedResp.putHeaders(ct))
         case resp =>
           resp

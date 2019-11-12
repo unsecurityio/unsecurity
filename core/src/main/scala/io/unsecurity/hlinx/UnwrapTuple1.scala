@@ -8,7 +8,6 @@ object UnwrapTuple1 extends LowPriorityUnwrapInstances {
 
   type Aux[T, Out0] = UnwrapTuple1[T] { type Out = Out0 }
 
-
   implicit val unwrapUnit: Aux[Unit, Unit] = new UnwrapTuple1[Unit] {
     type Out = Unit
     def apply(t: Unit): Out = ()

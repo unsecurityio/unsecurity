@@ -16,11 +16,11 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
   def sc: SecurityContext[F, RU, U]
 
   case class MySecured[C, W](
-                              key: List[SimpleLinx],
-                              pathMatcher: PathMatcher[Any],
-                              consumes: Set[MediaRange],
-                              methodMap: Map[Method, Any => Directive[F, C]],
-                              entityEncoder: W => ResponseDirective[F]
+      key: List[SimpleLinx],
+      pathMatcher: PathMatcher[Any],
+      consumes: Set[MediaRange],
+      methodMap: Map[Method, Any => Directive[F, C]],
+      entityEncoder: W => ResponseDirective[F]
   ) extends Secured[C, W] {
     override def authorization(predicate: C => Boolean): Completable[C, W] = {
       MyCompletable(
@@ -36,7 +36,6 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
                     c => predicate(c).orF(HttpProblem.forbidden("Forbidden").toResponseF)
                   ))
           )),
-
         entityEncoder = entityEncoder
       )
     }
@@ -111,15 +110,15 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
           for {
             _       <- checkXsrfOrNothing
             rawUser <- sc.authenticate
-            user    <- Directive.commit(
+            user <- Directive.commit(
                      Directive.getOrElseF(
                        sc.transformUser(rawUser),
                        HttpProblem.unauthorized("Unauthorized").toResponseF[F]
                      )
                    )
-            r       <- request.bodyAs[R] { error: DecodeFailure =>
-                        HttpProblem.handleError(error).toResponse[F]
-                      }(endpoint.accepts, Sync[F])
+            r <- request.bodyAs[R] { error: DecodeFailure =>
+                  HttpProblem.handleError(error).toResponse[F]
+                }(endpoint.accepts, Sync[F])
           } yield {
             transformParams(tup, (r, user))
           }
@@ -235,14 +234,21 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
     override def compile: PathMatcher[Response[F]] = {
       def allow(methods: Set[Method]): Allow = Allow(NonEmptyList.fromListUnsafe(methods.toList))
 
-      val f:PathMatcher[Response[F]] = pathMatcher.andThen { pathParamsDirective =>
+      val f: PathMatcher[Response[F]] = pathMatcher.andThen { pathParamsDirective =>
         for {
           req        <- Directive.request
           pathParams <- pathParamsDirective
           res <- if (methodMap.isDefinedAt(req.method)) methodMap(req.method)(pathParams)
-                  else Directive.error(HttpProblem.methodNotAllowed("Method not allowed", methodMap.keySet).toResponse.putHeaders(allow(methodMap.keySet)))
-          _ <- Unsecurity.validateContentType(req, consumes).fold(problem => problem.toDirectiveError, _ => Directive.success(res))
-          } yield {
+                else
+                  Directive.error(
+                    HttpProblem
+                      .methodNotAllowed("Method not allowed", methodMap.keySet)
+                      .toResponse
+                      .putHeaders(allow(methodMap.keySet)))
+          _ <- Unsecurity
+                .validateContentType(req, consumes)
+                .fold(problem => problem.toDirectiveError, _ => Directive.success(res))
+        } yield {
           res
         }
       }
@@ -285,9 +291,17 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
 }
 
 object Unsecurity {
-  def validateContentType[F[_]](request: Request[F], consumes:Set[MediaRange]) :Either [HttpProblem, MediaRange] = for {
-    contentTypeString <- request.headers.get(CaseInsensitiveString("content-type")).toRight(HttpProblem.unsupportedMediaType("Content-Type missing", consumes))
-    mediaType <- MediaType.parse(contentTypeString.value).left.map(pf => HttpProblem.unsupportedMediaType(s"Invalid Media-Type", consumes))
-    supportedRange <- consumes.find(mediaType.satisfies(_)).toRight(HttpProblem.unsupportedMediaType(s"Content-Type not supported", consumes))
-  } yield supportedRange
+  def validateContentType[F[_]](request: Request[F], consumes: Set[MediaRange]): Either[HttpProblem, MediaRange] =
+    for {
+      contentTypeString <- request.headers
+                            .get(CaseInsensitiveString("content-type"))
+                            .toRight(HttpProblem.unsupportedMediaType("Content-Type missing", consumes))
+      mediaType <- MediaType
+                    .parse(contentTypeString.value)
+                    .left
+                    .map(pf => HttpProblem.unsupportedMediaType(s"Invalid Media-Type", consumes))
+      supportedRange <- consumes
+                         .find(mediaType.satisfies(_))
+                         .toRight(HttpProblem.unsupportedMediaType(s"Content-Type not supported", consumes))
+    } yield supportedRange
 }
