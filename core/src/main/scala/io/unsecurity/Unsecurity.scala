@@ -6,7 +6,7 @@ import cats.effect.Sync
 import io.unsecurity.hlinx.HLinx.HLinx
 import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}
 import no.scalabin.http4s.directives.Directive
-import org.http4s.headers.{Allow, `Content-Type`}
+import org.http4s.headers.{`Content-Type`, Allow}
 import org.http4s.util.CaseInsensitiveString
 import org.http4s.{DecodeFailure, MediaRange, MediaType, Method, Request, Response}
 import shapeless.HList
@@ -172,7 +172,8 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
               w
             }
           }
-        }
+        },
+        newMap = Map.empty
       )
     }
 
@@ -220,10 +221,11 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
   }
 
   case class MyComplete(
-      key: List[SimpleLinx],
+      override val key: List[SimpleLinx],
       pathMatcher: PathMatcher[Any],
-      consumes: Set[MediaRange],
-      methodMap: Map[Method, Any => ResponseDirective[F]]
+      override val consumes: Set[MediaRange],
+      override val methodMap: Map[Method, Any => ResponseDirective[F]],
+      override val newMap: Map[Method, MediaRangeMap]
   ) extends Complete {
     override def merge(other: AbstractUnsecurity[F, U]#Complete): AbstractUnsecurity[F, U]#Complete = {
       this.copy(
@@ -238,16 +240,30 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
         for {
           req        <- Directive.request
           pathParams <- pathParamsDirective
-          res <- if (methodMap.isDefinedAt(req.method)) methodMap(req.method)(pathParams)
-                else
-                  Directive.error(
-                    HttpProblem
-                      .methodNotAllowed("Method not allowed", methodMap.keySet)
-                      .toResponse
-                      .putHeaders(allow(methodMap.keySet)))
-          _ <- Unsecurity
-                .validateContentType(req, consumes)
-                .fold(problem => problem.toDirectiveError, _ => Directive.success(res))
+          mrm <- newMap
+                  .get(req.method)
+                  .toSuccess(
+                    Directive.error(
+                      HttpProblem
+                        .methodNotAllowed("Method not allowed", methodMap.keySet)
+                        .toResponse
+                        .putHeaders(allow(methodMap.keySet))
+                    )
+                  )
+
+          contentType <- extractContentType
+
+          a2rdf <- Directive.commit {
+                    mrm.get(contentType.mediaType).toSuccess { supportedMediaTypes =>
+                      Directive.error(
+                        HttpProblem
+                          .unsupportedMediaType("Content-Type missing or invalid mediatype", supportedMediaTypes)
+                          .toResponse
+                      )
+                    }
+                  }
+
+          res <- a2rdf(pathParams)
         } yield {
           res
         }
@@ -288,6 +304,22 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
         }
       }
     }
+
+  def extractContentType: Directive[F, `Content-Type`] = {
+    for {
+      request <- Directive.request[F]
+      // TODO dette skal ikke gjelde for GET?
+      contentType <- request.headers
+                      .get(`Content-Type`)
+                      .toSuccess(
+                        HttpProblem
+                          .unsupportedMediaType("Content-Type missing or invalid mediatype", Set.empty)
+                          .toDirectiveFailure
+                      )
+    } yield {
+      contentType
+    }
+  }
 
   def validateContentType(consumes: Set[MediaRange]) = {
     for {

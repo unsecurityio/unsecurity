@@ -165,19 +165,24 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
     def methodMap: Map[Method, Any => ResponseDirective[F]]
     def compile: PathMatcher[Response[F]]
     def consumes: Set[MediaRange]
-//    def newMap: Map[Method, MediaRangeMap]
+    def newMap: Map[Method, MediaRangeMap]
   }
 
   trait MediaRangeMap {
     def mr2a2rdf: List[(Set[MediaRange], Any => ResponseDirective[F])]
 
-    def get(mediaRange: MediaRange): Option[Any => ResponseDirective[F]] = {
-      mr2a2rdf.find {
-        case (mrs, _) =>
-          mrs.exists { mr =>
-            mr.satisfies(mediaRange)
-          }
-      }.map(_._2)
+    def get(mediaRange: MediaRange): Either[Set[MediaRange], Any => ResponseDirective[F]] = {
+      mr2a2rdf
+        .find {
+          case (mrs, _) =>
+            mrs.exists { mr =>
+              mr.satisfies(mediaRange)
+            }
+        }
+        .map(_._2)
+        .toRight(
+          mr2a2rdf.flatMap(_._1.toList).toSet
+        )
     }
   }
 }
