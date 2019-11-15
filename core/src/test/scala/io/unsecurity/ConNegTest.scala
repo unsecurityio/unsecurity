@@ -18,7 +18,7 @@ class ConNegTest extends FlatSpec with Matchers {
     val result: Either[HttpProblem, MediaRange] = Unsecurity.validateContentType(req, supportedContentTypes)
 
     assert(result.isLeft)
-    result.left.value.detail.value should startWith("Invalid Media-Type")
+    result.left.value.detail.value should startWith("Content-Type missing or invalid mediatype")
   }
 
   "Unsupported content-type" should "return Usupported Media-Type error" in {
