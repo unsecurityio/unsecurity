@@ -41,6 +41,8 @@ case class HttpProblem(status: Status,
     Directive.successF(toResponseF[F])
 
   def toDirectiveError[F[_]: Monad, A]: Directive[F, A] = Directive.errorF(toResponseF[F])
+
+  def toDirectiveFailure[F[_]: Monad, A]: Directive[F, A] = Directive.failureF(toResponseF[F])
 }
 
 object HttpProblem {

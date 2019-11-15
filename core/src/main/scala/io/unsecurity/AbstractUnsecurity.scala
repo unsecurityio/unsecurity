@@ -165,5 +165,12 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
     def methodMap: Map[Method, Any => ResponseDirective[F]]
     def compile: PathMatcher[Response[F]]
     def consumes: Set[MediaRange]
+//    def newMap: Map[Method, MediaRangeMap]
+  }
+
+  trait MediaRangeMap {
+    def mediaRanges: Set[MediaRange]
+    def a2rdf: Any => ResponseDirective[F]
+    def get(mediaRange: MediaRange): Option[Any => ResponseDirective[F]]
   }
 }
