@@ -169,8 +169,15 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
   }
 
   trait MediaRangeMap {
-    def mediaRanges: Set[MediaRange]
-    def a2rdf: Any => ResponseDirective[F]
-    def get(mediaRange: MediaRange): Option[Any => ResponseDirective[F]]
+    def mr2a2rdf: List[(Set[MediaRange], Any => ResponseDirective[F])]
+
+    def get(mediaRange: MediaRange): Option[Any => ResponseDirective[F]] = {
+      mr2a2rdf.find {
+        case (mrs, _) =>
+          mrs.exists { mr =>
+            mr.satisfies(mediaRange)
+          }
+      }.map(_._2)
+    }
   }
 }
