@@ -289,21 +289,25 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       }
     }
 
-//  def validateContentType(consumes: Set[MediaRange]): Either[HttpProblem, MediaRange] = {
-//    for {
-//      request <- Directive.request[F]
-//      contentTypeString <- request.headers
-//        .get(CaseInsensitiveString("content-type"))
-//        .toRight(HttpProblem.unsupportedMediaType("Content-Type missing", consumes))
-//      mediaType <- MediaType
-//        .parse(contentTypeString.value)
-//        .left
-//        .map(pf => HttpProblem.unsupportedMediaType(s"Invalid Media-Type", consumes))
-//      supportedRange <- consumes
-//        .find(mediaType.satisfies(_))
-//        .toRight(HttpProblem.unsupportedMediaType(s"Content-Type not supported", consumes))
-//    } yield supportedRange
-//  }
+  def validateContentType(consumes: Set[MediaRange]) = {
+    for {
+      request <- Directive.request[F]
+      // TODO dette skal ikke gjelde for GET?
+      contentType <- request.headers
+                      .get(`Content-Type`)
+                      .toSuccess(
+                        HttpProblem
+                          .unsupportedMediaType("Content-Type missing or invalid mediatype", consumes)
+                          .toDirectiveError
+                      )
+      supportedRange <- consumes
+                         .find(contentType.mediaType.satisfies(_))
+                         .toSuccess(
+                           // TODO skal det være failure eller error her?
+                           HttpProblem.unsupportedMediaType(s"Content-Type not supported", consumes).toDirectiveFailure
+                         )
+    } yield supportedRange
+  }
 
 }
 
@@ -311,8 +315,8 @@ object Unsecurity {
   def validateContentType[F[_]](request: Request[F], consumes: Set[MediaRange]): Either[HttpProblem, MediaRange] =
     for {
       contentType <- request.headers
-                            .get(`Content-Type`)
-                            .toRight(HttpProblem.unsupportedMediaType("Content-Type missing or invalid mediatype", consumes))
+                      .get(`Content-Type`)
+                      .toRight(HttpProblem.unsupportedMediaType("Content-Type missing or invalid mediatype", consumes))
       supportedRange <- consumes
                          .find(contentType.mediaType.satisfies(_))
                          .toRight(HttpProblem.unsupportedMediaType(s"Content-Type not supported", consumes))
