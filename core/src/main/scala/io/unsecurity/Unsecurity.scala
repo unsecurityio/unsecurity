@@ -11,6 +11,8 @@ import org.http4s.util.CaseInsensitiveString
 import org.http4s.{DecodeFailure, MediaRange, MediaType, Method, Request, Response}
 import shapeless.HList
 
+import scala.collection.immutable
+
 abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] with UnsecurityOps[F] {
 
   def sc: SecurityContext[F, RU, U]
@@ -164,16 +166,15 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
         pathMatcher = pathMatcher,
         consumes = consumes,
         methodMap = methodMap.mapValues { a2dc =>
-          a2dc.andThen { dc =>
+          MediaRangeMap(List((consumes, a2dc.andThen { dc =>
             for {
               c <- dc
               w <- entityEncoder(f(c))
             } yield {
               w
             }
-          }
-        },
-        newMap = Map.empty
+          })))
+        }
       )
     }
 
@@ -224,13 +225,26 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       override val key: List[SimpleLinx],
       pathMatcher: PathMatcher[Any],
       override val consumes: Set[MediaRange],
-      override val methodMap: Map[Method, Any => ResponseDirective[F]],
-      override val newMap: Map[Method, MediaRangeMap]
+      override val methodMap: Map[Method, AbstractUnsecurity[F, U]#MediaRangeMap]
   ) extends Complete {
     override def merge(other: AbstractUnsecurity[F, U]#Complete): AbstractUnsecurity[F, U]#Complete = {
       this.copy(
-        methodMap = this.methodMap ++ other.methodMap,
-        consumes = this.consumes ++ other.consumes
+        consumes = this.consumes ++ other.consumes,
+        methodMap = {
+          val v: Map[Method, List[(Method, AbstractUnsecurity[F, U]#MediaRangeMap)]] =
+            (this.methodMap.toList ++ other.methodMap.toList)
+              .groupBy(_._1)
+
+          val v2: Map[Method, List[AbstractUnsecurity[F, U]#MediaRangeMap]] = v.mapValues((l: List[(Method, AbstractUnsecurity[F, U]#MediaRangeMap)]) =>
+                l.map((t: (Method, AbstractUnsecurity[F, U]#MediaRangeMap)) => t._2))
+
+          val v3: Map[Method, AbstractUnsecurity[F, U]#MediaRangeMap] = v2.mapValues(
+            mrms =>
+              mrms.reduce((a,b) => a.merge(b))
+          )
+
+          v3
+        }
       )
     }
     override def compile: PathMatcher[Response[F]] = {
@@ -240,7 +254,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
         for {
           req        <- Directive.request
           pathParams <- pathParamsDirective
-          mrm <- newMap
+          mrm <- methodMap
                   .get(req.method)
                   .toSuccess(
                     Directive.error(

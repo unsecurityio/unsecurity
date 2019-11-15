@@ -162,14 +162,16 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
   trait Complete {
     def key: List[SimpleLinx]
     def merge(other: AbstractUnsecurity[F, U]#Complete): AbstractUnsecurity[F, U]#Complete
-    def methodMap: Map[Method, Any => ResponseDirective[F]]
     def compile: PathMatcher[Response[F]]
     def consumes: Set[MediaRange]
-    def newMap: Map[Method, MediaRangeMap]
+    def methodMap: Map[Method, AbstractUnsecurity[F, U]#MediaRangeMap]
   }
 
-  trait MediaRangeMap {
-    def mr2a2rdf: List[(Set[MediaRange], Any => ResponseDirective[F])]
+  case class MediaRangeMap(mr2a2rdf: List[(Set[MediaRange], Any => ResponseDirective[F])]) {
+    def merge(other: AbstractUnsecurity[F, U]#MediaRangeMap): AbstractUnsecurity[F, U]#MediaRangeMap = {
+      // TODO legg til kollisjonsdeteksjon
+      MediaRangeMap(mr2a2rdf ++ other.mr2a2rdf)
+    }
 
     def get(mediaRange: MediaRange): Either[Set[MediaRange], Any => ResponseDirective[F]] = {
       mr2a2rdf
