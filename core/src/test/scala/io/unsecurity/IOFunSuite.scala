@@ -9,8 +9,10 @@ class IOFunSuite extends AsyncFunSuite {
       test(name){ a.unsafeToFuture() }
   }
 
-//  test("hello") = for {
-//    x <- IO(1)
-//  } yield assert(x == 1)
+  /*
+    test("hello") = for {
+      x <- IO(1)
+    } yield assert(x == 1)
+  */
 
 }

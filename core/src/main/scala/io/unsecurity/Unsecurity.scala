@@ -19,7 +19,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
 
   case class MySecured[C, W](
       key: List[SimpleLinx],
-      pathMatcher: PathMatcher[Any],
+      pathMatcher: PathMatcher[F, Any],
       consumes: Set[MediaRange],
       methodMap: Map[Method, Any => Directive[F, C]],
       entityEncoder: W => ResponseDirective[F]
@@ -96,7 +96,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
   ): Secured[TUP2, W] = {
     MySecured[TUP2, W](
       key = endpoint.path.toSimple.reverse,
-      pathMatcher = createPathMatcher(endpoint.path).asInstanceOf[PathMatcher[Any]],
+      pathMatcher = createPathMatcher(endpoint.path).asInstanceOf[PathMatcher[F, Any]],
       consumes = endpoint.accepts.consumes,
       methodMap = Map(
         endpoint.method -> { tup: TUP =>
@@ -136,7 +136,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
   ): Completable[TUP2, W] = {
     MyCompletable[TUP2, W](
       key = endpoint.path.toSimple.reverse,
-      pathMatcher = createPathMatcher[P, TUP](endpoint.path).asInstanceOf[PathMatcher[Any]],
+      pathMatcher = createPathMatcher[P, TUP](endpoint.path).asInstanceOf[PathMatcher[F, Any]],
       consumes = endpoint.accepts.consumes,
       methodMap = Map(
         endpoint.method -> { tup: TUP =>
@@ -155,7 +155,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
 
   case class MyCompletable[C, W](
       key: List[SimpleLinx],
-      pathMatcher: PathMatcher[Any],
+      pathMatcher: PathMatcher[F, Any],
       consumes: Set[MediaRange],
       methodMap: Map[Method, Any => Directive[F, C]],
       entityEncoder: W => ResponseDirective[F]
@@ -223,7 +223,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
 
   case class MyComplete(
       override val key: List[SimpleLinx],
-      pathMatcher: PathMatcher[Any],
+      pathMatcher: PathMatcher[F, Any],
       override val consumes: Set[MediaRange],
       override val methodMap: Map[Method, AbstractUnsecurity[F, U]#MediaRangeMap]
   ) extends Complete {
@@ -235,22 +235,22 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
             (this.methodMap.toList ++ other.methodMap.toList)
               .groupBy(_._1)
 
-          val v2: Map[Method, List[AbstractUnsecurity[F, U]#MediaRangeMap]] = v.mapValues((l: List[(Method, AbstractUnsecurity[F, U]#MediaRangeMap)]) =>
-                l.map((t: (Method, AbstractUnsecurity[F, U]#MediaRangeMap)) => t._2))
+          val v2: Map[Method, List[AbstractUnsecurity[F, U]#MediaRangeMap]] =
+            v.mapValues((l: List[(Method, AbstractUnsecurity[F, U]#MediaRangeMap)]) =>
+              l.map((t: (Method, AbstractUnsecurity[F, U]#MediaRangeMap)) => t._2))
 
           val v3: Map[Method, AbstractUnsecurity[F, U]#MediaRangeMap] = v2.mapValues(
-            mrms =>
-              mrms.reduce((a,b) => a.merge(b))
+            mrms => mrms.reduce((a, b) => a.merge(b))
           )
 
           v3
         }
       )
     }
-    override def compile: PathMatcher[Response[F]] = {
+    override def compile: PathMatcher[F, Response[F]] = {
       def allow(methods: Set[Method]): Allow = Allow(NonEmptyList.fromListUnsafe(methods.toList))
 
-      val f: PathMatcher[Response[F]] = pathMatcher.andThen { pathParamsDirective =>
+      val f: PathMatcher[F, Response[F]] = pathMatcher.andThen { pathParamsDirective =>
         for {
           req        <- Directive.request
           pathParams <- pathParamsDirective
@@ -285,39 +285,6 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       f
     }
   }
-
-  def createPathMatcher[PathParams <: HList, TUP](route: HLinx[PathParams])(
-      implicit revTup: ReversedTupled.Aux[PathParams, TUP]): PathMatcher[TUP] =
-    new PartialFunction[String, Directive[F, TUP]] {
-      override def isDefinedAt(x: String): Boolean = {
-        if (route.capture(x).isDefined) {
-          log.trace(s"""'$x' did match /${route.toSimple.reverse.mkString("/")}""")
-          true
-        } else {
-          log.trace(s"""'$x' did not match /${route.toSimple.reverse.mkString("/")}""")
-          false
-        }
-      }
-
-      override def apply(v1: String): Directive[F, TUP] = {
-        val simpleRoute = route.toSimple.reverse.mkString("/", "/", "")
-        log.trace(s"""Match: "$v1" = $simpleRoute""")
-        val value: Either[String, TUP] = route.capture(v1).get
-
-        value match {
-          case Left(errorMsg) =>
-            log.error(s"""Error converting "$v1" = $simpleRoute: $errorMsg""")
-
-            Directive.failure(
-              HttpProblem.badRequest("Bad Request", Some(errorMsg)).toResponse
-            )
-
-          case Right(params) =>
-            Directive.success(params)
-
-        }
-      }
-    }
 
   def extractContentType: Directive[F, `Content-Type`] = {
     for {

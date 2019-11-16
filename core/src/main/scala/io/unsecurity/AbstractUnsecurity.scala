@@ -14,7 +14,7 @@ import shapeless.HList
 
 import scala.concurrent.ExecutionContext
 
-abstract class AbstractUnsecurity[F[_]: Sync, U] {
+abstract class AbstractUnsecurity[F[_]: Sync, U] extends PathMatchers {
 
   case class Endpoint[P <: HList, R, W](description: String = "",
                                         method: Method,
@@ -37,8 +37,6 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
   }
 
   def log: Logger
-
-  type PathMatcher[A] = PartialFunction[String, Http4sDirective[F, A]]
 
   def secure[P <: HList, R, W, TUP, TUP2](endpoint: Endpoint[P, R, W])(
       implicit revTup: ReversedTupled.Aux[P, TUP],
@@ -162,7 +160,7 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
   trait Complete {
     def key: List[SimpleLinx]
     def merge(other: AbstractUnsecurity[F, U]#Complete): AbstractUnsecurity[F, U]#Complete
-    def compile: PathMatcher[Response[F]]
+    def compile: PathMatcher[F, Response[F]]
     def consumes: Set[MediaRange]
     def methodMap: Map[Method, AbstractUnsecurity[F, U]#MediaRangeMap]
   }

@@ -73,6 +73,4 @@ class ConNegTest extends IOFunSuite with Matchers {
     }
   }
 
-
-
 }
