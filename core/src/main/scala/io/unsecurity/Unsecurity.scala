@@ -19,7 +19,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
 
   case class MySecured[C, W](
       key: List[SimpleLinx],
-      pathMatcher: PathMatcher[F, Any],
+      pathMatcher: PathMatcher[Any],
       consumes: Set[MediaRange],
       methodMap: Map[Method, Any => Directive[F, C]],
       entityEncoder: W => ResponseDirective[F]
@@ -96,7 +96,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
   ): Secured[TUP2, W] = {
     MySecured[TUP2, W](
       key = endpoint.path.toSimple.reverse,
-      pathMatcher = createPathMatcher(endpoint.path).asInstanceOf[PathMatcher[F, Any]],
+      pathMatcher = createPathMatcher(endpoint.path).asInstanceOf[PathMatcher[Any]],
       consumes = endpoint.accepts.consumes,
       methodMap = Map(
         endpoint.method -> { tup: TUP =>
@@ -136,7 +136,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
   ): Completable[TUP2, W] = {
     MyCompletable[TUP2, W](
       key = endpoint.path.toSimple.reverse,
-      pathMatcher = createPathMatcher[P, TUP](endpoint.path).asInstanceOf[PathMatcher[F, Any]],
+      pathMatcher = createPathMatcher[P, TUP](endpoint.path).asInstanceOf[PathMatcher[Any]],
       consumes = endpoint.accepts.consumes,
       methodMap = Map(
         endpoint.method -> { tup: TUP =>
@@ -155,7 +155,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
 
   case class MyCompletable[C, W](
       key: List[SimpleLinx],
-      pathMatcher: PathMatcher[F, Any],
+      pathMatcher: PathMatcher[Any],
       consumes: Set[MediaRange],
       methodMap: Map[Method, Any => Directive[F, C]],
       entityEncoder: W => ResponseDirective[F]
@@ -223,7 +223,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
 
   case class MyComplete(
       override val key: List[SimpleLinx],
-      pathMatcher: PathMatcher[F, Any],
+      pathMatcher: PathMatcher[Any],
       override val consumes: Set[MediaRange],
       override val methodMap: Map[Method, AbstractUnsecurity[F, U]#MediaRangeMap]
   ) extends Complete {
@@ -247,10 +247,10 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
         }
       )
     }
-    override def compile: PathMatcher[F, Response[F]] = {
+    override def compile: PathMatcher[Response[F]] = {
       def allow(methods: Set[Method]): Allow = Allow(NonEmptyList.fromListUnsafe(methods.toList))
 
-      val f: PathMatcher[F, Response[F]] = pathMatcher.andThen { pathParamsDirective =>
+      val f: PathMatcher[Response[F]] = pathMatcher.andThen { pathParamsDirective =>
         for {
           req        <- Directive.request
           pathParams <- pathParamsDirective

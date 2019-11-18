@@ -10,10 +10,10 @@ import shapeless.HList
 abstract class PathMatchers[F[_]: Monad] {
   def log: Logger
 
-  type PathMatcher[F[_], A] = PartialFunction[String, Http4sDirective[F, A]]
+  type PathMatcher[A] = PartialFunction[String, Http4sDirective[F, A]]
 
   def createPathMatcher[PathParams <: HList, TUP](route: HLinx[PathParams])(
-    implicit revTup: ReversedTupled.Aux[PathParams, TUP]): PathMatcher[F, TUP] =
+    implicit revTup: ReversedTupled.Aux[PathParams, TUP]): PathMatcher[TUP] =
     new PartialFunction[String, Http4sDirective[F, TUP]] {
       override def isDefinedAt(x: String): Boolean = {
         if (route.capture(x).isDefined) {

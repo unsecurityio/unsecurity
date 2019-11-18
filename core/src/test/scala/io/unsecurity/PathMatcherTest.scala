@@ -14,7 +14,7 @@ class PathMatcherTest extends UnsecurityTestSuite {
   test("/test") {
     val req: Request[Id] = Request[Id](uri = uri"/test")
 
-    val pathMatcher: pathMatchers.PathMatcher[Id, Unit] = pathMatchers.createPathMatcher(Root / "test")
+    val pathMatcher: pathMatchers.PathMatcher[Unit] = pathMatchers.createPathMatcher(Root / "test")
     assert(pathMatcher.isDefinedAt("/test"))
 
     pathMatcher
@@ -28,7 +28,7 @@ class PathMatcherTest extends UnsecurityTestSuite {
     val req: Request[Id] = Request[Id](uri = uri)
 
 
-    val pathMatcher: pathMatchers.PathMatcher[Id, Tuple1[Int]] =
+    val pathMatcher: pathMatchers.PathMatcher[Tuple1[Int]] =
       pathMatchers.createPathMatcher(Root / "test" / 'id.as[Int])
     assert(!pathMatcher.isDefinedAt("/test"))
     assert(!pathMatcher.isDefinedAt("/test/aaa/aaa"))

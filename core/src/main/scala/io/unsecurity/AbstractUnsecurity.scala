@@ -160,7 +160,7 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends PathMatchers {
   trait Complete {
     def key: List[SimpleLinx]
     def merge(other: AbstractUnsecurity[F, U]#Complete): AbstractUnsecurity[F, U]#Complete
-    def compile: PathMatcher[F, Response[F]]
+    def compile: PathMatcher[Response[F]]
     def consumes: Set[MediaRange]
     def methodMap: Map[Method, AbstractUnsecurity[F, U]#MediaRangeMap]
   }
