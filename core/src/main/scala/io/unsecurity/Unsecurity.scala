@@ -13,7 +13,7 @@ import shapeless.HList
 
 import scala.collection.immutable
 
-abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] with UnsecurityOps[F] {
+abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
 
   def sc: SecurityContext[F, RU, U]
 
@@ -252,23 +252,14 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
 
       val f: PathMatcher[Response[F]] = pathMatcher.andThen { pathParamsDirective =>
         for {
-          req        <- Directive.request
-          pathParams <- pathParamsDirective
-          mrm <- methodMap
-                  .get(req.method)
-                  .toSuccess(
-                    Directive.error(
-                      HttpProblem
-                        .methodNotAllowed("Method not allowed", methodMap.keySet)
-                        .toResponse
-                        .putHeaders(allow(methodMap.keySet))
-                    )
-                  )
+          req           <- Directive.request
+          pathParams    <- pathParamsDirective
+          mediaRangeMap <- matchMethod(methodMap)
 
           contentType <- extractContentType
 
           a2rdf <- Directive.commit {
-                    mrm.get(contentType.mediaType).toSuccess { supportedMediaTypes =>
+                    mediaRangeMap.get(contentType.mediaType).toSuccess { supportedMediaTypes =>
                       Directive.error(
                         HttpProblem
                           .unsupportedMediaType("Content-Type missing or invalid mediatype", supportedMediaTypes)

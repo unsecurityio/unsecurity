@@ -14,7 +14,7 @@ import shapeless.HList
 
 import scala.concurrent.ExecutionContext
 
-abstract class AbstractUnsecurity[F[_]: Sync, U] extends PathMatchers {
+abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractMethodMatcher {
 
   case class Endpoint[P <: HList, R, W](description: String = "",
                                         method: Method,

@@ -7,7 +7,7 @@ import no.scalabin.http4s.directives.{Directive => Http4sDirective}
 import org.slf4j.Logger
 import shapeless.HList
 
-abstract class PathMatchers[F[_]: Monad] {
+abstract class AbstractPathMatcher[F[_]: Monad] {
   def log: Logger
 
   type PathMatcher[A] = PartialFunction[String, Http4sDirective[F, A]]
