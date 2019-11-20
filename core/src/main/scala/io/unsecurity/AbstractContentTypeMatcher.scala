@@ -1,10 +1,8 @@
 package io.unsecurity
 
 import cats.Monad
-import cats.data.NonEmptyList
 import no.scalabin.http4s.directives.Directive
-import org.http4s.Method
-import org.http4s.headers.{`Content-Type`, Allow}
+import org.http4s.headers.`Content-Type`
 
 abstract class AbstractContentTypeMatcher[F[_]: Monad] extends AbstractMethodMatcher[F] {
 
