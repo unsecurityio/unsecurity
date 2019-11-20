@@ -3,15 +3,11 @@ package unsecurity
 
 import cats.data.NonEmptyList
 import cats.effect.Sync
-import io.unsecurity.hlinx.HLinx.HLinx
 import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}
 import no.scalabin.http4s.directives.Directive
-import org.http4s.headers.{`Content-Type`, Allow}
-import org.http4s.util.CaseInsensitiveString
-import org.http4s.{DecodeFailure, MediaRange, MediaType, Method, Request, Response}
+import org.http4s.headers.Allow
+import org.http4s.{DecodeFailure, MediaRange, Method, Response}
 import shapeless.HList
-
-import scala.collection.immutable
 
 abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
 
@@ -50,10 +46,9 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
         consumes = consumes,
         methodMap = methodMap.map {
           case (method, a2dc) =>
-            method ->
-              a2dc.andThen { dc =>
-                dc.flatMap(c => f(c))
-              }
+            method -> a2dc.andThen { dc =>
+              dc.flatMap(c => f(c))
+            }
         },
         entityEncoder = entityEncoder,
       )
@@ -65,10 +60,9 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
         consumes = consumes,
         methodMap = methodMap.map {
           case (method, a2dc) =>
-            method ->
-              a2dc.andThen { dc =>
-                dc.map(c => f(c))
-              }
+            method -> a2dc.andThen { dc =>
+              dc.map(c => f(c))
+            }
         },
         entityEncoder = entityEncoder,
       )
@@ -80,10 +74,9 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
         consumes = consumes,
         methodMap = methodMap.map {
           case (method, a2dc) =>
-            method ->
-              a2dc.andThen { dc =>
-                dc.flatMap(c => f(c).successF)
-              }
+            method -> a2dc.andThen { dc =>
+              dc.flatMap(c => f(c).successF)
+            }
         },
         entityEncoder = entityEncoder,
       )
@@ -175,15 +168,14 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
         consumes = consumes,
         methodMap = methodMap.map {
           case (method, a2dc) =>
-            method ->
-              MediaRangeMap(List((consumes, a2dc.andThen { dc =>
-                for {
-                  c <- dc
-                  w <- entityEncoder(f(c))
-                } yield {
-                  w
-                }
-              })))
+            method -> MediaRangeMap(List((consumes, a2dc.andThen { dc =>
+              for {
+                c <- dc
+                w <- entityEncoder(f(c))
+              } yield {
+                w
+              }
+            })))
         }
       )
     }
@@ -195,10 +187,9 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
         consumes = consumes,
         methodMap = methodMap.map {
           case (method, a2dc) =>
-            method ->
-              a2dc.andThen { dc =>
-                dc.map(c => f(c))
-              }
+            method -> a2dc.andThen { dc =>
+              dc.map(c => f(c))
+            }
         },
         entityEncoder = entityEncoder
       )
@@ -211,10 +202,9 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
         consumes = consumes,
         methodMap = methodMap.map {
           case (method, a2dc) =>
-            method ->
-              a2dc.andThen { dc =>
-                dc.flatMap(c => f(c))
-              }
+            method -> a2dc.andThen { dc =>
+              dc.flatMap(c => f(c))
+            }
         },
         entityEncoder = entityEncoder
       )
@@ -227,10 +217,9 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
         consumes = consumes,
         methodMap = methodMap.map {
           case (method, a2dc) =>
-            method ->
-              a2dc.andThen { dc =>
-                dc.flatMap(c => f(c).successF)
-              }
+            method -> a2dc.andThen { dc =>
+              dc.flatMap(c => f(c).successF)
+            }
         },
         entityEncoder = entityEncoder
       )
