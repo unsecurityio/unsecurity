@@ -73,7 +73,7 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
     def json[W: Encoder]: W => ResponseDirective[F] =
       jsonWithContentType(`Content-Type`(MediaType.application.json))
 
-    def jsonWithContentType[W: Encoder] (contentType: `Content-Type`): W => ResponseDirective[F] =
+    def jsonWithContentType[W: Encoder](contentType: `Content-Type`): W => ResponseDirective[F] =
       w =>
         Http4sDirective.success(
           Response[F](Status.Ok)
@@ -119,7 +119,6 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
                 .withEntity(w)(org.http4s.circe.jsonEncoderOf[F, W])
                 .withContentType(contentType))
       }
-
 
     }
 

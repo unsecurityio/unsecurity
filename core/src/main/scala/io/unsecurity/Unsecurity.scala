@@ -31,7 +31,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
                 dc =>
                   Directive.commit(
                     dc.filter(
-                     c => predicate(c).orF(HttpProblem.forbidden("Forbidden").toResponseF)
+                      c => predicate(c).orF(HttpProblem.forbidden("Forbidden").toResponseF)
                     ))
               )
         },
@@ -232,7 +232,12 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
           req        <- Directive.request
           pathParams <- pathParamsDirective
           res <- if (methodMap.isDefinedAt(req.method)) methodMap(req.method)(pathParams)
-          else Directive.error(HttpProblem.methodNotAllowed("Method not allowed", methodMap.keySet).toResponse.putHeaders(allow(methodMap.keySet)))
+                else
+                  Directive.error(
+                    HttpProblem
+                      .methodNotAllowed("Method not allowed", methodMap.keySet)
+                      .toResponse
+                      .putHeaders(allow(methodMap.keySet)))
         } yield {
           res
         }

@@ -17,8 +17,8 @@ object TransformParams {
     new TransformParams[T, RU] {
       type Out = T4
       override def apply(tupled: T, ru: RU): T4 = {
-        val appended: T2 = append(tupled, ru)
-        val filtered: T3 = filterNot(appended)
+        val appended: T2  = append(tupled, ru)
+        val filtered: T3  = filterNot(appended)
         val unwrapped: T4 = unwrap(filtered)
         unwrapped
       }
