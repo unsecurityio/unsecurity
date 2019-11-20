@@ -165,9 +165,8 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
     def methodMap: Map[Method, MediaRangeMap[Any => ResponseDirective[F]]]
   }
 
-
 }
-case class MediaRangeMap[A](mr2a2rdf: List[(Set[MediaRange], A)])  {
+case class MediaRangeMap[A](mr2a2rdf: List[(Set[MediaRange], A)]) {
   def merge(other: MediaRangeMap[A]): MediaRangeMap[A] = {
     // TODO legg til kollisjonsdeteksjon
     MediaRangeMap(mr2a2rdf ++ other.mr2a2rdf)

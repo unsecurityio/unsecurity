@@ -10,7 +10,7 @@ import io.circe.{Encoder, Printer}
 import io.unsecurity.hlinx.ParamConverter
 import no.scalabin.http4s.directives.{Directive, DirectiveOps, RequestDirectives}
 import org.http4s.circe.CirceInstances
-import org.http4s.headers.{Location, `WWW-Authenticate`}
+import org.http4s.headers.{`WWW-Authenticate`, Location}
 import org.http4s.{Challenge, EntityEncoder, RequestCookie, Response, Status, Uri}
 
 import scala.language.{higherKinds, implicitConversions}

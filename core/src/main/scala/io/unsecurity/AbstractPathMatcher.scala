@@ -13,7 +13,7 @@ abstract class AbstractPathMatcher[F[_]: Monad] {
   type PathMatcher[A] = PartialFunction[String, Http4sDirective[F, A]]
 
   def createPathMatcher[PathParams <: HList, TUP](route: HLinx[PathParams])(
-    implicit revTup: ReversedTupled.Aux[PathParams, TUP]): PathMatcher[TUP] =
+      implicit revTup: ReversedTupled.Aux[PathParams, TUP]): PathMatcher[TUP] =
     new PartialFunction[String, Http4sDirective[F, TUP]] {
       override def isDefinedAt(x: String): Boolean = {
         if (route.capture(x).isDefined) {
@@ -34,7 +34,7 @@ abstract class AbstractPathMatcher[F[_]: Monad] {
           case Left(errorMsg) =>
             log.error(s"""Error converting "$v1" = $simpleRoute: $errorMsg""")
 
-           Http4sDirective.failure(
+            Http4sDirective.failure(
               HttpProblem.badRequest("Bad Request", Some(errorMsg)).toResponse
             )
 

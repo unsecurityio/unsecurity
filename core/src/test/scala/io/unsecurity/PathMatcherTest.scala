@@ -24,7 +24,7 @@ class PathMatcherTest extends UnsecurityTestSuite {
   }
 
   test("/test/{int}") {
-    val uri = uri"/test/123"
+    val uri              = uri"/test/123"
     val req: Request[Id] = Request[Id](uri = uri)
 
     val pathMatcher: pathMatchers.PathMatcher[Tuple1[Int]] =
