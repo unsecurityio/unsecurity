@@ -14,7 +14,7 @@ import shapeless.HList
 
 import scala.concurrent.ExecutionContext
 
-abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractMethodMatcher {
+abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatcher {
 
   case class Endpoint[P <: HList, R, W](description: String = "",
                                         method: Method,
@@ -162,27 +162,28 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractMethodMatcher {
     def merge(other: AbstractUnsecurity[F, U]#Complete): AbstractUnsecurity[F, U]#Complete
     def compile: PathMatcher[Response[F]]
     def consumes: Set[MediaRange]
-    def methodMap: Map[Method, AbstractUnsecurity[F, U]#MediaRangeMap]
+    def methodMap: Map[Method, MediaRangeMap[Any => ResponseDirective[F]]]
   }
 
-  case class MediaRangeMap(mr2a2rdf: List[(Set[MediaRange], Any => ResponseDirective[F])]) {
-    def merge(other: AbstractUnsecurity[F, U]#MediaRangeMap): AbstractUnsecurity[F, U]#MediaRangeMap = {
-      // TODO legg til kollisjonsdeteksjon
-      MediaRangeMap(mr2a2rdf ++ other.mr2a2rdf)
-    }
 
-    def get(mediaRange: MediaRange): Either[Set[MediaRange], Any => ResponseDirective[F]] = {
-      mr2a2rdf
-        .find {
-          case (mrs, _) =>
-            mrs.exists { mr =>
-              mr.satisfies(mediaRange)
-            }
-        }
-        .map(_._2)
-        .toRight(
-          mr2a2rdf.flatMap(_._1.toList).toSet
-        )
-    }
+}
+case class MediaRangeMap[A](mr2a2rdf: List[(Set[MediaRange], A)])  {
+  def merge(other: MediaRangeMap[A]): MediaRangeMap[A] = {
+    // TODO legg til kollisjonsdeteksjon
+    MediaRangeMap(mr2a2rdf ++ other.mr2a2rdf)
+  }
+
+  def get(mediaRange: MediaRange): Either[Set[MediaRange], A] = {
+    mr2a2rdf
+      .find {
+        case (mrs, _) =>
+          mrs.exists { mr =>
+            mr.satisfies(mediaRange)
+          }
+      }
+      .map(_._2)
+      .toRight(
+        mr2a2rdf.flatMap(_._1.toList).toSet
+      )
   }
 }

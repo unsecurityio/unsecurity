@@ -225,21 +225,21 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
       override val key: List[SimpleLinx],
       pathMatcher: PathMatcher[Any],
       override val consumes: Set[MediaRange],
-      override val methodMap: Map[Method, AbstractUnsecurity[F, U]#MediaRangeMap]
+      override val methodMap: Map[Method, MediaRangeMap[Any => ResponseDirective[F]]]
   ) extends Complete {
     override def merge(other: AbstractUnsecurity[F, U]#Complete): AbstractUnsecurity[F, U]#Complete = {
       this.copy(
         consumes = this.consumes ++ other.consumes,
         methodMap = {
-          val v: Map[Method, List[(Method, AbstractUnsecurity[F, U]#MediaRangeMap)]] =
+          val v: Map[Method, List[(Method, MediaRangeMap[Any => ResponseDirective[F]])]] =
             (this.methodMap.toList ++ other.methodMap.toList)
               .groupBy(_._1)
 
-          val v2: Map[Method, List[AbstractUnsecurity[F, U]#MediaRangeMap]] =
-            v.mapValues((l: List[(Method, AbstractUnsecurity[F, U]#MediaRangeMap)]) =>
-              l.map((t: (Method, AbstractUnsecurity[F, U]#MediaRangeMap)) => t._2))
+          val v2: Map[Method, List[MediaRangeMap[Any => ResponseDirective[F]]]] =
+            v.mapValues((l: List[(Method, MediaRangeMap[Any => ResponseDirective[F]])]) =>
+              l.map((t: (Method, MediaRangeMap[Any => ResponseDirective[F]])) => t._2))
 
-          val v3: Map[Method, AbstractUnsecurity[F, U]#MediaRangeMap] = v2.mapValues(
+          val v3: Map[Method, MediaRangeMap[Any => ResponseDirective[F]]] = v2.mapValues(
             mrms => mrms.reduce((a, b) => a.merge(b))
           )
 
@@ -256,17 +256,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
           pathParams    <- pathParamsDirective
           mediaRangeMap <- matchMethod(methodMap)
 
-          contentType <- extractContentType
-
-          a2rdf <- Directive.commit {
-                    mediaRangeMap.get(contentType.mediaType).toSuccess { supportedMediaTypes =>
-                      Directive.error(
-                        HttpProblem
-                          .unsupportedMediaType("Content-Type missing or invalid mediatype", supportedMediaTypes)
-                          .toResponse
-                      )
-                    }
-                  }
+          a2rdf <- matchContentType(mediaRangeMap)
 
           res <- a2rdf(pathParams)
         } yield {
@@ -277,21 +267,6 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
     }
   }
 
-  def extractContentType: Directive[F, `Content-Type`] = {
-    for {
-      request <- Directive.request[F]
-      // TODO dette skal ikke gjelde for GET?
-      contentType <- request.headers
-                      .get(`Content-Type`)
-                      .toSuccess(
-                        HttpProblem
-                          .unsupportedMediaType("Content-Type missing or invalid mediatype", Set.empty)
-                          .toDirectiveFailure
-                      )
-    } yield {
-      contentType
-    }
-  }
 
   def validateContentType(consumes: Set[MediaRange]) = {
     for {
