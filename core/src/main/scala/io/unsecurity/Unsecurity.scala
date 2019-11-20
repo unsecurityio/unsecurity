@@ -29,15 +29,17 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
         key = key,
         pathMatcher = pathMatcher,
         consumes = consumes,
-        methodMap = methodMap.mapValues(
-          a2dc =>
-            a2dc.andThen(
-              dc =>
-                Directive.commit(
-                  dc.filter(
-                    c => predicate(c).orF(HttpProblem.forbidden("Forbidden").toResponseF)
-                  ))
-          )),
+        methodMap = methodMap.map {
+          case (method, a2dc) =>
+            method ->
+              a2dc.andThen(
+                dc =>
+                  Directive.commit(
+                    dc.filter(
+                      c => predicate(c).orF(HttpProblem.forbidden("Forbidden").toResponseF)
+                    ))
+              )
+        },
         entityEncoder = entityEncoder
       )
     }
@@ -46,10 +48,12 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
         key = key,
         pathMatcher = pathMatcher,
         consumes = consumes,
-        methodMap = methodMap.mapValues { a2dc =>
-          a2dc.andThen { dc =>
-            dc.flatMap(c => f(c))
-          }
+        methodMap = methodMap.map {
+          case (method, a2dc) =>
+            method ->
+              a2dc.andThen { dc =>
+                dc.flatMap(c => f(c))
+              }
         },
         entityEncoder = entityEncoder,
       )
@@ -59,10 +63,12 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
         key = key,
         pathMatcher = pathMatcher,
         consumes = consumes,
-        methodMap = methodMap.mapValues { a2dc =>
-          a2dc.andThen { dc =>
-            dc.map(c => f(c))
-          }
+        methodMap = methodMap.map {
+          case (method, a2dc) =>
+            method ->
+              a2dc.andThen { dc =>
+                dc.map(c => f(c))
+              }
         },
         entityEncoder = entityEncoder,
       )
@@ -72,10 +78,12 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
         key = key,
         pathMatcher = pathMatcher,
         consumes = consumes,
-        methodMap = methodMap.mapValues { a2dc =>
-          a2dc.andThen { dc =>
-            dc.flatMap(c => f(c).successF)
-          }
+        methodMap = methodMap.map {
+          case (method, a2dc) =>
+            method ->
+              a2dc.andThen { dc =>
+                dc.flatMap(c => f(c).successF)
+              }
         },
         entityEncoder = entityEncoder,
       )
@@ -165,15 +173,17 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
         key = key,
         pathMatcher = pathMatcher,
         consumes = consumes,
-        methodMap = methodMap.mapValues { a2dc =>
-          MediaRangeMap(List((consumes, a2dc.andThen { dc =>
-            for {
-              c <- dc
-              w <- entityEncoder(f(c))
-            } yield {
-              w
-            }
-          })))
+        methodMap = methodMap.map {
+          case (method, a2dc) =>
+            method ->
+              MediaRangeMap(List((consumes, a2dc.andThen { dc =>
+                for {
+                  c <- dc
+                  w <- entityEncoder(f(c))
+                } yield {
+                  w
+                }
+              })))
         }
       )
     }
@@ -183,10 +193,12 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
         key = key,
         pathMatcher = pathMatcher,
         consumes = consumes,
-        methodMap = methodMap.mapValues { a2dc =>
-          a2dc.andThen { dc =>
-            dc.map(c => f(c))
-          }
+        methodMap = methodMap.map {
+          case (method, a2dc) =>
+            method ->
+              a2dc.andThen { dc =>
+                dc.map(c => f(c))
+              }
         },
         entityEncoder = entityEncoder
       )
@@ -197,10 +209,12 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
         key = key,
         pathMatcher = pathMatcher,
         consumes = consumes,
-        methodMap = methodMap.mapValues { a2dc =>
-          a2dc.andThen { dc =>
-            dc.flatMap(c => f(c))
-          }
+        methodMap = methodMap.map {
+          case (method, a2dc) =>
+            method ->
+              a2dc.andThen { dc =>
+                dc.flatMap(c => f(c))
+              }
         },
         entityEncoder = entityEncoder
       )
@@ -211,10 +225,12 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
         key = key,
         pathMatcher = pathMatcher,
         consumes = consumes,
-        methodMap = methodMap.mapValues { a2dc =>
-          a2dc.andThen { dc =>
-            dc.flatMap(c => f(c).successF)
-          }
+        methodMap = methodMap.map {
+          case (method, a2dc) =>
+            method ->
+              a2dc.andThen { dc =>
+                dc.flatMap(c => f(c).successF)
+              }
         },
         entityEncoder = entityEncoder
       )
@@ -236,12 +252,17 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
               .groupBy(_._1)
 
           val v2: Map[Method, List[MediaRangeMap[Any => ResponseDirective[F]]]] =
-            v.mapValues((l: List[(Method, MediaRangeMap[Any => ResponseDirective[F]])]) =>
-              l.map((t: (Method, MediaRangeMap[Any => ResponseDirective[F]])) => t._2))
+            v.map {
+              case (method, l: List[(Method, MediaRangeMap[Any => ResponseDirective[F]])]) =>
+                method ->
+                  l.map((t: (Method, MediaRangeMap[Any => ResponseDirective[F]])) => t._2)
+            }
 
-          val v3: Map[Method, MediaRangeMap[Any => ResponseDirective[F]]] = v2.mapValues(
-            mrms => mrms.reduce((a, b) => a.merge(b))
-          )
+          val v3: Map[Method, MediaRangeMap[Any => ResponseDirective[F]]] = v2.map {
+            case (method, mrms) =>
+              method ->
+                mrms.reduce((a, b) => a.merge(b))
+          }
 
           v3
         }
