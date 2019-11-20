@@ -6,7 +6,7 @@ import no.scalabin.http4s.directives.Directive
 import org.http4s.Method
 import org.http4s.headers.{Allow, `Content-Type`}
 
-abstract class AbstractContentTypeMatcher[F[_]: Monad] extends AbstractMethodMatcher[F] with UnsecurityOps[F] {
+abstract class AbstractContentTypeMatcher[F[_]: Monad] extends AbstractMethodMatcher[F] {
 
   def matchContentType[A](mediaRangeMap : MediaRangeMap[A]): Directive[F, A] = {
 
