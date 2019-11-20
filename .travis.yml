@@ -1,0 +1,19 @@
+sudo: false
+language: scala
+scala:
+- 2.12.8
+
+jobs:
+  include:
+    - stage: test
+      script: sbt test
+
+stages:
+  - test
+
+jdk:
+- openjdk8
+cache:
+  directories:
+  - $HOME/.ivy2/cache
+  - $HOME/.sbt/boot/
