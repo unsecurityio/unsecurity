@@ -25,9 +25,9 @@ class ContentTypeMatcherTest extends UnsecurityTestSuite {
   val supportedMediaRange        = Set(fjonMediaRange) -> "dingdong"
 
   test("invalidMediaType") {
-    val methodMap            = MediaRangeMap(List(supportedMediaRange))
-    val methodMatchDirective = contentTypeMatcher.matchContentType(methodMap)
-    val value = methodMatchDirective.run(invalidMediaType).where {
+    val mediaRangeMap            = MediaRangeMap(List(supportedMediaRange))
+    val contentTypeMatchDirective = contentTypeMatcher.matchContentType(mediaRangeMap)
+    contentTypeMatchDirective.run(invalidMediaType).where {
       case Result.Failure(r)
           if r.status == Status.UnsupportedMediaType
             && r.contentType.exists(_ == problemJsonContentType) =>
@@ -36,9 +36,9 @@ class ContentTypeMatcherTest extends UnsecurityTestSuite {
   }
 
   test("unsupportedMediaType") {
-    val methodMap            = MediaRangeMap(List(supportedMediaRange))
-    val methodMatchDirective = contentTypeMatcher.matchContentType(methodMap)
-    val value = methodMatchDirective.run(unsupportedMediaType).where {
+    val mediaRangeMap            = MediaRangeMap(List(supportedMediaRange))
+    val contentTypeMatchDirective = contentTypeMatcher.matchContentType(mediaRangeMap)
+    contentTypeMatchDirective.run(unsupportedMediaType).where {
       case Result.Error(r)
           if r.status == Status.UnsupportedMediaType
             && r.contentType.exists(_ == problemJsonContentType) =>
@@ -47,9 +47,18 @@ class ContentTypeMatcherTest extends UnsecurityTestSuite {
   }
 
   test("supportedMediaType") {
-    val methodMap            = MediaRangeMap(List(supportedMediaRange))
-    val methodMatchDirective = contentTypeMatcher.matchContentType(methodMap)
-    val value = methodMatchDirective.run(supportedMediaType).where {
+    val mediaRangeMap            = MediaRangeMap(List(supportedMediaRange))
+    val contentTypeMatchDirective = contentTypeMatcher.matchContentType(mediaRangeMap)
+    contentTypeMatchDirective.run(supportedMediaType).where {
+      case Result.Success("dingdong") => Ok
+    }
+  }
+
+  test("Allows get without content-type") {
+    val mediaRangeMap            = MediaRangeMap(List(supportedMediaRange))
+    val get = Request[Id](method = Method.GET, uri = uri"/whatever")
+    val contentTypeDirective = contentTypeMatcher.matchContentType(mediaRangeMap)
+    contentTypeDirective.run(supportedMediaType).where{
       case Result.Success("dingdong") => Ok
     }
   }

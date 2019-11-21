@@ -172,17 +172,17 @@ case class MediaRangeMap[A](mr2a2rdf: List[(Set[MediaRange], A)]) {
     MediaRangeMap(mr2a2rdf ++ other.mr2a2rdf)
   }
 
+  def supportedMediaRanges: Set[MediaRange] = mr2a2rdf.flatMap(_._1.toList).toSet
+
   def get(mediaRange: MediaRange): Either[Set[MediaRange], A] = {
     mr2a2rdf
       .find {
         case (mrs, _) =>
           mrs.exists { mr =>
-            mr.satisfies(mediaRange)
+            mr.satisfiedBy(mediaRange)
           }
       }
       .map(_._2)
-      .toRight(
-        mr2a2rdf.flatMap(_._1.toList).toSet
-      )
+      .toRight(supportedMediaRanges)
   }
 }
