@@ -14,7 +14,7 @@ abstract class AbstractContentTypeMatcher[F[_]: Monad] extends AbstractMethodMat
 
     for {
       request <- Directive.request[F]
-      method <- request.method
+      method = request.method
       contentType <- request.headers
                       .get(`Content-Type`).orElse{ if(method == GET) Some(`Content-Type`.apply(WILDCARD)) else None}
                       .toSuccess(
