@@ -11,6 +11,7 @@ import org.http4s.{
   DecodeFailure,
   InvalidMessageBodyFailure,
   MalformedMessageBodyFailure,
+  MediaRange,
   MediaType,
   Method,
   Response,
@@ -40,6 +41,8 @@ case class HttpProblem(status: Status,
     Directive.successF(toResponseF[F])
 
   def toDirectiveError[F[_]: Monad, A]: Directive[F, A] = Directive.errorF(toResponseF[F])
+
+  def toDirectiveFailure[F[_]: Monad, A]: Directive[F, A] = Directive.failureF(toResponseF[F])
 }
 
 object HttpProblem {
@@ -74,6 +77,16 @@ object HttpProblem {
     HttpProblem(Status.InternalServerError, title, detail, None)
 
   def notFound = HttpProblem(Status.NotFound, "Not Found", None, None)
+
+  def unsupportedMediaType(detail: String, supportedRanges: Set[MediaRange]) =
+    HttpProblem(
+      Status.UnsupportedMediaType,
+      "Unsupported Media-Type",
+      Some(detail),
+      Some(
+        Json.obj(
+          "supportedTypes" := Json.arr(supportedRanges.map(range => Json.fromString(range.toString())).toSeq: _*)))
+    )
 
   def decodingFailure(failure: DecodingFailure) =
     Json.obj(

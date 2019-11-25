@@ -1,4 +1,5 @@
 package io.unsecurity.hlinx
+
 import shapeless.DepFn1
 
 trait UnwrapTuple1[T] extends DepFn1[T] with Serializable

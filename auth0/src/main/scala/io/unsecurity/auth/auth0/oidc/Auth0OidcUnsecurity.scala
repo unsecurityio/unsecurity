@@ -17,8 +17,7 @@ import shapeless.HNil
 class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HLinx[HNil],
                                          val sc: Auth0OidcSecurityContext[F, U],
                                          jwkProvider: JwkProvider,
-                                         val log: Logger
-                                        )
+                                         val log: Logger)
     extends Unsecurity[F, OidcAuthenticatedUser, U] {
 
   implicit val uriParamConverter = ParamConverter.createSimple(s => new URI(s))

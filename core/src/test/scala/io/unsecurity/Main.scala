@@ -3,7 +3,7 @@ package io.unsecurity
 import cats.effect.{ExitCode, IO, IOApp}
 import io.circe.Decoder
 import io.unsecurity.hlinx.HLinx._
-import org.http4s.Method
+import org.http4s.{MediaType, Method}
 import org.slf4j.{Logger, LoggerFactory}
 
 object Main extends IOApp {
@@ -77,6 +77,21 @@ object Main extends IOApp {
         "OK"
     }
 
+  val post2 =
+    unsecure(
+      Endpoint(
+        "Check if a post request crashes if x09 is sent",
+        Method.POST,
+        Root / "does" / "this" / "work",
+        Accepts.jsonWithMediaType[Fjon](MediaType.parse("application/fjon").right.get),
+        Produces.json[String]
+      )
+    ).run {
+      case body =>
+        println(body)
+        "Fjonsvar"
+    }
+
   override def run(args: List[String]): IO[ExitCode] = {
     import cats.implicits._
 
@@ -86,7 +101,8 @@ object Main extends IOApp {
           helloWorld,
           collidingHello,
           twoParams,
-          post
+          post,
+          post2
         ))
       .compile
       .drain

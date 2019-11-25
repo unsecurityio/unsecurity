@@ -6,7 +6,7 @@ import cats.Monad
 import cats.data.NonEmptyList
 import cats.effect.Sync
 import fs2.Stream
-import io.circe.{Encoder, Json, Printer}
+import io.circe.{Encoder, Printer}
 import io.unsecurity.hlinx.ParamConverter
 import no.scalabin.http4s.directives.{Directive, DirectiveOps, RequestDirectives}
 import org.http4s.circe.CirceInstances
