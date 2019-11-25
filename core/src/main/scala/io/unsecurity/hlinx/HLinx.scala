@@ -55,8 +55,7 @@ object HLinx {
     def toSimple: List[SimpleLinx] =
       SimpleStatic(element) :: parent.toSimple
   }
-  case class Variable[H, T <: HList](parent: HLinx[T], P: ParamConverter[H], element: String)
-      extends HLinx[H :: T] {
+  case class Variable[H, T <: HList](parent: HLinx[T], P: ParamConverter[H], element: String) extends HLinx[H :: T] {
     import shapeless.HList.ListCompat.::
     override def extract(s: List[String]): Option[Either[String, H :: T]] = s match {
       case h :: rest =>

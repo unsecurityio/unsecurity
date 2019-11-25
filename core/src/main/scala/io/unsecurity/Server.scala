@@ -1,13 +1,11 @@
 package io.unsecurity
 
-import cats.Monad
 import cats.data.OptionT
 import cats.effect.{ConcurrentEffect, ExitCode, Sync, Timer}
 import io.unsecurity.hlinx.SimpleLinx
 import no.scalabin.http4s.directives.{Directive => Http4sDirective}
 import org.http4s.implicits._
 import org.http4s.server.blaze.BlazeServerBuilder
-import org.http4s.server.{DefaultServiceErrorHandler, ServiceErrorHandler}
 import org.http4s.{HttpRoutes, Request, Response, Status}
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -58,11 +56,13 @@ object Server {
       service(req).map {
         case Status.ClientError(resp) =>
           val contentType = resp.contentType
-          val loggedResp = resp.withEntity(resp.bodyAsText.evalTap(body => Sync[F].delay(log.error(s"Error processing: ${req.pathInfo}, message: $body"))))
+          val loggedResp = resp.withEntity(resp.bodyAsText.evalTap(body =>
+            Sync[F].delay(log.error(s"Error processing: ${req.pathInfo}, message: $body"))))
           contentType.fold(loggedResp)(ct => loggedResp.putHeaders(ct))
         case Status.ServerError(resp) =>
           val contentType = resp.contentType
-          val loggedResp = resp.withEntity(resp.bodyAsText.evalTap(body => Sync[F].delay(log.error(s"Error processing: ${req.pathInfo}, message: $body"))))
+          val loggedResp = resp.withEntity(resp.bodyAsText.evalTap(body =>
+            Sync[F].delay(log.error(s"Error processing: ${req.pathInfo}, message: $body"))))
           contentType.fold(loggedResp)(ct => loggedResp.putHeaders(ct))
         case resp =>
           resp

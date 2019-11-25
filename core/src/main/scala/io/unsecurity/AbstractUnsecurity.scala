@@ -8,13 +8,13 @@ import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}
 import no.scalabin.http4s.directives.{Directive => Http4sDirective}
 import org.http4s.EntityEncoder.entityBodyEncoder
 import org.http4s.headers.`Content-Type`
-import org.http4s.{EntityDecoder, EntityEncoder, MediaType, Method, Response, Status}
+import org.http4s.{EntityDecoder, EntityEncoder, MediaRange, MediaType, Method, Response, Status}
 import org.slf4j.Logger
 import shapeless.HList
 
 import scala.concurrent.ExecutionContext
 
-abstract class AbstractUnsecurity[F[_]: Sync, U] {
+abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatcher {
 
   case class Endpoint[P <: HList, R, W](description: String = "",
                                         method: Method,
@@ -37,8 +37,6 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
   }
 
   def log: Logger
-
-  type PathMatcher[A] = PartialFunction[String, Http4sDirective[F, A]]
 
   def secure[P <: HList, R, W, TUP, TUP2](endpoint: Endpoint[P, R, W])(
       implicit revTup: ReversedTupled.Aux[P, TUP],
@@ -73,7 +71,7 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
     def json[W: Encoder]: W => ResponseDirective[F] =
       jsonWithContentType(`Content-Type`(MediaType.application.json))
 
-    def jsonWithContentType[W: Encoder] (contentType: `Content-Type`): W => ResponseDirective[F] =
+    def jsonWithContentType[W: Encoder](contentType: `Content-Type`): W => ResponseDirective[F] =
       w =>
         Http4sDirective.success(
           Response[F](Status.Ok)
@@ -120,7 +118,6 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
                 .withContentType(contentType))
       }
 
-
     }
 
     object Directive {
@@ -163,7 +160,29 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] {
   trait Complete {
     def key: List[SimpleLinx]
     def merge(other: AbstractUnsecurity[F, U]#Complete): AbstractUnsecurity[F, U]#Complete
-    def methodMap: Map[Method, Any => ResponseDirective[F]]
     def compile: PathMatcher[Response[F]]
+    def consumes: Set[MediaRange]
+    def methodMap: Map[Method, MediaRangeMap[Any => ResponseDirective[F]]]
+  }
+
+}
+case class MediaRangeMap[A](mr2a2rdf: List[(Set[MediaRange], A)]) {
+  def merge(other: MediaRangeMap[A]): MediaRangeMap[A] = {
+    // TODO legg til kollisjonsdeteksjon
+    MediaRangeMap(mr2a2rdf ++ other.mr2a2rdf)
+  }
+
+  def supportedMediaRanges: Set[MediaRange] = mr2a2rdf.flatMap(_._1.toList).toSet
+
+  def get(mediaRange: MediaRange): Either[Set[MediaRange], A] = {
+    mr2a2rdf
+      .find {
+        case (mrs, _) =>
+          mrs.exists { mr =>
+            mr.satisfiedBy(mediaRange)
+          }
+      }
+      .map(_._2)
+      .toRight(supportedMediaRanges)
   }
 }

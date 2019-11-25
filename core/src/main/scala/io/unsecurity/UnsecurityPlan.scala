@@ -1,11 +1,9 @@
 package io.unsecurity
 
-import java.util.UUID
-
 import cats.MonadError
 import cats.implicits._
 import no.scalabin.http4s.directives.Directive
-import org.http4s.{Query, Request, Response, Status, Uri}
+import org.http4s.{Query, Request, Response, Uri}
 import org.slf4j.Logger
 
 case class UnsecurityPlan[F[_]](log: Logger)(implicit M: MonadError[F, Throwable]) {

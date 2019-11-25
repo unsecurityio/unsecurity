@@ -1,6 +1,8 @@
 ThisBuild / organization := "io.unsecurity"
 ThisBuild / scalaVersion := "2.12.8"
 
+bloopExportJarClassifiers in Global := Some(Set("sources"))
+
 lazy val root = (project in file("."))
   .settings(name := "unsecurity")
   .configure(PublishSettings(_))

@@ -3,20 +3,20 @@ package unsecurity
 
 import cats.data.NonEmptyList
 import cats.effect.Sync
-import io.unsecurity.hlinx.HLinx.HLinx
 import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}
 import no.scalabin.http4s.directives.Directive
 import org.http4s.headers.Allow
-import org.http4s.{DecodeFailure, Method, Response, Status}
+import org.http4s.{DecodeFailure, MediaRange, Method, Response}
 import shapeless.HList
 
-abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] with UnsecurityOps[F] {
+abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
 
   def sc: SecurityContext[F, RU, U]
 
   case class MySecured[C, W](
       key: List[SimpleLinx],
       pathMatcher: PathMatcher[Any],
+      consumes: Set[MediaRange],
       methodMap: Map[Method, Any => Directive[F, C]],
       entityEncoder: W => ResponseDirective[F]
   ) extends Secured[C, W] {
@@ -24,15 +24,18 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       MyCompletable(
         key = key,
         pathMatcher = pathMatcher,
-        methodMap = methodMap.mapValues(
-          a2dc =>
-            a2dc.andThen(
-              dc =>
-                Directive.commit(
-                  dc.filter(
-                    c => predicate(c).orF(HttpProblem.forbidden("Forbidden").toResponseF)
-                  ))
-          )),
+        consumes = consumes,
+        methodMap = methodMap.map {
+          case (method, a2dc) =>
+            method ->
+              a2dc.andThen(
+                dc =>
+                  Directive.commit(
+                    dc.filter(
+                      c => predicate(c).orF(HttpProblem.forbidden("Forbidden").toResponseF)
+                    ))
+              )
+        },
         entityEncoder = entityEncoder
       )
     }
@@ -40,10 +43,12 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       MySecured(
         key = key,
         pathMatcher = pathMatcher,
-        methodMap = methodMap.mapValues { a2dc =>
-          a2dc.andThen { dc =>
-            dc.flatMap(c => f(c))
-          }
+        consumes = consumes,
+        methodMap = methodMap.map {
+          case (method, a2dc) =>
+            method -> a2dc.andThen { dc =>
+              dc.flatMap(c => f(c))
+            }
         },
         entityEncoder = entityEncoder,
       )
@@ -52,10 +57,12 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       MySecured(
         key = key,
         pathMatcher = pathMatcher,
-        methodMap = methodMap.mapValues { a2dc =>
-          a2dc.andThen { dc =>
-            dc.map(c => f(c))
-          }
+        consumes = consumes,
+        methodMap = methodMap.map {
+          case (method, a2dc) =>
+            method -> a2dc.andThen { dc =>
+              dc.map(c => f(c))
+            }
         },
         entityEncoder = entityEncoder,
       )
@@ -64,10 +71,12 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       MySecured(
         key = key,
         pathMatcher = pathMatcher,
-        methodMap = methodMap.mapValues { a2dc =>
-          a2dc.andThen { dc =>
-            dc.flatMap(c => f(c).successF)
-          }
+        consumes = consumes,
+        methodMap = methodMap.map {
+          case (method, a2dc) =>
+            method -> a2dc.andThen { dc =>
+              dc.flatMap(c => f(c).successF)
+            }
         },
         entityEncoder = entityEncoder,
       )
@@ -76,6 +85,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       MyCompletable(
         key = key,
         pathMatcher = pathMatcher,
+        consumes = consumes,
         methodMap = methodMap,
         entityEncoder = entityEncoder
       )
@@ -88,6 +98,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
     MySecured[TUP2, W](
       key = endpoint.path.toSimple.reverse,
       pathMatcher = createPathMatcher(endpoint.path).asInstanceOf[PathMatcher[Any]],
+      consumes = endpoint.accepts.consumes,
       methodMap = Map(
         endpoint.method -> { tup: TUP =>
           val checkXsrfOrNothing: Directive[F, String] =
@@ -127,6 +138,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
     MyCompletable[TUP2, W](
       key = endpoint.path.toSimple.reverse,
       pathMatcher = createPathMatcher[P, TUP](endpoint.path).asInstanceOf[PathMatcher[Any]],
+      consumes = endpoint.accepts.consumes,
       methodMap = Map(
         endpoint.method -> { tup: TUP =>
           for {
@@ -145,6 +157,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
   case class MyCompletable[C, W](
       key: List[SimpleLinx],
       pathMatcher: PathMatcher[Any],
+      consumes: Set[MediaRange],
       methodMap: Map[Method, Any => Directive[F, C]],
       entityEncoder: W => ResponseDirective[F]
   ) extends Completable[C, W] {
@@ -152,15 +165,17 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       MyComplete(
         key = key,
         pathMatcher = pathMatcher,
-        methodMap = methodMap.mapValues { a2dc =>
-          a2dc.andThen { dc =>
-            for {
-              c <- dc
-              w <- entityEncoder(f(c))
-            } yield {
-              w
-            }
-          }
+        consumes = consumes,
+        methodMap = methodMap.map {
+          case (method, a2dc) =>
+            method -> MediaRangeMap(List((consumes, a2dc.andThen { dc =>
+              for {
+                c <- dc
+                w <- entityEncoder(f(c))
+              } yield {
+                w
+              }
+            })))
         }
       )
     }
@@ -169,10 +184,12 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       MyCompletable(
         key = key,
         pathMatcher = pathMatcher,
-        methodMap = methodMap.mapValues { a2dc =>
-          a2dc.andThen { dc =>
-            dc.map(c => f(c))
-          }
+        consumes = consumes,
+        methodMap = methodMap.map {
+          case (method, a2dc) =>
+            method -> a2dc.andThen { dc =>
+              dc.map(c => f(c))
+            }
         },
         entityEncoder = entityEncoder
       )
@@ -182,10 +199,12 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       MyCompletable(
         key = key,
         pathMatcher = pathMatcher,
-        methodMap = methodMap.mapValues { a2dc =>
-          a2dc.andThen { dc =>
-            dc.flatMap(c => f(c))
-          }
+        consumes = consumes,
+        methodMap = methodMap.map {
+          case (method, a2dc) =>
+            method -> a2dc.andThen { dc =>
+              dc.flatMap(c => f(c))
+            }
         },
         entityEncoder = entityEncoder
       )
@@ -195,10 +214,12 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
       MyCompletable(
         key = key,
         pathMatcher = pathMatcher,
-        methodMap = methodMap.mapValues { a2dc =>
-          a2dc.andThen { dc =>
-            dc.flatMap(c => f(c).successF)
-          }
+        consumes = consumes,
+        methodMap = methodMap.map {
+          case (method, a2dc) =>
+            method -> a2dc.andThen { dc =>
+              dc.flatMap(c => f(c).successF)
+            }
         },
         entityEncoder = entityEncoder
       )
@@ -206,61 +227,54 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] wi
   }
 
   case class MyComplete(
-      key: List[SimpleLinx],
+      override val key: List[SimpleLinx],
       pathMatcher: PathMatcher[Any],
-      methodMap: Map[Method, Any => ResponseDirective[F]]
+      override val consumes: Set[MediaRange],
+      override val methodMap: Map[Method, MediaRangeMap[Any => ResponseDirective[F]]]
   ) extends Complete {
     override def merge(other: AbstractUnsecurity[F, U]#Complete): AbstractUnsecurity[F, U]#Complete = {
       this.copy(
-        methodMap = this.methodMap ++ other.methodMap
+        consumes = this.consumes ++ other.consumes,
+        methodMap = {
+          val v: Map[Method, List[(Method, MediaRangeMap[Any => ResponseDirective[F]])]] =
+            (this.methodMap.toList ++ other.methodMap.toList)
+              .groupBy(_._1)
+
+          val v2: Map[Method, List[MediaRangeMap[Any => ResponseDirective[F]]]] =
+            v.map {
+              case (method, l: List[(Method, MediaRangeMap[Any => ResponseDirective[F]])]) =>
+                method ->
+                  l.map((t: (Method, MediaRangeMap[Any => ResponseDirective[F]])) => t._2)
+            }
+
+          val v3: Map[Method, MediaRangeMap[Any => ResponseDirective[F]]] = v2.map {
+            case (method, mrms) =>
+              method ->
+                mrms.reduce((a, b) => a.merge(b))
+          }
+
+          v3
+        }
       )
     }
     override def compile: PathMatcher[Response[F]] = {
       def allow(methods: Set[Method]): Allow = Allow(NonEmptyList.fromListUnsafe(methods.toList))
 
-      pathMatcher.andThen { pathParamsDirective =>
+      val f: PathMatcher[Response[F]] = pathMatcher.andThen { pathParamsDirective =>
         for {
-          req        <- Directive.request
-          pathParams <- pathParamsDirective
-          res <- if (methodMap.isDefinedAt(req.method)) methodMap(req.method)(pathParams)
-          else Directive.error(HttpProblem.methodNotAllowed("Method not allowed", methodMap.keySet).toResponse.putHeaders(allow(methodMap.keySet)))
+          req           <- Directive.request
+          pathParams    <- pathParamsDirective
+          mediaRangeMap <- matchMethod(methodMap)
+
+          a2rdf <- matchContentType(mediaRangeMap)
+
+          res <- a2rdf(pathParams)
         } yield {
           res
         }
       }
+      f
     }
   }
 
-  def createPathMatcher[PathParams <: HList, TUP](route: HLinx[PathParams])(
-      implicit revTup: ReversedTupled.Aux[PathParams, TUP]): PathMatcher[TUP] =
-    new PartialFunction[String, Directive[F, TUP]] {
-      override def isDefinedAt(x: String): Boolean = {
-        if (route.capture(x).isDefined) {
-          log.trace(s"""'$x' did match /${route.toSimple.reverse.mkString("/")}""")
-          true
-        } else {
-          log.trace(s"""'$x' did not match /${route.toSimple.reverse.mkString("/")}""")
-          false
-        }
-      }
-
-      override def apply(v1: String): Directive[F, TUP] = {
-        val simpleRoute = route.toSimple.reverse.mkString("/", "/", "")
-        log.trace(s"""Match: "$v1" = $simpleRoute""")
-        val value: Either[String, TUP] = route.capture(v1).get
-
-        value match {
-          case Left(errorMsg) =>
-            log.error(s"""Error converting "$v1" = $simpleRoute: $errorMsg""")
-
-            Directive.failure(
-              HttpProblem.badRequest("Bad Request", Some(errorMsg)).toResponse
-            )
-
-          case Right(params) =>
-            Directive.success(params)
-
-        }
-      }
-    }
 }

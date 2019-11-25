@@ -1,4 +1,5 @@
 package io.unsecurity.hlinx
+
 import shapeless.DepFn1
 
 trait UnwrapTuple1[T] extends DepFn1[T] with Serializable
@@ -7,7 +8,6 @@ object UnwrapTuple1 extends LowPriorityUnwrapInstances {
   def apply[T](implicit unwrap: UnwrapTuple1[T]): Aux[T, unwrap.Out] = unwrap
 
   type Aux[T, Out0] = UnwrapTuple1[T] { type Out = Out0 }
-
 
   implicit val unwrapUnit: Aux[Unit, Unit] = new UnwrapTuple1[Unit] {
     type Out = Unit

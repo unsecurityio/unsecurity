@@ -1,8 +1,6 @@
 import io.unsecurity.hlinx.HLinx._
-
-import shapeless.{::, HList, HNil}
-
 import org.scalatest.FunSpec
+import shapeless.{::, HNil}
 
 class HLinxTest extends FunSpec {
 

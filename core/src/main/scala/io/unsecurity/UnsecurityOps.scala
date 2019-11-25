@@ -6,11 +6,11 @@ import cats.Monad
 import cats.data.NonEmptyList
 import cats.effect.Sync
 import fs2.Stream
-import io.circe.{Encoder, Json, Printer}
+import io.circe.{Encoder, Printer}
 import io.unsecurity.hlinx.ParamConverter
 import no.scalabin.http4s.directives.{Directive, DirectiveOps, RequestDirectives}
 import org.http4s.circe.CirceInstances
-import org.http4s.headers.{Location, `WWW-Authenticate`}
+import org.http4s.headers.{`WWW-Authenticate`, Location}
 import org.http4s.{Challenge, EntityEncoder, RequestCookie, Response, Status, Uri}
 
 import scala.language.{higherKinds, implicitConversions}
@@ -45,7 +45,12 @@ trait UnsecurityOps[F[_]] extends DirectiveOps[F] with RequestDirectives[F] {
 
   def cookie(cookieName: String)(implicit sync: Sync[F]): Directive[F, RequestCookie] = {
 //    request.cookie(cookieName).flatMap(opt => opt.toSuccess(BadRequest(s"Cookie '$cookieName' not found in request")))
-    request.cookie(cookieName).flatMap(opt => opt.toSuccess(HttpProblem.badRequest(s"Cookie '$cookieName' not found in request").toDirectiveError[F, RequestCookie]))
+    request
+      .cookie(cookieName)
+      .flatMap(
+        opt =>
+          opt.toSuccess(
+            HttpProblem.badRequest(s"Cookie '$cookieName' not found in request").toDirectiveError[F, RequestCookie]))
   }
 
   def requestCookies()(implicit sync: Sync[F]): Directive[F, List[RequestCookie]] = {
@@ -97,7 +102,7 @@ trait UnsecurityOps[F[_]] extends DirectiveOps[F] with RequestDirectives[F] {
   }
 
   def NotFound[A](implicit sync: Sync[F]): Directive[F, A] = {
-      HttpProblem.notFound.toDirectiveError[F,A]
+    HttpProblem.notFound.toDirectiveError[F, A]
   }
 
   def Unauthorized[B](details: String)(implicit sync: Sync[F]): Directive[F, B] = {
@@ -110,7 +115,8 @@ trait UnsecurityOps[F[_]] extends DirectiveOps[F] with RequestDirectives[F] {
     )
   }
 
-  def InternalServerError[B](title: String, detail: Option[String] = None)(implicit syncEvidence: Sync[F]): Directive[F, B] = {
+  def InternalServerError[B](title: String, detail: Option[String] = None)(
+      implicit syncEvidence: Sync[F]): Directive[F, B] = {
     Directive.error(
       HttpProblem.internalServerError(title, detail).toResponse
     )
@@ -160,7 +166,10 @@ trait Responses[F[_]] {
   }
 
   def unauthorizedResponse(details: Option[String])(implicit sync: Sync[F]): Response[F] = {
-    HttpProblem.unauthorized("Unauthorized", details).toResponse.putHeaders(`WWW-Authenticate`(NonEmptyList(Challenge("Cookie", "klaveness"), Nil))) //TODO: Parameteriser cookie. m2m ???. diskuter med erlend
+    HttpProblem
+      .unauthorized("Unauthorized", details)
+      .toResponse
+      .putHeaders(`WWW-Authenticate`(NonEmptyList(Challenge("Cookie", "klaveness"), Nil))) //TODO: Parameteriser cookie. m2m ???. diskuter med erlend
   }
 
 }
