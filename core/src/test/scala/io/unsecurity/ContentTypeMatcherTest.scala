@@ -4,6 +4,7 @@ import cats.Id
 import no.scalabin.http4s.directives.Result
 import org.http4s.headers.`Content-Type`
 import org.http4s.{Request, _}
+import org.http4s.implicits._
 import org.slf4j.{Logger, LoggerFactory}
 
 class ContentTypeMatcherTest extends UnsecurityTestSuite {
@@ -30,7 +31,7 @@ class ContentTypeMatcherTest extends UnsecurityTestSuite {
     contentTypeMatchDirective.run(invalidMediaType).where {
       case Result.Failure(r)
           if r.status == Status.UnsupportedMediaType
-            && r.contentType.exists(_ == problemJsonContentType) =>
+            && r.contentType.contains(problemJsonContentType) =>
         Ok
     }
   }
@@ -41,7 +42,7 @@ class ContentTypeMatcherTest extends UnsecurityTestSuite {
     contentTypeMatchDirective.run(unsupportedMediaType).where {
       case Result.Error(r)
           if r.status == Status.UnsupportedMediaType
-            && r.contentType.exists(_ == problemJsonContentType) =>
+            && r.contentType.contains(problemJsonContentType) =>
         Ok
     }
   }

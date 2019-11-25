@@ -3,7 +3,7 @@ package io.unsecurity
 import cats.Monad
 import no.scalabin.http4s.directives.Directive
 import org.http4s.Method.GET
-import org.http4s.{MediaRange, Method, _}
+import org.http4s.implicits._
 import org.http4s.headers.`Content-Type`
 
 abstract class AbstractContentTypeMatcher[F[_]: Monad] extends AbstractMethodMatcher[F] {
