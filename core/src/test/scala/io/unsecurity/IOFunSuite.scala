@@ -1,7 +1,8 @@
 package io.unsecurity
 
 import cats.effect.IO
-import org.scalatest.{Assertion, AsyncFunSuite}
+import org.scalatest.Assertion
+import org.scalatest.funsuite.AsyncFunSuite
 
 class IOFunSuite extends AsyncFunSuite {
   object test {
