@@ -43,7 +43,7 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HLinx[HNil],
           stateCookie <- sc.Cookies
                           .createStateCookie(secureCookie = callbackUrl.getScheme.equalsIgnoreCase("https"))
                           .successF
-          _        <- sc.sessionStore.storeState(stateCookie.content, State(state, returnToUrl, callbackUrl, "")).successF
+          _        <- sc.sessionStore.storeState(stateCookie.content, State(state, returnToUrl, callbackUrl)).successF
           auth0Url = sc.createAuth0Url(state, callbackUrl)
           _        <- break(Redirect(auth0Url).addCookie(stateCookie))
         } yield {

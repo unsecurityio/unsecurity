@@ -12,8 +12,7 @@ import scala.util.Try
 case class State(
     state: String,
     returnToUrl: URI,
-    callbackUrl: URI,
-    additionalData: String
+    callbackUrl: URI
 )
 
 object State {
@@ -34,13 +33,11 @@ object State {
           state          <- c.downField("state").as[String]
           returnToUrl    <- c.downField("returnToUrl").as[URI]
           callbackUrl    <- c.downField("callbackUrl").as[URI]
-          additionalData <- c.downField("additionalData").as[String]
         } yield {
           State(
             state = state,
             returnToUrl = returnToUrl,
-            callbackUrl = callbackUrl,
-            additionalData = additionalData
+            callbackUrl = callbackUrl
           )
       }
     )
@@ -50,8 +47,7 @@ object State {
       Json.obj(
         ("state", Json.fromString(s.state)),
         ("returnToUrl", s.returnToUrl.asJson),
-        ("callbackUrl", s.callbackUrl.asJson),
-        ("additionalData", s.additionalData.asJson)
+        ("callbackUrl", s.callbackUrl.asJson)
     )
 
 }
