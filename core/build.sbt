@@ -16,7 +16,7 @@ val fs2Version        = "2.1.0"
 val circeVersion      = "0.12.3"
 val directivesVersion = "0.16.0"
 val shapelessVersion  = "2.3.3"
-val scalaTestVersion  = "3.0.8"
+val scalaTestVersion  = "3.1.0"
 val logbackVersion    = "1.2.3"
 
 libraryDependencies := Seq(

@@ -1,8 +1,9 @@
 package io.unsecurity
 
-import org.scalatest.{Assertion, FunSuite}
+import org.scalatest.Assertion
+import org.scalatest.funsuite.AnyFunSuite
 
-trait UnsecurityTestSuite extends FunSuite {
+trait UnsecurityTestSuite extends AnyFunSuite {
   sealed trait TestResult
   case object Ok                 extends TestResult
   case class Fail(error: String) extends TestResult
