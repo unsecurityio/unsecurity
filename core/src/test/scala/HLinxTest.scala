@@ -1,8 +1,8 @@
 import io.unsecurity.hlinx.HLinx._
-import org.scalatest.FunSpec
 import shapeless.{::, HNil}
+import org.scalatest.funspec.AnyFunSpec
 
-class HLinxTest extends FunSpec {
+class HLinxTest extends AnyFunSpec {
 
   describe("capture") {
     describe("StaticFragment") {

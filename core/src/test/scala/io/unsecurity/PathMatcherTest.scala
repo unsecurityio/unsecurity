@@ -3,7 +3,8 @@ package io.unsecurity
 import cats.Id
 import io.unsecurity.hlinx.HLinx._
 import no.scalabin.http4s.directives.Result
-import org.http4s._
+import org.http4s.implicits._
+import org.http4s.{Request, Status}
 
 class PathMatcherTest extends UnsecurityTestSuite {
   val pathMatchers = new AbstractPathMatcher[Id] {}

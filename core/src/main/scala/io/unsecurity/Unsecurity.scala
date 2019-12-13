@@ -1,7 +1,6 @@
 package io
 package unsecurity
 
-import cats.data.NonEmptyList
 import cats.effect.Sync
 import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}
 import no.scalabin.http4s.directives.Directive
@@ -258,17 +257,15 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
       )
     }
     override def compile: PathMatcher[Response[F]] = {
-      def allow(methods: Set[Method]): Allow = Allow(NonEmptyList.fromListUnsafe(methods.toList))
+      def allow(methods: Set[Method]): Allow = Allow(methods)
 
       val f: PathMatcher[Response[F]] = pathMatcher.andThen { pathParamsDirective =>
         for {
           req           <- Directive.request
           pathParams    <- pathParamsDirective
           mediaRangeMap <- matchMethod(methodMap)
-
-          a2rdf <- matchContentType(mediaRangeMap)
-
-          res <- a2rdf(pathParams)
+          a2rdf         <- matchContentType(mediaRangeMap)
+          res           <- a2rdf(pathParams)
         } yield {
           res
         }

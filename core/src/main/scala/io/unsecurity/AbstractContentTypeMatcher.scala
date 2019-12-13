@@ -3,10 +3,10 @@ package io.unsecurity
 import cats.Monad
 import no.scalabin.http4s.directives.Directive
 import org.http4s.Method.GET
-import org.http4s._
+import org.http4s.implicits._
 import org.http4s.headers.`Content-Type`
 
-class AbstractContentTypeMatcher[F[_]: Monad] extends AbstractMethodMatcher[F] {
+abstract class AbstractContentTypeMatcher[F[_]: Monad] extends AbstractMethodMatcher[F] {
 
   val WILDCARD = mediaType"*/*"
 
@@ -20,8 +20,10 @@ class AbstractContentTypeMatcher[F[_]: Monad] extends AbstractMethodMatcher[F] {
                       .orElse { if (method == GET) Some(`Content-Type`.apply(WILDCARD)) else None }
                       .toSuccess(
                         HttpProblem
-                          .unsupportedMediaType("Content-Type missing or invalid mediatype",
-                                                mediaRangeMap.supportedMediaRanges)
+                          .unsupportedMediaType(
+                            "Content-Type missing or invalid mediatype",
+                            mediaRangeMap.supportedMediaRanges
+                          )
                           .toDirectiveFailure
                       )
       a2rdf <- Directive.commit {

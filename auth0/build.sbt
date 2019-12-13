@@ -2,15 +2,19 @@ name := "unsecurity-auth0"
 
 scalacOptions := Seq(
   "-deprecation",
-  "-Ypartial-unification",
   "-language:higherKinds",
   "-Ywarn-value-discard"
 )
 
+scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) match {
+  case Some((2, v)) if v <= 12 => Seq("-Ypartial-unification")
+  case _                       => Seq.empty
+})
+
 val auth0Version     = "1.15.0"
 val jwksVersion      = "0.9.0"
 val jwtVersion       = "3.8.3"
-val scalaTestVersion = "3.0.8"
+val scalaTestVersion = "3.1.0"
 
 libraryDependencies := Seq(
   "com.auth0"     % "auth0"      % auth0Version,
