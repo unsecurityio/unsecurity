@@ -4,12 +4,9 @@ import cats.Id
 import io.unsecurity.hlinx.HLinx._
 import no.scalabin.http4s.directives.Result
 import org.http4s._
-import org.slf4j.{Logger, LoggerFactory}
 
 class PathMatcherTest extends UnsecurityTestSuite {
-  val pathMatchers = new AbstractPathMatcher[Id] {
-    val log: Logger = LoggerFactory.getLogger("PathMatcherTest")
-  }
+  val pathMatchers = new AbstractPathMatcher[Id] {}
 
   test("/test") {
     val req: Request[Id] = Request[Id](uri = uri"/test")

@@ -11,14 +11,15 @@ import io.unsecurity.hlinx.HLinx.HLinx
 import io.unsecurity.hlinx.ParamConverter
 import no.scalabin.http4s.directives.Directive
 import org.http4s.{Method, Response, ResponseCookie}
-import org.slf4j.Logger
+import org.log4s.getLogger
 import shapeless.HNil
 
 class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HLinx[HNil],
                                          val sc: Auth0OidcSecurityContext[F, U],
-                                         jwkProvider: JwkProvider,
-                                         val log: Logger)
+                                         jwkProvider: JwkProvider)
     extends Unsecurity[F, OidcAuthenticatedUser, U] {
+
+  private[this] val log = getLogger
 
   implicit val uriParamConverter = ParamConverter.createSimple(s => new URI(s))
 
@@ -34,9 +35,9 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HLinx[HNil],
       _ =>
         for {
           returnToUrlParam      <- queryParamAs[URI]("next")
-          _                     = log.trace("/login returnToUrlParam: {}", returnToUrlParam)
+          _                     = log.trace(s"/login returnToUrlParam: $returnToUrlParam")
           auth0CallbackUrlParam <- queryParamAs[URI]("auth0Callback")
-          _                     = log.trace("/login auth0CallbackUrlParam: {}", auth0CallbackUrlParam)
+          _                     = log.trace(s"/login auth0CallbackUrlParam: $auth0CallbackUrlParam")
           state                 <- sc.randomString(32).successF
           callbackUrl           = auth0CallbackUrlParam.getOrElse(sc.authConfig.defaultAuth0CallbackUrl)
           returnToUrl           = returnToUrlParam.getOrElse(sc.authConfig.defaultReturnToUrl)
@@ -68,10 +69,10 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HLinx[HNil],
           state         <- sc.validateState(stateCookie, stateParam, xForwardedFor.map(_.value))
           _             = log.trace("/callback state cookie matches state param")
           codeParam     <- requiredQueryParam("code")
-          _             = log.trace("/callback callbackUrl: {}", state.callbackUrl)
+          _             = log.trace(s"/callback callbackUrl: ${state.callbackUrl}")
           token         <- sc.fetchTokenFromAuth0(codeParam, state.callbackUrl)
           oidcUser      <- sc.verifyTokenAndGetOidcUser(token, jwkProvider)
-          _             = log.trace("/callback userProfile: {}", oidcUser)
+          _             = log.trace(s"/callback userProfile: $oidcUser")
           sessionCookie <- sc.Cookies
                             .createSessionCookie(
                               secureCookie = state.callbackUrl.getScheme.equalsIgnoreCase("https")

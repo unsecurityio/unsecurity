@@ -4,12 +4,9 @@ import cats.Id
 import no.scalabin.http4s.directives.Result
 import org.http4s.headers.`Content-Type`
 import org.http4s.{Request, _}
-import org.slf4j.{Logger, LoggerFactory}
 
 class ContentTypeMatcherTest extends UnsecurityTestSuite {
-  val contentTypeMatcher: AbstractContentTypeMatcher[Id] = new AbstractContentTypeMatcher[Id] {
-    val log: Logger = LoggerFactory.getLogger("ContentTypeMatcherTest")
-  }
+  val contentTypeMatcher: AbstractContentTypeMatcher[Id] = new AbstractContentTypeMatcher[Id] {}
 
   val problemJsonContentType = `Content-Type`(mediaType"application/problem+json")
 

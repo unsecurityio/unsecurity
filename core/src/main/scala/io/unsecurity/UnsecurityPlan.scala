@@ -4,9 +4,10 @@ import cats.MonadError
 import cats.implicits._
 import no.scalabin.http4s.directives.Directive
 import org.http4s.{Query, Request, Response, Uri}
-import org.slf4j.Logger
+import org.log4s.getLogger
 
-case class UnsecurityPlan[F[_]](log: Logger)(implicit M: MonadError[F, Throwable]) {
+class UnsecurityPlan[F[_]](implicit M: MonadError[F, Throwable]) {
+  private[this] val log = getLogger
   type Intent = PartialFunction[Request[F], F[Response[F]]]
 
   def task(pf: PartialFunction[Request[F], Directive[F, Response[F]]]): Intent = {

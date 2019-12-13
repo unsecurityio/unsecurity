@@ -2,14 +2,11 @@ package io.unsecurity
 
 import cats.Id
 import no.scalabin.http4s.directives.{Directive, Result}
-import org.http4s.{Request, _}
 import org.http4s.headers.Allow
-import org.slf4j.{Logger, LoggerFactory}
+import org.http4s.{Request, _}
 
 class MethodMatcherTest extends UnsecurityTestSuite {
-  val methodMatcher: AbstractMethodMatcher[Id] = new AbstractMethodMatcher[Id] {
-    val log: Logger = LoggerFactory.getLogger("MethodMatcherTest")
-  }
+  val methodMatcher: AbstractMethodMatcher[Id] = new AbstractMethodMatcher[Id] {}
 
   val getRequest: Request[Id]    = Request[Id](method = Method.GET)
   val postRequest: Request[Id]   = Request[Id](method = Method.POST)

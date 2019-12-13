@@ -4,12 +4,11 @@ import cats.Monad
 import io.unsecurity.hlinx.HLinx.HLinx
 import io.unsecurity.hlinx.ReversedTupled
 import no.scalabin.http4s.directives.{Directive => Http4sDirective}
-import org.slf4j.Logger
+import org.log4s.getLogger
 import shapeless.HList
 
 abstract class AbstractPathMatcher[F[_]: Monad] {
-  def log: Logger
-
+  private[this] val log = getLogger
   type PathMatcher[A] = PartialFunction[String, Http4sDirective[F, A]]
 
   def createPathMatcher[PathParams <: HList, TUP](route: HLinx[PathParams])(
