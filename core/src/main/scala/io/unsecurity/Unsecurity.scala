@@ -1,7 +1,6 @@
 package io
 package unsecurity
 
-import cats.data.NonEmptyList
 import cats.effect.Sync
 import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}
 import no.scalabin.http4s.directives.Directive
@@ -265,8 +264,8 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
           req           <- Directive.request
           pathParams    <- pathParamsDirective
           mediaRangeMap <- matchMethod(methodMap)
-          a2rdf <- matchContentType(mediaRangeMap)
-          res <- a2rdf(pathParams)
+          a2rdf         <- matchContentType(mediaRangeMap)
+          res           <- a2rdf(pathParams)
         } yield {
           res
         }

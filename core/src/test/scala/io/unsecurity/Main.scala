@@ -4,12 +4,10 @@ import cats.effect.{ExitCode, IO, IOApp}
 import io.circe.Decoder
 import io.unsecurity.hlinx.HLinx._
 import org.http4s.{MediaType, Method}
-import org.slf4j.{Logger, LoggerFactory}
 
 object Main extends IOApp {
   val unsecurity: Unsecurity[IO, String, String] = new Unsecurity[IO, String, String] {
     override def sc: SecurityContext[IO, String, String] = ???
-    override def log: Logger                             = LoggerFactory.getLogger("fjon")
   }
   import unsecurity._
 
