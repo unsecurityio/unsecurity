@@ -14,7 +14,7 @@ import io.unsecurity.auth.auth0.oidc.Jwt.JwtHeader
 import io.unsecurity.{SecurityContext, UnsecurityOps}
 import no.scalabin.http4s.directives.Directive
 import okio.ByteString
-import org.slf4j.{Logger, LoggerFactory}
+import org.log4s.getLogger
 
 import scala.util.Try
 
@@ -25,7 +25,7 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
     extends SecurityContext[F, OauthAuthenticatedApplication, U]
     with UnsecurityOps[F] {
 
-  val log: Logger = LoggerFactory.getLogger(classOf[Auth0M2MSecurityContext[F, U]])
+  private[this] val log = getLogger
 
   override def authenticate: Directive[F, OauthAuthenticatedApplication] = {
     for {
@@ -67,7 +67,7 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
 
   private def decodedJWT(token: String): Directive[F, DecodedJWT] = {
     Try(JWT.decode(token)).toSuccess { throwable =>
-      log.warn("Could not extract token from request", throwable)
+      log.warn(throwable)("Could not extract token from request")
       Unauthorized("Could not extract token from request")
     }
   }
@@ -76,7 +76,7 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
     for {
       decodedHeaderString <- decodeBase64(jwtToken.getHeader)
       header <- decode[JwtHeader](decodedHeaderString).toSuccess { error =>
-                 log.warn("Could not decode jwt header", error)
+                 log.warn(error)("Could not decode jwt header")
                  Unauthorized("Could not decode jwt header")
                }
     } yield header
@@ -112,7 +112,7 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
     Try {
       verifier.verify(accessToken)
     }.toSuccess { throwable =>
-      log.warn(s"Could not verify token for path: $attemptedPath", throwable)
+      log.warn(throwable)(s"Could not verify token for path: $attemptedPath")
       Unauthorized("Could not verify token")
     }
   }
