@@ -19,7 +19,7 @@ import org.log4s.getLogger
 import scala.util.Try
 
 class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplication => F[Option[U]],
-                                             authDomain: String,
+                                             issuer: String,
                                              audience: String,
                                              jwkProvider: JwkProvider)
     extends SecurityContext[F, OauthAuthenticatedApplication, U]
@@ -106,7 +106,7 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
                                 attemptedPath: String): Directive[F, DecodedJWT] = {
     val verifier = JWT
       .require(alg)
-      .withIssuer(s"https://$authDomain/")
+      .withIssuer(issuer)
       .withAudience(audience)
       .build()
     Try {
