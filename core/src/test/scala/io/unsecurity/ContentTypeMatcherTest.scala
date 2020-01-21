@@ -19,7 +19,7 @@ class ContentTypeMatcherTest extends UnsecurityTestSuite {
   val supportedMediaType = Request[Id](method = Method.POST,
                                        uri = uri"/whatever",
                                        headers = Headers.of(Header("content-type", "application/fjon")))
-  val fjonMediaRange: MediaRange = MediaRange.parse("application/fjon").right.get
+  val fjonMediaRange: MediaRange = MediaRange.parse("application/fjon").getOrElse(throw new RuntimeException("could not parse media range"))
   val supportedMediaRange        = Set(fjonMediaRange) -> "dingdong"
 
   test("Invalid media-type is not accepted") {

@@ -5,8 +5,13 @@ import shapeless.{::, HList, HNil}
 object HLinx {
   def param[A: ParamConverter](name: String) = Param(name, ParamConverter[A])
 
+  @deprecated(message = "Symbol is deprecated in scala 2.13 use String instead", since = "2.0")
   implicit class SymbolPimp(s: Symbol) {
     def as[A: ParamConverter] = Param(s.name, ParamConverter[A])
+  }
+
+  implicit class StringPimp(s: String) {
+    def as[A: ParamConverter] = Param(s, ParamConverter[A])
   }
 
   sealed trait HLinx[T <: HList] {
