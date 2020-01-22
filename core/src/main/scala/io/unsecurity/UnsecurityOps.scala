@@ -13,7 +13,7 @@ import org.http4s.circe.CirceInstances
 import org.http4s.headers.{`WWW-Authenticate`, Location}
 import org.http4s.{Challenge, EntityEncoder, RequestCookie, Response, Status, Uri}
 
-import scala.language.{higherKinds, implicitConversions}
+import scala.language.implicitConversions
 import scala.util.Try
 
 trait UnsecurityOps[F[_]] extends DirectiveOps[F] with RequestDirectives[F] {

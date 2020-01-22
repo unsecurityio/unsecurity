@@ -20,7 +20,8 @@ import io.unsecurity.auth.auth0.oidc.Jwt.JwtHeader
 import no.scalabin.http4s.directives.Directive
 import org.http4s._
 import org.http4s.client.Client
-import org.slf4j.{Logger, LoggerFactory}
+import org.log4s.getLogger
+
 import scodec.bits.BitVector
 
 class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
@@ -29,8 +30,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
                                               lookup: OidcAuthenticatedUser => F[Option[U]])
     extends SecurityContext[F, OidcAuthenticatedUser, U]
     with UnsecurityOps[F] {
-  val log: Logger = LoggerFactory.getLogger(classOf[Auth0OidcSecurityContext[F, U]])
-
+  private[this] val log = getLogger
   import responses._
 
   override def transformUser(u: OidcAuthenticatedUser): F[Option[U]] = lookup(u)
@@ -189,7 +189,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
               maybeBody
                 .toRight(Json.obj("msg" := "No data received from IdP"))
                 .flatMap(cDecode[TokenResponse](_).left.map { e =>
-                  log.error("Error parsing token from auth0 {}. Payload : {}", List(e, maybeBody.getOrElse("")): _*)
+                  log.error(e)(s"Error parsing token from auth0. Payload : ${maybeBody.getOrElse("")}")
                   Json.obj("msg" := "Error parsing token from auth0")
                 })
             } else {
@@ -237,7 +237,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
     def createXsrfCookie(secureCookie: Boolean): F[ResponseCookie] = {
       val xsrfToken = randomString(32)
       xsrfToken.map { xsrf =>
-        log.trace("xsrfToken: {}", xsrf)
+        log.trace(s"xsrfToken: $xsrf")
         ResponseCookie(
           name = Keys.XSRF,
           content = xsrf,
@@ -267,7 +267,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
 
     def createStateCookie(secureCookie: Boolean): F[ResponseCookie] = {
       randomString(16).map { state =>
-        log.trace("stateCookieRef: {}", state)
+        log.trace(s"stateCookieRef: $state")
         ResponseCookie(name = Cookies.Keys.STATE, content = state, secure = secureCookie)
       }
     }

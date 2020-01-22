@@ -2,14 +2,11 @@ package io.unsecurity
 
 import cats.Id
 import no.scalabin.http4s.directives.{Directive, Result}
-import org.http4s.{Request, _}
 import org.http4s.headers.Allow
-import org.slf4j.{Logger, LoggerFactory}
+import org.http4s.{Request, _}
 
 class MethodMatcherTest extends UnsecurityTestSuite {
-  val methodMatcher: AbstractMethodMatcher[Id] = new AbstractMethodMatcher[Id] {
-    val log: Logger = LoggerFactory.getLogger("MethodMatcherTest")
-  }
+  val methodMatcher: AbstractMethodMatcher[Id] = new AbstractMethodMatcher[Id] {}
 
   val getRequest: Request[Id]    = Request[Id](method = Method.GET)
   val postRequest: Request[Id]   = Request[Id](method = Method.POST)
@@ -24,7 +21,7 @@ class MethodMatcherTest extends UnsecurityTestSuite {
     methodMatchDirective.run(deleteRequest).where {
       case Result.Error(r)
           if r.status == Status.MethodNotAllowed
-            && r.headers.get(Allow).get.methods.length == 1
+            && r.headers.get(Allow).get.methods.size == 1
             && r.headers.get(Allow).get.methods.toList.contains(Method.GET) =>
         Ok
     }
@@ -40,7 +37,7 @@ class MethodMatcherTest extends UnsecurityTestSuite {
     methodMatchDirective.run(deleteRequest).where {
       case Result.Error(r)
           if r.status == Status.MethodNotAllowed
-            && r.headers.get(Allow).get.methods.length == methodMap.values.size
+            && r.headers.get(Allow).get.methods.size == methodMap.values.size
             && r.headers.get(Allow).get.methods.toList.toSet == methodMap.keySet =>
         Ok
     }

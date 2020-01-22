@@ -3,7 +3,7 @@ package io.unsecurity
 import cats.Monad
 import no.scalabin.http4s.directives.Directive
 import org.http4s.Method.GET
-import org.http4s.{MediaRange, Method, _}
+import org.http4s.implicits._
 import org.http4s.headers.`Content-Type`
 
 abstract class AbstractContentTypeMatcher[F[_]: Monad] extends AbstractMethodMatcher[F] {
@@ -14,12 +14,16 @@ abstract class AbstractContentTypeMatcher[F[_]: Monad] extends AbstractMethodMat
 
     for {
       request <- Directive.request[F]
-      method = request.method
+      method  = request.method
       contentType <- request.headers
-                      .get(`Content-Type`).orElse{ if(method == GET) Some(`Content-Type`.apply(WILDCARD)) else None}
+                      .get(`Content-Type`)
+                      .orElse { if (method == GET) Some(`Content-Type`.apply(WILDCARD)) else None }
                       .toSuccess(
                         HttpProblem
-                          .unsupportedMediaType("Content-Type missing or invalid mediatype", mediaRangeMap.supportedMediaRanges)
+                          .unsupportedMediaType(
+                            "Content-Type missing or invalid mediatype",
+                            mediaRangeMap.supportedMediaRanges
+                          )
                           .toDirectiveFailure
                       )
       a2rdf <- Directive.commit {
@@ -33,7 +37,7 @@ abstract class AbstractContentTypeMatcher[F[_]: Monad] extends AbstractMethodMat
               }
 
     } yield {
-       a2rdf
+      a2rdf
     }
   }
 

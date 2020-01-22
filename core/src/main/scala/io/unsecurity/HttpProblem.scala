@@ -7,16 +7,8 @@ import io.circe._
 import io.circe.syntax._
 import no.scalabin.http4s.directives.Directive
 import org.http4s.circe.DecodingFailures
-import org.http4s.{
-  DecodeFailure,
-  InvalidMessageBodyFailure,
-  MalformedMessageBodyFailure,
-  MediaRange,
-  MediaType,
-  Method,
-  Response,
-  Status
-}
+import org.http4s.{DecodeFailure, InvalidMessageBodyFailure, MalformedMessageBodyFailure, MediaRange, MediaType, Method, Response, Status}
+import org.log4s.getLogger
 
 import scala.util.control.NonFatal
 
@@ -46,6 +38,9 @@ case class HttpProblem(status: Status,
 }
 
 object HttpProblem {
+
+  private[this] val log = getLogger
+
   implicit val encoder: Encoder[HttpProblem] = Encoder.instance(
     p =>
       Json.obj(
@@ -94,7 +89,7 @@ object HttpProblem {
       "message" := failure.message
     )
 
-  def handleError: PartialFunction[Throwable, HttpProblem] = {
+  def handleError : PartialFunction[Throwable, HttpProblem] = {
     case h: HttpProblem => h
     case InvalidMessageBodyFailure(details, Some(failure: DecodingFailure)) =>
       HttpProblem(
@@ -119,9 +114,18 @@ object HttpProblem {
       )
     case NonFatal(e) =>
       HttpProblem(status = Status.InternalServerError,
-                  title = "Internal server error",
-                  detail = Option(e.getMessage),
-                  data = None,
-                  cause = Some(e))
+        title = "Internal server error",
+        detail = Option(e.getMessage),
+        data = None,
+        cause = Some(e))
   }
+
+  def logHttpProblem : PartialFunction[HttpProblem, HttpProblem] = {
+    case h: HttpProblem =>
+      log.error(h)(h.asJson.noSpaces)
+      h
+  }
+
+  def handleAndLogError: PartialFunction[Throwable, HttpProblem] = handleError.andThen(logHttpProblem)
+
 }

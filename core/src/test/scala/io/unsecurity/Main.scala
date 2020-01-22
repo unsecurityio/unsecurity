@@ -4,12 +4,10 @@ import cats.effect.{ExitCode, IO, IOApp}
 import io.circe.Decoder
 import io.unsecurity.hlinx.HLinx._
 import org.http4s.{MediaType, Method}
-import org.slf4j.{Logger, LoggerFactory}
 
 object Main extends IOApp {
   val unsecurity: Unsecurity[IO, String, String] = new Unsecurity[IO, String, String] {
     override def sc: SecurityContext[IO, String, String] = ???
-    override def log: Logger                             = LoggerFactory.getLogger("fjon")
   }
   import unsecurity._
 
@@ -30,12 +28,29 @@ object Main extends IOApp {
       Endpoint(
         "Endpoint that collides with hello-world-endpoint, showing that static fragments gets precedense over variable fragments",
         Method.GET,
-        Root / 'collideWithHello.as[String],
+        Root / "collideWithHello".as[String],
         Produces.json[String]
       )
     ).run {
       case collide =>
         s"Hello, $collide"
+    }
+
+  val queryParamCodec: unsecurity.Complete =
+    unsecure(
+      Endpoint(
+        "Show how to use query params",
+        Method.GET,
+        Root / "decode" / "a" / "queryparam",
+        Produces.Directive.json[String]
+      )
+    ).run { _ =>
+      for {
+          qp <- requiredQueryParamAs[String]("qp")
+      } yield {
+        println(qp)
+        qp
+      }
     }
 
   case class StringAndInt(s: String, i: Int)
@@ -45,7 +60,7 @@ object Main extends IOApp {
       Endpoint(
         "endpoint taking two path params",
         Method.GET,
-        Root / 'param1.as[String] / 'param2.as[Int],
+        Root / "param1".as[String] / "param2".as[Int],
         Produces.json[String]
       )
     ).map { case (s, i) => StringAndInt(s, i) }
@@ -83,7 +98,7 @@ object Main extends IOApp {
         "Check if a post request crashes if x09 is sent",
         Method.POST,
         Root / "does" / "this" / "work",
-        Accepts.jsonWithMediaType[Fjon](MediaType.parse("application/fjon").right.get),
+        Accepts.jsonWithMediaType[Fjon](MediaType.parse("application/fjon").getOrElse(throw new RuntimeException("could not parse media range"))),
         Produces.json[String]
       )
     ).run {
@@ -100,6 +115,7 @@ object Main extends IOApp {
         List(
           helloWorld,
           collidingHello,
+          queryParamCodec,
           twoParams,
           post,
           post2

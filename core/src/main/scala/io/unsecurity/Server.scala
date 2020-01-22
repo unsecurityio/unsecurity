@@ -7,21 +7,20 @@ import no.scalabin.http4s.directives.{Directive => Http4sDirective}
 import org.http4s.implicits._
 import org.http4s.server.blaze.BlazeServerBuilder
 import org.http4s.{HttpRoutes, Request, Response, Status}
-import org.slf4j.{Logger, LoggerFactory}
+import org.log4s.getLogger
 
 import scala.Ordering.Implicits._
 import scala.concurrent.ExecutionContext
 
-class Server[F[_]](port: Int, host: String, httpExecutionContext: ExecutionContext, log: Logger)(
-    implicit eff: ConcurrentEffect[F],
-    timer: Timer[F]) {
+class Server[F[_]](port: Int, host: String, httpExecutionContext: ExecutionContext)(implicit eff: ConcurrentEffect[F],
+                                                                                    timer: Timer[F]) {
 
   def serve[U](endpoints: AbstractUnsecurity[F, U]#Complete*): fs2.Stream[F, ExitCode] = {
-    serve(Server.toHttpRoutes(endpoints.toList, log))
+    serve(Server.toHttpRoutes(endpoints.toList))
   }
 
   def serve[U](endpoints: List[AbstractUnsecurity[F, U]#Complete]): fs2.Stream[F, ExitCode] = {
-    serve(Server.toHttpRoutes(endpoints, log))
+    serve(Server.toHttpRoutes(endpoints))
   }
 
   def serve(routes: HttpRoutes[F]): fs2.Stream[F, ExitCode] = {
@@ -43,13 +42,13 @@ class Server[F[_]](port: Int, host: String, httpExecutionContext: ExecutionConte
 
   @deprecated("Use companion object Server.toHttpRoutes", "1.1")
   def toHttpRoutes[U](endpoints: List[AbstractUnsecurity[F, U]#Complete]): HttpRoutes[F] = {
-    Server.toHttpRoutes(endpoints, log)
+    Server.toHttpRoutes(endpoints)
   }
 }
 
 object Server {
 
-  private val log = LoggerFactory.getLogger(Server.getClass)
+  private[this] val log = getLogger
 
   def loggingMiddleware[F[_]: Sync](service: HttpRoutes[F]): HttpRoutes[F] = cats.data.Kleisli { req: Request[F] =>
     try {
@@ -70,12 +69,12 @@ object Server {
     } catch {
       case t: Throwable =>
         val problem = HttpProblem.handleError(t)
-        log.error(problem.toString, problem)
+        log.error(problem)(problem.toString)
         OptionT.pure(problem.toResponse[F])
     }
   }
 
-  def toHttpRoutes[U, F[_]](endpoints: List[AbstractUnsecurity[F, U]#Complete], log: Logger)(
+  def toHttpRoutes[U, F[_]](endpoints: List[AbstractUnsecurity[F, U]#Complete])(
       implicit eff: ConcurrentEffect[F]): HttpRoutes[F] = {
     type PathMatcher[A] = PartialFunction[String, Http4sDirective[F, A]]
 
@@ -100,7 +99,7 @@ object Server {
 
     val reducedRoutes: PathMatcher[Response[F]] = compiledRoutes.reduce(_ orElse _)
 
-    val PathMapping = UnsecurityPlan[F](log).PathMapping
+    val PathMapping = new UnsecurityPlan[F].PathMapping
 
     val service: HttpRoutes[F] = HttpRoutes.of[F](
       PathMapping(reducedRoutes)

@@ -3,13 +3,11 @@ package io.unsecurity
 import cats.Id
 import io.unsecurity.hlinx.HLinx._
 import no.scalabin.http4s.directives.Result
-import org.http4s._
-import org.slf4j.{Logger, LoggerFactory}
+import org.http4s.implicits._
+import org.http4s.{Request, Status}
 
 class PathMatcherTest extends UnsecurityTestSuite {
-  val pathMatchers = new AbstractPathMatcher[Id] {
-    val log: Logger = LoggerFactory.getLogger("PathMatcherTest")
-  }
+  val pathMatchers = new AbstractPathMatcher[Id] {}
 
   test("/test") {
     val req: Request[Id] = Request[Id](uri = uri"/test")
@@ -28,7 +26,7 @@ class PathMatcherTest extends UnsecurityTestSuite {
     val req: Request[Id] = Request[Id](uri = uri)
 
     val pathMatcher: pathMatchers.PathMatcher[Tuple1[Int]] =
-      pathMatchers.createPathMatcher(Root / "test" / 'id.as[Int])
+      pathMatchers.createPathMatcher(Root / "test" / "id".as[Int])
     assert(!pathMatcher.isDefinedAt("/test"))
     assert(!pathMatcher.isDefinedAt("/test/aaa/aaa"))
     assert(pathMatcher.isDefinedAt("/test/aaa"))

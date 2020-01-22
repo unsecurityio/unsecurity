@@ -9,7 +9,6 @@ import no.scalabin.http4s.directives.{Directive => Http4sDirective}
 import org.http4s.EntityEncoder.entityBodyEncoder
 import org.http4s.headers.`Content-Type`
 import org.http4s.{EntityDecoder, EntityEncoder, MediaRange, MediaType, Method, Response, Status}
-import org.slf4j.Logger
 import shapeless.HList
 
 import scala.concurrent.ExecutionContext
@@ -35,8 +34,6 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
     def apply[P <: HList, R](desc: String, method: Method, path: HLinx[P], accepts: EntityDecoder[F, R]) =
       new Endpoint[P, R, Http4sDirective[F, Unit]](desc, method, path, accepts, Produces.Directive.EmptyBody)
   }
-
-  def log: Logger
 
   def secure[P <: HList, R, W, TUP, TUP2](endpoint: Endpoint[P, R, W])(
       implicit revTup: ReversedTupled.Aux[P, TUP],
@@ -139,7 +136,7 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
 
   def Server(port: Int, host: String, httpExecutionContext: ExecutionContext)(implicit C: ConcurrentEffect[F],
                                                                               T: Timer[F]): Server[F] = {
-    new Server[F](port, host, httpExecutionContext, log)
+    new Server[F](port, host, httpExecutionContext)
   }
 
   trait Completable[C, W] {
