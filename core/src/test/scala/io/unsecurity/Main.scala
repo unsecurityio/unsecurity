@@ -41,15 +41,16 @@ object Main extends IOApp {
       Endpoint(
         "Show how to use query params",
         Method.GET,
-        Root / "decode" / "a" / "queryparam",
+        Root / "decode" / "pathParam".as[String] / "queryparam",
         Produces.Directive.json[String]
       )
-    ).run { _ =>
+    ).run { pathParam =>
       for {
           qp <- requiredQueryParamAs[String]("qp")
       } yield {
+        println(pathParam)
         println(qp)
-        qp
+        pathParam + qp
       }
     }
 

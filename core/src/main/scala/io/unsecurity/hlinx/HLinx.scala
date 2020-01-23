@@ -1,5 +1,7 @@
 package io.unsecurity.hlinx
 
+import java.net.URLDecoder
+
 import shapeless.{::, HList, HNil}
 
 object HLinx {
@@ -69,7 +71,7 @@ object HLinx {
           .map(t =>
             for {
               hlist          <- t
-              convertedParam <- P.convert(h)
+              convertedParam <- P.convert(URLDecoder.decode(h, "UTF-8"))
             } yield {
               convertedParam :: hlist
           })
