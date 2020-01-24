@@ -3,6 +3,7 @@ package io.unsecurity.auth.auth0.m2m
 import java.security.interfaces.{RSAPrivateKey, RSAPublicKey}
 import java.time.{Instant, OffsetDateTime, ZoneId, ZoneOffset}
 
+import cats.Monad
 import cats.effect.Sync
 import com.auth0.jwk.JwkProvider
 import com.auth0.jwt.JWT
@@ -12,8 +13,11 @@ import io.circe.Decoder
 import io.circe.parser.decode
 import io.unsecurity.auth.auth0.oidc.Jwt.JwtHeader
 import io.unsecurity.{SecurityContext, UnsecurityOps}
-import no.scalabin.http4s.directives.Directive
+import no.scalabin.http4s.directives.{Directive, RequestDirectives}
 import okio.ByteString
+import org.http4s.headers.Authorization
+import org.http4s.{Header, HeaderKey, Request}
+import org.http4s.util.CaseInsensitiveString
 import org.log4s.getLogger
 
 import scala.util.Try
@@ -56,9 +60,9 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
     lookup(rawUser)
   }
 
-  private def requestAuthToken: Directive[F, String] = {
+  private[unsecurity] def requestAuthToken: Directive[F, String] = {
     for {
-      authHeader <- request.header("authorization")
+      authHeader <- request.headers.map(_.toList).map(_.find(h => h.is(Authorization) && h.value.toLowerCase.contains("bearer")))
       token <- authHeader
                 .map(header => header.value.split(" ").last)
                 .toSuccess(Unauthorized("Authorization header not found. Please log in"))
@@ -147,6 +151,7 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
       ))
   }
 }
+
 
 case class JwtToken(iss: String, sub: String, aud: String, exp: Long, iat: Long, scopes: List[String])
 object JwtToken {

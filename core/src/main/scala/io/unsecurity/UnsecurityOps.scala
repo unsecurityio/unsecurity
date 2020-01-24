@@ -169,7 +169,7 @@ trait Responses[F[_]] {
     HttpProblem
       .unauthorized("Unauthorized", details)
       .toResponse
-      .putHeaders(`WWW-Authenticate`(NonEmptyList(Challenge("Cookie", "klaveness"), Nil))) //TODO: Parameteriser cookie. m2m ???. diskuter med erlend
+      .putHeaders(`WWW-Authenticate`(NonEmptyList(Challenge("Cookie", "session cookie"), Nil)))
   }
 
 }
