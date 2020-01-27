@@ -8,12 +8,12 @@ import org.http4s.implicits._
 import org.http4s.server.blaze.BlazeServerBuilder
 import org.http4s.{HttpRoutes, Request, Response, Status}
 import org.log4s.getLogger
+import cats.implicits._
 
 import scala.Ordering.Implicits._
 import scala.concurrent.ExecutionContext
 
-class Server[F[_]](port: Int, host: String, httpExecutionContext: ExecutionContext)(implicit eff: ConcurrentEffect[F],
-                                                                                    timer: Timer[F]) {
+class Server[F[_]: ConcurrentEffect: Timer](port: Int, host: String, httpExecutionContext: ExecutionContext) {
 
   def serve[U](endpoints: AbstractUnsecurity[F, U]#Complete*): fs2.Stream[F, ExitCode] = {
     serve(Server.toHttpRoutes(endpoints.toList))
@@ -25,7 +25,7 @@ class Server[F[_]](port: Int, host: String, httpExecutionContext: ExecutionConte
 
   def serve(routes: HttpRoutes[F]): fs2.Stream[F, ExitCode] = {
 
-    val httpApp = Server.loggingMiddleware(routes).orNotFound
+    val httpApp = Server.httpProblemMiddleware(routes).orNotFound
 
     for {
       _ <- BlazeServerBuilder[F]
@@ -40,38 +40,32 @@ class Server[F[_]](port: Int, host: String, httpExecutionContext: ExecutionConte
     } yield ExitCode.Success
   }
 
-  @deprecated("Use companion object Server.toHttpRoutes", "1.1")
-  def toHttpRoutes[U](endpoints: List[AbstractUnsecurity[F, U]#Complete]): HttpRoutes[F] = {
-    Server.toHttpRoutes(endpoints)
-  }
 }
 
 object Server {
 
   private[this] val log = getLogger
 
-  def loggingMiddleware[F[_]: Sync](service: HttpRoutes[F]): HttpRoutes[F] = cats.data.Kleisli { req: Request[F] =>
-    try {
-      service(req).map {
-        case Status.ClientError(resp) =>
-          val contentType = resp.contentType
-          val loggedResp = resp.withEntity(resp.bodyAsText.evalTap(body =>
-            Sync[F].delay(log.error(s"Error processing: ${req.pathInfo}, message: $body"))))
-          contentType.fold(loggedResp)(ct => loggedResp.putHeaders(ct))
-        case Status.ServerError(resp) =>
-          val contentType = resp.contentType
-          val loggedResp = resp.withEntity(resp.bodyAsText.evalTap(body =>
-            Sync[F].delay(log.error(s"Error processing: ${req.pathInfo}, message: $body"))))
-          contentType.fold(loggedResp)(ct => loggedResp.putHeaders(ct))
-        case resp =>
-          resp
-      }
-    } catch {
-      case t: Throwable =>
-        val problem = HttpProblem.handleError(t)
-        log.error(problem)(problem.toString)
-        OptionT.pure(problem.toResponse[F])
-    }
+  def httpProblemMiddleware[F[_]](service: HttpRoutes[F])(implicit F: Sync[F]): HttpRoutes[F] = HttpRoutes {
+    req: Request[F] =>
+      service
+        .run(req)
+        .map {
+          case resp @ (Status.ClientError(_) | Status.ServerError(_)) =>
+            val loggedResp = resp.withEntity(
+              resp.bodyAsText.evalTap(body => F.delay(log.error(s"Error processing: ${req.pathInfo}, message: $body")))
+            )
+            resp.contentType.fold(loggedResp)(ct => loggedResp.putHeaders(ct))
+          case resp =>
+            resp
+        }
+        .handleErrorWith { t =>
+          OptionT.liftF(F.delay {
+            val problem = HttpProblem.internalServerError("Unhandled internal server error")
+            log.error(t)(s"Error processing [${req.pathInfo}] id [${problem.uuid}]")
+            problem.toResponse[F]
+          })
+        }
   }
 
   def toHttpRoutes[U, F[_]](endpoints: List[AbstractUnsecurity[F, U]#Complete])(
