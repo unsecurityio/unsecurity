@@ -37,7 +37,8 @@ case class OidcAuthenticatedUser(nickname: Option[String],
                                  issuedAt: Long,
                                  expirationTime: Long,
                                  userId: UserId,
-                                 additionalData: String)
+                                 additionalData: String,
+                                 rawToken:String)
 
 object OidcAuthenticatedUser {
   implicit val authenticatedUserEncoder: Encoder[OidcAuthenticatedUser] = Encoder { au =>
@@ -54,7 +55,8 @@ object OidcAuthenticatedUser {
       "iat" := au.issuedAt,
       "exp" := au.expirationTime,
       "user_id" := au.userId,
-      "additionalData" := au.additionalData
+      "additionalData" := au.additionalData,
+      "rawToken" := au.rawToken
     )
   }
 
@@ -72,6 +74,7 @@ object OidcAuthenticatedUser {
       iat            <- c.downField("iat").as[Long]
       exp            <- c.downField("exp").as[Long]
       additionalData <- c.downField("additionalData").as[Option[String]]
+      rawToken       <- c.downField("rawToken").as[Option[String]]
     } yield {
       OidcAuthenticatedUser(
         nickname,
@@ -86,7 +89,8 @@ object OidcAuthenticatedUser {
         iat,
         exp,
         UserId(sub),
-        additionalData.getOrElse("")
+        additionalData.getOrElse(""),
+        rawToken.getOrElse("")
       )
     }
   }

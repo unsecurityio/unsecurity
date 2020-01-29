@@ -1,10 +1,10 @@
-package io.unsecurity.auth.auth0
+package io.unsecurity.auth.auth0.m2m
 
 import java.util.UUID
 
 import cats.effect.IO
 import com.auth0.jwk.{Jwk, JwkProvider}
-import io.unsecurity.auth.auth0.m2m.Auth0M2MSecurityContext
+import io.unsecurity.auth.auth0.UnsecurityTestSuite
 import no.scalabin.http4s.directives.Result
 import org.http4s.{Request, _}
 

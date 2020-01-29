@@ -216,7 +216,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
                    TokenVerifier
                      .validateIdToken(alg, authConfig.issuer, authConfig.clientId, tokenResponse.idToken))
     } yield {
-      oidcUser
+      oidcUser.copy(rawToken = tokenResponse.idToken)
     }
 
     eitherUser.toSuccess(failure => Directive.failure(HttpProblem.internalServerError(failure).toResponse))

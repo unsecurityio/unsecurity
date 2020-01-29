@@ -18,7 +18,7 @@ import org.log4s.getLogger
 
 import scala.util.Try
 
-class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplication => F[Option[U]],
+class Auth0M2MOnBehalfOfSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplication => F[Option[U]],
                                              issuer: String,
                                              audience: String,
                                              jwkProvider: JwkProvider)
@@ -30,15 +30,27 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
   override def authenticate: Directive[F, OauthAuthenticatedApplication] = {
     for {
       attemptedPath    <- request.path
-      requestAuthToken <- requestAuthToken
-      decodedJWT       <- decodedJWT(requestAuthToken)
-      jwtHeader        <- jwtHeader(decodedJWT)
-      publicKey        = jwkProvider.get(jwtHeader.kid).getPublicKey.asInstanceOf[RSAPublicKey]
-      alg              = Algorithm.RSA256(createPublicKeyProvider(publicKey))
-      verifiedToken    <- verifyAccessToken(alg, requestAuthToken, attemptedPath)
-      jwtToken         <- jwtToken(verifiedToken)
-      _                <- checkExpiration(jwtToken)
-      userProfile      <- extractProfile(jwtToken, requestAuthToken)
+      bearerRequestAuthToken <- requestAuthBearerToken
+      bearerDecodedJWT       <- decodedJWT(bearerRequestAuthToken)
+      bearerJwtHeader        <- jwtHeader(bearerDecodedJWT)
+      bearerPublicKey        = jwkProvider.get(bearerJwtHeader.kid).getPublicKey.asInstanceOf[RSAPublicKey]
+      bearerAlg              = Algorithm.RSA256(createPublicKeyProvider(bearerPublicKey))
+      bearerVerifiedToken    <- verifyAccessToken(bearerAlg, bearerRequestAuthToken, attemptedPath)
+      bearerJwtToken         <- jwtToken(bearerVerifiedToken)
+      _                <- checkExpiration(bearerJwtToken)
+
+
+      behalfOfRequestAuthToken <- requestAuthOnBehalfOfToken
+      behalfOfDecodedJWT       <- decodedJWT(behalfOfRequestAuthToken)
+      behalfOfJwtHeader        <- jwtHeader(behalfOfDecodedJWT)
+      behalfOfPublicKey        = jwkProvider.get(behalfOfJwtHeader.kid).getPublicKey.asInstanceOf[RSAPublicKey]
+      behalfOfAlg              = Algorithm.RSA256(createPublicKeyProvider(behalfOfPublicKey))
+      behalfOfVerifiedToken    <- verifyAccessToken(behalfOfAlg, behalfOfRequestAuthToken, attemptedPath)
+      behalfOfJwtToken         <- jwtToken(behalfOfVerifiedToken)
+      _                        <- checkExpiration(behalfOfJwtToken)
+
+      userProfile      <- extractProfile(behalfOfJwtToken, behalfOfRequestAuthToken)
+
     } yield {
       userProfile
     }
@@ -56,12 +68,21 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
     lookup(rawUser)
   }
 
-  private[unsecurity] def requestAuthToken: Directive[F, String] = {
+  private[unsecurity] def requestAuthBearerToken: Directive[F, String] = {
     for {
       authHeader <- request.headers.map(_.toList).map(_.find(h => h.is(Authorization) && h.value.toLowerCase.contains("bearer")))
       token <- authHeader
                 .map(header => header.value.split(" ").last)
                 .toSuccess(Unauthorized("Authorization header not found. Please log in"))
+    } yield token
+  }
+
+  private[unsecurity] def requestAuthOnBehalfOfToken: Directive[F, String] = {
+    for {
+      authHeader <- request.headers.map(_.toList).map(_.find(h => h.is(Authorization) && h.value.toLowerCase.contains("on-behalf-of")))
+      token <- authHeader
+                .map(header => header.value.split(" ").last)
+                .toSuccess(Unauthorized("Missing Authorization header with scheme On-Behalf-Of "))
     } yield token
   }
 
@@ -148,4 +169,3 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
       ))
   }
 }
-
