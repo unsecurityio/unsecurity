@@ -150,7 +150,7 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
     def map[C2](f: C => C2): Secured[C2, W]
     def mapF[C2](f: C => F[C2]): Secured[C2, W]
     def mapD[C2](f: C => Http4sDirective[F, C2]): Secured[C2, W]
-    def authorization(predicate: C => Boolean)(ifUnauthorized: () => HttpProblem): Completable[C, W]
+    def authorization(predicate: C => Boolean, ifUnauthorized: () => HttpProblem): Completable[C, W]
     def noAuthorization: Completable[C, W]
   }
 
