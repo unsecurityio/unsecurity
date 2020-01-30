@@ -21,7 +21,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
   ) extends Secured[C, W] {
     override def authorization(
         predicate: C => Boolean,
-        ifUnauthorized: () => HttpProblem = () => HttpProblem.forbidden("Forbidden")): Completable[C, W] = {
+        ifUnauthorized: => HttpProblem = HttpProblem.forbidden("Forbidden")): Completable[C, W] = {
       MyCompletable(
         key = key,
         pathMatcher = pathMatcher,
@@ -33,7 +33,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
                 dc =>
                   Directive.commit(
                     dc.filter(
-                      c => predicate(c).orF(ifUnauthorized().toResponseF)
+                      c => predicate(c).orF(ifUnauthorized.toResponseF)
                     ))
               )
         },
