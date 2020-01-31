@@ -72,9 +72,9 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
       w =>
         Http4sDirective.success(
           Response[F](Status.Ok)
-            .withContentType(contentType)
             .withEntity(w)(org.http4s.circe.jsonEncoderOf[F, W])
-      )
+            .withContentType(contentType)
+        )
 
     def jsonStream[W: Encoder]: Stream[F, W] => ResponseDirective[F] =
       (s: Stream[F, W]) => {
@@ -126,6 +126,15 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
 
       }
 
+      def jsonWithContentType[E: Encoder](
+          contentType: `Content-Type`): Http4sDirective[F, E] => ResponseDirective[F] = { eDir: Http4sDirective[F, E] =>
+        eDir.map(
+          e =>
+            Response[F](Status.Ok)
+              .withEntity(e)(org.http4s.circe.jsonEncoderOf[F, E])
+              .withContentType(contentType))
+      }
+
       val EmptyBody: Http4sDirective[F, Unit] => ResponseDirective[F] = { unitDir =>
         unitDir.map { _: Unit =>
           Response[F](Status.NoContent)
@@ -150,7 +159,8 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
     def map[C2](f: C => C2): Secured[C2, W]
     def mapF[C2](f: C => F[C2]): Secured[C2, W]
     def mapD[C2](f: C => Http4sDirective[F, C2]): Secured[C2, W]
-    def authorization(predicate: C => Boolean, ifUnauthorized: => HttpProblem = HttpProblem.forbidden("Forbidden")): Completable[C, W]
+    def authorization(predicate: C => Boolean,
+                      ifUnauthorized: => HttpProblem = HttpProblem.forbidden("Forbidden")): Completable[C, W]
     def noAuthorization: Completable[C, W]
   }
 
