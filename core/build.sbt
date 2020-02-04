@@ -11,7 +11,7 @@ scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) match {
   case _                       => Seq.empty
 })
 
-val http4sVersion     = "0.21.0-RC2"
+val http4sVersion     = "0.21.0-RC3"
 val fs2Version        = "2.2.2"
 val circeVersion      = "0.13.0-RC1"
 val directivesVersion = "0.17.0"
