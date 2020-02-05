@@ -6,11 +6,6 @@ scalacOptions := Seq(
   "-Ywarn-value-discard"
 )
 
-scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) match {
-  case Some((2, v)) if v <= 12 => Seq("-Ypartial-unification")
-  case _                       => Seq.empty
-})
-
 val http4sVersion     = "0.21.0-RC3"
 val fs2Version        = "2.2.2"
 val circeVersion      = "0.13.0-RC1"
