@@ -1,5 +1,6 @@
 package io.unsecurity
 
+import cats.{Monad, MonadError}
 import cats.data.OptionT
 import cats.effect.{ConcurrentEffect, ExitCode, Sync, Timer}
 import io.unsecurity.hlinx.SimpleLinx
@@ -68,8 +69,10 @@ object Server {
         }
   }
 
-  def toHttpRoutes[U, F[_]](endpoints: List[AbstractUnsecurity[F, U]#Complete])(
-      implicit eff: ConcurrentEffect[F]): HttpRoutes[F] = {
+  def toHttpRoutes[U, F[_]: Sync](endpoints: AbstractUnsecurity[F, U]#Complete*): HttpRoutes[F] =
+    toHttpRoutes(endpoints: _*)
+
+  def toHttpRoutes[U, F[_]: Sync](endpoints: List[AbstractUnsecurity[F, U]#Complete]): HttpRoutes[F] = {
     type PathMatcher[A] = PartialFunction[String, Http4sDirective[F, A]]
 
     val linxesToList: Map[List[SimpleLinx], List[AbstractUnsecurity[F, U]#Complete]] = endpoints.groupBy(_.key)
