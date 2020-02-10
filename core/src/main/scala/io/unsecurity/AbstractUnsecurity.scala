@@ -8,7 +8,7 @@ import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}
 import no.scalabin.http4s.directives.{Directive => Http4sDirective}
 import org.http4s.EntityEncoder.entityBodyEncoder
 import org.http4s.headers.`Content-Type`
-import org.http4s.{EntityDecoder, EntityEncoder, MediaRange, MediaType, Method, Response, Status}
+import org.http4s._
 import shapeless.HList
 
 import scala.concurrent.ExecutionContext

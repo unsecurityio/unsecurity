@@ -2,12 +2,12 @@ package io.unsecurity
 
 import java.util.UUID
 
-import cats.{Applicative, Monad}
+import cats.Monad
 import io.circe._
 import io.circe.syntax._
 import no.scalabin.http4s.directives.Directive
 import org.http4s.circe.DecodingFailures
-import org.http4s.{DecodeFailure, InvalidMessageBodyFailure, MalformedMessageBodyFailure, MediaRange, MediaType, Method, Response, Status}
+import org.http4s._
 import org.log4s.getLogger
 
 import scala.util.control.NonFatal
@@ -21,13 +21,14 @@ case class HttpProblem(status: Status,
                        uuid: String = UUID.randomUUID().toString,
                        cause: Option[Throwable] = None)
     extends RuntimeException(detail.getOrElse(title).concat(s", uuid: $uuid"), cause.orNull) {
-  def toResponse[F[_]: Applicative]: Response[F] =
+
+  def toResponse[F[_]: Monad]: Response[F] =
     Response[F](status)
       .withEntity(this)(org.http4s.circe.jsonEncoderOf[F, HttpProblem])
       .withContentType(org.http4s.headers.`Content-Type`(MediaType.application.`problem+json`))
 
-  def toResponseF[F[_]: Applicative]: F[Response[F]] =
-    Applicative[F].pure(toResponse)
+  def toResponseF[F[_]: Monad]: F[Response[F]] =
+    Monad[F].pure(toResponse)
 
   def toDirective[F[_]: Monad]: Directive[F, Response[F]] =
     Directive.successF(toResponseF[F])

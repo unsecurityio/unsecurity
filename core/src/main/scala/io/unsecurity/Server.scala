@@ -1,15 +1,14 @@
 package io.unsecurity
 
-import cats.{Monad, MonadError}
 import cats.data.OptionT
 import cats.effect.{ConcurrentEffect, ExitCode, Sync, Timer}
+import cats.implicits._
 import io.unsecurity.hlinx.SimpleLinx
 import no.scalabin.http4s.directives.{Directive => Http4sDirective}
 import org.http4s.implicits._
 import org.http4s.server.blaze.BlazeServerBuilder
 import org.http4s.{HttpRoutes, Request, Response, Status}
 import org.log4s.getLogger
-import cats.implicits._
 
 import scala.Ordering.Implicits._
 import scala.concurrent.ExecutionContext
@@ -70,7 +69,7 @@ object Server {
   }
 
   def toHttpRoutes[U, F[_]: Sync](endpoints: AbstractUnsecurity[F, U]#Complete*): HttpRoutes[F] =
-    toHttpRoutes(endpoints: _*)
+    toHttpRoutes(endpoints.toList)
 
   def toHttpRoutes[U, F[_]: Sync](endpoints: List[AbstractUnsecurity[F, U]#Complete]): HttpRoutes[F] = {
     type PathMatcher[A] = PartialFunction[String, Http4sDirective[F, A]]

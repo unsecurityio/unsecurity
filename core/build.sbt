@@ -7,9 +7,9 @@ scalacOptions := Seq(
 )
 
 val http4sVersion     = "0.21.0"
+val directivesVersion = "0.21.0"
 val fs2Version        = "2.2.2"
 val circeVersion      = "0.13.0"
-val directivesVersion = "0.18.0"
 val shapelessVersion  = "2.3.3"
 val scalaTestVersion  = "3.1.0"
 val logbackVersion    = "1.2.3"
