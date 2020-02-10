@@ -10,7 +10,7 @@ import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.interfaces.{DecodedJWT, RSAKeyProvider}
 import io.circe.parser.decode
 import io.unsecurity.auth.auth0.oidc.Jwt.JwtHeader
-import io.unsecurity.{SecurityContext, UnsecurityOps}
+import io.unsecurity.{HttpProblem, SecurityContext, UnsecurityOps}
 import no.scalabin.http4s.directives.Directive
 import okio.ByteString
 import org.http4s.headers.Authorization
@@ -58,10 +58,13 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
 
   private[unsecurity] def requestAuthToken: Directive[F, String] = {
     for {
-      authHeader <- request.headers.map(_.toList).map(_.find(h => h.is(Authorization) && h.value.toLowerCase.contains("bearer")))
+      authHeader <- request.header(Authorization)
       token <- authHeader
-                .map(header => header.value.split(" ").last)
-                .toSuccess(Unauthorized("Authorization header not found. Please log in"))
+                .map(header => header.value.split(" "))
+                .filter(_.head.equalsIgnoreCase("bearer"))
+                .map(_.last)
+                .toSuccess(
+                  HttpProblem.unauthorized("Authorization header with Bearer scheme not found").toDirectiveError)
     } yield token
   }
 
@@ -139,7 +142,7 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
     }
   }
 
-  private def extractProfile(jwtToken: JwtToken, rawToken:String): Directive[F, OauthAuthenticatedApplication] = {
+  private def extractProfile(jwtToken: JwtToken, rawToken: String): Directive[F, OauthAuthenticatedApplication] = {
     Directive.success(
       OauthAuthenticatedApplication(
         ApplicationId(jwtToken.sub),
@@ -148,4 +151,3 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
       ))
   }
 }
-
