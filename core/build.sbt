@@ -18,6 +18,7 @@ libraryDependencies := Seq(
   "io.circe"           %% "circe-parser"        % circeVersion,
   "org.http4s"         %% "http4s-blaze-client" % http4sVersion,
   "org.http4s"         %% "http4s-blaze-server" % http4sVersion,
+  "org.http4s"         %% "http4s-dsl"          % http4sVersion,
   "org.http4s"         %% "http4s-circe"        % http4sVersion,
   "co.fs2"             %% "fs2-core"            % fs2Version,
   "co.fs2"             %% "fs2-io"              % fs2Version,

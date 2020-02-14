@@ -1,17 +1,15 @@
 package io.unsecurity
 
-import cats.effect.{ConcurrentEffect, Sync, Timer}
+import cats.effect.Sync
 import fs2.Stream
 import io.circe.{Decoder, Encoder}
 import io.unsecurity.hlinx.HLinx._
 import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}
 import no.scalabin.http4s.directives.{Directive => Http4sDirective}
 import org.http4s.EntityEncoder.entityBodyEncoder
-import org.http4s.headers.`Content-Type`
 import org.http4s._
+import org.http4s.headers.`Content-Type`
 import shapeless.HList
-
-import scala.concurrent.ExecutionContext
 
 abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatcher {
 
@@ -74,7 +72,7 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
           Response[F](Status.Ok)
             .withEntity(w)(org.http4s.circe.jsonEncoderOf[F, W])
             .withContentType(contentType)
-        )
+      )
 
     def jsonStream[W: Encoder]: Stream[F, W] => ResponseDirective[F] =
       (s: Stream[F, W]) => {
@@ -141,11 +139,6 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
         }
       }
     }
-  }
-
-  def Server(port: Int, host: String, httpExecutionContext: ExecutionContext)(implicit C: ConcurrentEffect[F],
-                                                                              T: Timer[F]): Server[F] = {
-    new Server[F](port, host, httpExecutionContext)
   }
 
   trait Completable[C, W] {

@@ -1,7 +1,8 @@
-package io.unsecurity.auth
-package auth0
+package io.unsecurity.auth.auth0.oidc
 
 import java.net.URI
+
+import scala.concurrent.duration.FiniteDuration
 
 case class AuthConfig(clientId: String,
                       clientSecret: String,
@@ -10,5 +11,5 @@ case class AuthConfig(clientId: String,
                       defaultReturnToUrl: URI,
                       returnToUrlDomainWhitelist: List[String],
                       afterLogoutUrl: URI,
-                      sessionCookieTtl: Minutes,
+                      sessionCookieTtl: Option[FiniteDuration],
                       cookieName: String)
