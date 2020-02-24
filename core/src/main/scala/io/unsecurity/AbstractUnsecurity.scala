@@ -63,52 +63,48 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
       Http4sDirective.success(Response[F](Status.NoContent))
     }
 
-    def json[W: Encoder]: W => ResponseDirective[F] =
-      jsonWithContentType(`Content-Type`(MediaType.application.json))
+    def json[W: Encoder]: W => ResponseDirective[F] = json(Status.Ok)
 
-    def jsonWithContentType[W: Encoder](contentType: `Content-Type`): W => ResponseDirective[F] =
+    def json[W: Encoder] (status: Status): W => ResponseDirective[F] = jsonWithContentType(`Content-Type`(MediaType.application.json), status)
+
+    def jsonWithContentType[W: Encoder](contentType: `Content-Type`, status:Status = Status.Ok): W => ResponseDirective[F] =
       w =>
         Http4sDirective.success(
-          Response[F](Status.Ok)
+          Response[F](status)
             .withEntity(w)(org.http4s.circe.jsonEncoderOf[F, W])
             .withContentType(contentType)
       )
 
-    def jsonStream[W: Encoder]: Stream[F, W] => ResponseDirective[F] =
+    def jsonStream[W: Encoder](status: Status = Status.Ok): Stream[F, W] => ResponseDirective[F] =
       (s: Stream[F, W]) => {
         val encoder                = org.http4s.circe.jsonEncoderOf[F, W]
         val value: Stream[F, Byte] = s.flatMap(w => encoder.toEntity(w).body)
 
         Http4sDirective.success(
-          Response[F](Status.Ok)
+          Response[F](status)
             .withEntity(value)
         )
       }
 
-    def stream[W](implicit encoder: EntityEncoder[F, Stream[F, W]]): Stream[F, W] => ResponseDirective[F] =
+    def stream[W](status: Status = Status.Ok) (implicit encoder: EntityEncoder[F, Stream[F, W]]): Stream[F, W] => ResponseDirective[F] =
       s => {
         Http4sDirective.success(
-          Response[F](Status.Ok)
+          Response[F](status)
             .withEntity(s)
         )
       }
 
     object F {
-      def json[W: Encoder]: F[W] => ResponseDirective[F] = f => {
-        Http4sDirective
-          .liftF(f)
-          .map(
-            w =>
-              Response[F](Status.Ok)
-                .withEntity(w)(org.http4s.circe.jsonEncoderOf[F, W]))
-      }
+      def json[W: Encoder]: F[W] => ResponseDirective[F] = json(Status.Ok)
 
-      def jsonWithContentType[W: Encoder](contentType: `Content-Type`): F[W] => ResponseDirective[F] = f => {
+      def json[W: Encoder](status: Status): F[W] => ResponseDirective[F] = jsonWithContentType(`Content-Type`(MediaType.application.json), status)
+
+      def jsonWithContentType[W: Encoder](contentType: `Content-Type`, status: Status = Status.Ok): F[W] => ResponseDirective[F] = f => {
         Http4sDirective
           .liftF(f)
           .map(
             w =>
-              Response[F](Status.Ok)
+              Response[F](status)
                 .withEntity(w)(org.http4s.circe.jsonEncoderOf[F, W])
                 .withContentType(contentType))
       }
@@ -116,19 +112,16 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
     }
 
     object Directive {
-      def json[E: Encoder]: Http4sDirective[F, E] => ResponseDirective[F] = { eDir: Http4sDirective[F, E] =>
-        eDir.map(
-          e =>
-            Response[F](Status.Ok)
-              .withEntity(e)(org.http4s.circe.jsonEncoderOf[F, E]))
 
-      }
+      def json[E: Encoder]: Http4sDirective[F, E] => ResponseDirective[F] = json[E](Status.Ok)
+
+      def json[E: Encoder](status: Status): Http4sDirective[F, E] => ResponseDirective[F] = jsonWithContentType(`Content-Type`(MediaType.application.json), status)
 
       def jsonWithContentType[E: Encoder](
-          contentType: `Content-Type`): Http4sDirective[F, E] => ResponseDirective[F] = { eDir: Http4sDirective[F, E] =>
+          contentType: `Content-Type`, status: Status = Status.Ok): Http4sDirective[F, E] => ResponseDirective[F] = { eDir: Http4sDirective[F, E] =>
         eDir.map(
           e =>
-            Response[F](Status.Ok)
+            Response[F](status)
               .withEntity(e)(org.http4s.circe.jsonEncoderOf[F, E])
               .withContentType(contentType))
       }
