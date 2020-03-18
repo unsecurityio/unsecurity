@@ -1,43 +1,39 @@
 package io.unsecurity
 
 import cats.data.OptionT
-import cats.effect.{ConcurrentEffect, ExitCode, Sync, Timer}
+import cats.effect.{ConcurrentEffect, ExitCode, Resource, Sync, Timer}
 import cats.implicits._
 import io.unsecurity.hlinx.SimpleLinx
 import no.scalabin.http4s.directives.{Directive => Http4sDirective}
 import org.http4s.implicits._
 import org.http4s.server.blaze.BlazeServerBuilder
-import org.http4s.{HttpRoutes, Request, Response, Status}
+import org.http4s.{server, HttpRoutes, Request, Response, Status}
 import org.log4s.getLogger
+import fs2.Stream
 
 import scala.Ordering.Implicits._
 import scala.concurrent.ExecutionContext
 
 class Server[F[_]: ConcurrentEffect: Timer](port: Int, host: String, httpExecutionContext: ExecutionContext) {
 
-  def serve[U](endpoints: AbstractUnsecurity[F, U]#Complete*): fs2.Stream[F, ExitCode] = {
+  def serve[U](endpoints: AbstractUnsecurity[F, U]#Complete*): Stream[F, ExitCode] =
     serve(Server.toHttpRoutes(endpoints.toList))
-  }
 
-  def serve[U](endpoints: List[AbstractUnsecurity[F, U]#Complete]): fs2.Stream[F, ExitCode] = {
+  def serve[U](endpoints: List[AbstractUnsecurity[F, U]#Complete]): Stream[F, ExitCode] =
     serve(Server.toHttpRoutes(endpoints))
-  }
 
-  def serve(routes: HttpRoutes[F]): fs2.Stream[F, ExitCode] = {
+  def serve(routes: HttpRoutes[F]): fs2.Stream[F, ExitCode] = blazeServer(routes).serve
 
-    val httpApp = Server.httpProblemMiddleware(routes).orNotFound
+  def resource(routes: HttpRoutes[F]): Resource[F, server.Server[F]] = blazeServer(routes).resource
 
-    for {
-      _ <- BlazeServerBuilder[F]
-            .bindHttp(port, host)
-            .enableHttp2(false)
-            .withWebSockets(false)
-            .withExecutionContext(httpExecutionContext)
-            .withNio2(true)
-            .withConnectorPoolSize(4)
-            .withHttpApp(httpApp)
-            .serve
-    } yield ExitCode.Success
+  private def blazeServer(routes: HttpRoutes[F]): BlazeServerBuilder[F] = {
+    BlazeServerBuilder[F]
+      .bindHttp(port, host)
+      .enableHttp2(true)
+      .withWebSockets(true)
+      .withExecutionContext(httpExecutionContext)
+      .withNio2(true)
+      .withHttpApp(Server.httpProblemMiddleware(routes).orNotFound)
   }
 
 }
