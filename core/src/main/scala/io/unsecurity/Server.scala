@@ -61,7 +61,7 @@ object Server {
         }
         .handleErrorWith { t =>
           OptionT.liftF(F.delay {
-            val problem = HttpProblem.internalServerError("Unhandled internal server error")
+            val problem = HttpProblem.handleError(t)
             log.error(t)(s"Error processing [${req.pathInfo}] id [${problem.uuid}]")
             problem.toResponse[F]
           })
