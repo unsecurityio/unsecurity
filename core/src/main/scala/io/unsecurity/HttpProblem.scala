@@ -10,6 +10,7 @@ import org.http4s.circe.DecodingFailures
 import org.http4s._
 import org.log4s.getLogger
 
+import scala.util.Success
 import scala.util.control.NonFatal
 
 // https://tools.ietf.org/html/rfc7807
@@ -65,6 +66,9 @@ object HttpProblem {
     } yield HttpProblem(status, title, detail, data, uuid)
 
   }
+
+  implicit val statusDecoder: Decoder[Status] = Decoder.decodeInt.emapTry(i => Status.fromInt(i).toTry.orElse(Success(Status.InternalServerError)))
+
 
   def methodNotAllowed(title: String, allowedMethods: Set[Method]) =
     HttpProblem(Status.MethodNotAllowed,
