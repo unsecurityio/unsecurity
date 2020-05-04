@@ -2,7 +2,7 @@ package io.unsecurity
 
 import cats.Monad
 import no.scalabin.http4s.directives.Directive
-import org.http4s.Method.GET
+import org.http4s.Method.{GET, DELETE}
 import org.http4s.implicits._
 import org.http4s.headers.`Content-Type`
 
@@ -17,7 +17,7 @@ abstract class AbstractContentTypeMatcher[F[_]: Monad] extends AbstractMethodMat
       method  = request.method
       contentType <- request.headers
                       .get(`Content-Type`)
-                      .orElse { if (method == GET) Some(`Content-Type`.apply(WILDCARD)) else None }
+                      .orElse { if (method == GET || method == DELETE) Some(`Content-Type`.apply(WILDCARD)) else None }
                       .toSuccess(
                         HttpProblem
                           .unsupportedMediaType(

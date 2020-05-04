@@ -61,6 +61,15 @@ class ContentTypeMatcherTest extends UnsecurityTestSuite {
     }
   }
 
+  test("Allows delete without content-type") {
+    val mediaRangeMap        = MediaRangeMap(List(Set(MediaRange.`*/*`) -> "dingdong"))
+    val get                  = Request[Id](method = Method.DELETE, uri = uri"/whatever")
+    val contentTypeDirective = contentTypeMatcher.matchContentType(mediaRangeMap)
+    contentTypeDirective.run(get).where {
+      case Result.Success("dingdong") => Ok
+    }
+  }
+
   test("Content-type matching allows properties") {
     val mediaRangeMap = MediaRangeMap(List(supportedMediaRange))
     val requestWithVersionedContentType =

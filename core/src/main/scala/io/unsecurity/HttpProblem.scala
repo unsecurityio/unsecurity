@@ -54,6 +54,18 @@ object HttpProblem {
     )
   )
 
+  implicit val httpProblemDecoder: Decoder[HttpProblem] = (c: HCursor) => {
+    for {
+      title  <- c.downField("title").as[String]
+      status <- c.downField("status").as[Status]
+      detail <- c.downField("detail").as[Option[String]]
+      data   <- c.downField("data").as[Option[Json]]
+      uuid   <- c.downField("errorId").as[String]
+
+    } yield HttpProblem(status, title, detail, data, uuid)
+
+  }
+
   def methodNotAllowed(title: String, allowedMethods: Set[Method]) =
     HttpProblem(Status.MethodNotAllowed,
                 title,
