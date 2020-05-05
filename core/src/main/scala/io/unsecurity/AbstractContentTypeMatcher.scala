@@ -15,13 +15,14 @@ abstract class AbstractContentTypeMatcher[F[_]: Monad] extends AbstractMethodMat
     for {
       request <- Directive.request[F]
       method  = request.method
-      contentType <- request.headers
-                      .get(`Content-Type`)
+      suppliedContentType: Option[`Content-Type`] = request.headers
+        .get(`Content-Type`)
+      contentType <- suppliedContentType
                       .orElse { if (method == GET || method == DELETE) Some(`Content-Type`.apply(WILDCARD)) else None }
                       .toSuccess(
                         HttpProblem
                           .unsupportedMediaType(
-                            "Content-Type missing or invalid mediatype",
+                            "Content-Type missing",
                             mediaRangeMap.supportedMediaRanges
                           )
                           .toDirectiveFailure
@@ -30,7 +31,7 @@ abstract class AbstractContentTypeMatcher[F[_]: Monad] extends AbstractMethodMat
                 mediaRangeMap.get(contentType.mediaType).toSuccess { supportedMediaTypes =>
                   Directive.error(
                     HttpProblem
-                      .unsupportedMediaType("Content-Type missing or invalid mediatype", supportedMediaTypes)
+                      .unsupportedMediaType(s"Content-Type '${suppliedContentType.map(_.value).getOrElse("not specified")}' invalid or unsupported mediatype", supportedMediaTypes)
                       .toResponse
                   )
                 }
