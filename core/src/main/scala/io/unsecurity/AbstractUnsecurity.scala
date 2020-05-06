@@ -172,7 +172,7 @@ case class MediaRangeMap[A](mr2a2rdf: List[(Set[MediaRange], A)]) {
       .find {
         case (mrs, _) =>
           mrs.exists { mr =>
-            mr.satisfiedBy(mediaRange)
+            mr.satisfiedBy(mediaRange) && mediaRange.extensions.forall{case (prop, value) => mr.extensions.get(prop).contains(value)}
           }
       }
       .map(_._2)
