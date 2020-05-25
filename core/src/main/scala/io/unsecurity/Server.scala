@@ -14,6 +14,7 @@ import fs2.Stream
 import scala.Ordering.Implicits._
 import scala.concurrent.ExecutionContext
 
+@deprecated("Will be removed. It is better that the client controls the server creation", since = "2.0.6")
 class Server[F[_]: ConcurrentEffect: Timer](port: Int, host: String, httpExecutionContext: ExecutionContext) {
 
   def serve[U](endpoints: AbstractUnsecurity[F, U]#Complete*): Stream[F, ExitCode] =
@@ -27,11 +28,10 @@ class Server[F[_]: ConcurrentEffect: Timer](port: Int, host: String, httpExecuti
   def resource(routes: HttpRoutes[F]): Resource[F, server.Server[F]] = blazeServer(routes).resource
 
   private def blazeServer(routes: HttpRoutes[F]): BlazeServerBuilder[F] = {
-    BlazeServerBuilder[F]
+    BlazeServerBuilder[F](httpExecutionContext)
       .bindHttp(port, host)
-      .enableHttp2(true)
+      .enableHttp2(false)
       .withWebSockets(true)
-      .withExecutionContext(httpExecutionContext)
       .withNio2(true)
       .withHttpApp(Server.httpProblemMiddleware(routes).orNotFound)
   }
