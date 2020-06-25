@@ -7,7 +7,7 @@ scalacOptions := Seq(
 )
 
 val auth0Version     = "1.17.0"
-val jwksVersion      = "0.11.0"
+val jwksVersion      = "0.12.0"
 val jwtVersion       = "3.10.3"
 val scalaTestVersion = "3.1.2"
 
