@@ -1,7 +1,7 @@
 package io.unsecurity
 
 import cats.Monad
-import io.unsecurity.hlinx.HLinx.HLinx
+import io.unsecurity.hlinx.HLinx.HPath
 import io.unsecurity.hlinx.ReversedTupled
 import no.scalabin.http4s.directives.{Directive => Http4sDirective}
 import org.log4s.getLogger
@@ -11,7 +11,7 @@ abstract class AbstractPathMatcher[F[_]: Monad] {
   private[this] val log = getLogger
   type PathMatcher[A] = PartialFunction[String, Http4sDirective[F, A]]
 
-  def createPathMatcher[PathParams <: HList, TUP](route: HLinx[PathParams])(
+  def createPathMatcher[PathParams <: HList, TUP](route: HPath[PathParams])(
       implicit revTup: ReversedTupled.Aux[PathParams, TUP]): PathMatcher[TUP] =
     new PartialFunction[String, Http4sDirective[F, TUP]] {
       override def isDefinedAt(x: String): Boolean = {

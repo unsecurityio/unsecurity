@@ -7,14 +7,14 @@ import java.net.URI
 import cats.effect.Sync
 import com.auth0.jwk.JwkProvider
 import io.unsecurity.Unsecurity
-import io.unsecurity.hlinx.HLinx.HLinx
+import io.unsecurity.hlinx.HLinx.HPath
 import io.unsecurity.hlinx.ParamConverter
 import no.scalabin.http4s.directives.Directive
 import org.http4s.{Method, Response, ResponseCookie}
 import org.log4s.getLogger
 import shapeless.HNil
 
-class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HLinx[HNil],
+class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HPath[HNil],
                                          val sc: Auth0OidcSecurityContext[F, U],
                                          jwkProvider: JwkProvider)
     extends Unsecurity[F, OidcAuthenticatedUser, U] {
