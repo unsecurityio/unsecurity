@@ -84,7 +84,7 @@ object Main extends IOApp {
         "Check if a post request carshes if x09 is sent",
         Method.POST,
         Root / "does" / "this" / "work",
-        Accepts.json[Fjon],
+        SupportedRequestContent.json[Fjon],
         Produces.json[String]
       )
     ).run {
@@ -99,7 +99,7 @@ object Main extends IOApp {
         "Check if a post request crashes if x09 is sent",
         Method.POST,
         Root / "does" / "this" / "work",
-        Accepts.jsonWithMediaType[Fjon](MediaType.parse("application/fjon").getOrElse(throw new RuntimeException("could not parse media range"))),
+        SupportedRequestContent.jsonWithMediaType[Fjon](MediaType.parse("application/fjon").getOrElse(throw new RuntimeException("could not parse media range"))),
         Produces.json[String]
       )
     ).run {

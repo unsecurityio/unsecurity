@@ -17,10 +17,10 @@ import scala.concurrent.ExecutionContext
 @deprecated("Will be removed. It is better that the client controls the server creation", since = "2.0.6")
 class Server[F[_]: ConcurrentEffect: Timer](port: Int, host: String, httpExecutionContext: ExecutionContext) {
 
-  def serve[U](endpoints: AbstractUnsecurity[F, U]#Complete*): Stream[F, ExitCode] =
+  def serve(endpoints: Complete[F]*): Stream[F, ExitCode] =
     serve(Server.toHttpRoutes(endpoints.toList))
 
-  def serve[U](endpoints: List[AbstractUnsecurity[F, U]#Complete]): Stream[F, ExitCode] =
+  def serve(endpoints: List[Complete[F]]): Stream[F, ExitCode] =
     serve(Server.toHttpRoutes(endpoints))
 
   def serve(routes: HttpRoutes[F]): fs2.Stream[F, ExitCode] = blazeServer(routes).serve
@@ -64,15 +64,15 @@ object Server {
         }
   }
 
-  def toHttpRoutes[U, F[_]: Sync](endpoints: AbstractUnsecurity[F, U]#Complete*): HttpRoutes[F] =
+  def toHttpRoutes[U, F[_]: Sync](endpoints: Complete[F]*): HttpRoutes[F] =
     toHttpRoutes(endpoints.toList)
 
-  def toHttpRoutes[U, F[_]: Sync](endpoints: List[AbstractUnsecurity[F, U]#Complete]): HttpRoutes[F] = {
+  def toHttpRoutes[U, F[_]: Sync](endpoints: List[Complete[F]]): HttpRoutes[F] = {
     type PathMatcher[A] = PartialFunction[String, Http4sDirective[F, A]]
 
-    val linxesToList: Map[List[SimpleLinx], List[AbstractUnsecurity[F, U]#Complete]] = endpoints.groupBy(_.key)
+    val linxesToList: Map[List[SimpleLinx], List[Complete[F]]] = endpoints.groupBy(_.key)
 
-    val mergedRoutes: List[AbstractUnsecurity[F, U]#Complete] =
+    val mergedRoutes: List[Complete[F]] =
       linxesToList.toList
         .map {
           case (_, groupedEndpoints) => groupedEndpoints.reduce(_ merge _)

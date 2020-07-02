@@ -67,14 +67,15 @@ object HttpProblem {
 
   }
 
-  implicit val statusDecoder: Decoder[Status] = Decoder.decodeInt.emapTry(i => Status.fromInt(i).toTry.orElse(Success(Status.InternalServerError)))
+  implicit val statusDecoder: Decoder[Status] =
+    Decoder.decodeInt.emapTry(i => Status.fromInt(i).toTry.orElse(Success(Status.InternalServerError)))
 
-
-  def methodNotAllowed(title: String, allowedMethods: Set[Method]) =
-    HttpProblem(Status.MethodNotAllowed,
-                title,
-                None,
-                Some(Json.arr(allowedMethods.map(m => Json.fromString(m.name)).toSeq: _*)))
+  def methodNotAllowed(title: String, allowedMethods: Set[Method]) = HttpProblem(
+    Status.MethodNotAllowed,
+    title,
+    None,
+    Some(Json.arr(allowedMethods.map(m => Json.fromString(m.name)).toSeq: _*))
+  )
 
   def badRequest(title: String, detail: Option[String] = None) =
     HttpProblem(Status.BadRequest, title, detail, None)
@@ -97,7 +98,23 @@ object HttpProblem {
       Some(detail),
       Some(
         Json.obj(
-          "supportedTypes" := Json.arr(supportedRanges.map(range => Json.fromString(range.toString())).toSeq: _*)))
+          "supportedTypes" := Json.arr(supportedRanges.map(range => Json.fromString(range.toString)).toSeq: _*)
+        )
+      )
+    )
+
+  def notAcceptable(detail: String, responseMediaTypes: Set[MediaType]) =
+    HttpProblem(
+      Status.NotAcceptable,
+      "Not Acceptable",
+      Some(detail),
+      Some(
+        Json.obj(
+          "responseMediaTypes" := Json.arr(
+            responseMediaTypes.map(mediaType => Json.fromString(mediaType.toString)).toSeq: _*
+          )
+        )
+      )
     )
 
   def decodingFailure(failure: DecodingFailure) =
@@ -106,7 +123,7 @@ object HttpProblem {
       "message" := failure.message
     )
 
-  def handleError : PartialFunction[Throwable, HttpProblem] = {
+  def handleError: PartialFunction[Throwable, HttpProblem] = {
     case h: HttpProblem => h
     case InvalidMessageBodyFailure(details, Some(failure: DecodingFailure)) =>
       HttpProblem(
@@ -130,14 +147,16 @@ object HttpProblem {
         None
       )
     case NonFatal(e) =>
-      HttpProblem(status = Status.InternalServerError,
+      HttpProblem(
+        status = Status.InternalServerError,
         title = "Internal server error",
         detail = Option(e.getMessage),
         data = None,
-        cause = Some(e))
+        cause = Some(e)
+      )
   }
 
-  def logHttpProblem : PartialFunction[HttpProblem, HttpProblem] = {
+  def logHttpProblem: PartialFunction[HttpProblem, HttpProblem] = {
     case h: HttpProblem =>
       log.error(h)(h.asJson.noSpaces)
       h
