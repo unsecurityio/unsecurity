@@ -142,9 +142,13 @@ class HLinxTest extends AnyFunSpec {
           assert(link.capture("/foo/bar") === Some(Right(Tuple1(List()))))
         }
 
-        it("should match equal path with params") {
+        it("should match equal path with param") {
            assert(link.capture("/foo/bar?str=p1") === Some(Right(Tuple1(List("p1")))))
-       }
+        }
+
+        it("should match equal path with params") {
+           assert(link.capture("/foo/bar?str=p1&str=p2") === Some(Right(Tuple1(List("p1", "p2")))))
+        }
       }
 
       describe("with two params") {
