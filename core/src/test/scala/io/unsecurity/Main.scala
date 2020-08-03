@@ -54,6 +54,22 @@ object Main extends IOApp {
       }
     }
 
+  val pathParamAndQueryParamCodec: unsecurity.Complete =
+      unsecure(
+        Endpoint(
+          "Show how to use query params",
+          Method.GET,
+          Root / "decode" / "pathParam".as[String] / "pathparamandqueryparam" :? "qp".as[String] & "qps".as[String].* & "qpOpt".as[String].?,
+          Produces.json[String]
+        )
+      ).run { case (pathParam, qp, qps, qpOpt) =>
+          println(pathParam)
+          println(qp)
+          println(qps)
+          println(qpOpt)
+          pathParam + qp + qps + qpOpt
+      }
+
   case class StringAndInt(s: String, i: Int)
 
   val twoParams =
@@ -116,6 +132,7 @@ object Main extends IOApp {
         List(
           helloWorld,
           collidingHello,
+          pathParamAndQueryParamCodec,
           queryParamCodec,
           twoParams,
           post,

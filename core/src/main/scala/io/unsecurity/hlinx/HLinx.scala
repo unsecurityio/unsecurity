@@ -20,10 +20,12 @@ object HLinx {
   sealed trait HLinx[T <: HList] {
     final def capture[TUP](s: String)(implicit revTup: ReversedTupled.Aux[T, TUP]): Option[Either[String, TUP]] = {
       val (paths, queryParams) = splitPathAndQueryParams(s)
+      println(s"(paths=$paths, queryParams=$queryParams)")
       extract(paths.reverse, queryParams)
         .map(e => e.map(t => revTup(t)))
     }
     def extract(path: List[String], queryParams: Map[String, List[String]]): Option[Either[String, T]]
+    def toSimple: List[SimpleLinx]
   }
   trait HPath[T <: HList] extends HLinx[T] {
     self =>
@@ -38,7 +40,6 @@ object HLinx {
     def :?[A](h: Params[A]) = QueryParam[A, T](this, h.converter, h.name)
 
     def overlaps[O <: HList](other: HPath[O]): Boolean
-    def toSimple: List[SimpleLinx]
 
   }
 
@@ -117,6 +118,9 @@ object HLinx {
       }
 
     }
+
+    def toSimple: List[SimpleLinx] =
+      SimpleParams(field) :: parent.toSimple
 
   }
   private def splitPathAndQueryParams(s: String): (List[String], Map[String, List[String]]) = {
