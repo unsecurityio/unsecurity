@@ -8,7 +8,7 @@ scalacOptions := Seq(
 
 val auth0Version     = "1.19.0"
 val jwksVersion      = "0.12.0"
-val jwtVersion       = "3.10.3"
+val jwtVersion       = "3.11.0"
 val scalaTestVersion = "3.2.0"
 
 libraryDependencies := Seq(
