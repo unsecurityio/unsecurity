@@ -86,7 +86,7 @@ object HttpProblem {
     HttpProblem(Status.Unauthorized, title, detail, None)
 
   def internalServerError(title: String, detail: Option[String] = None, data: Option[Json] = None) =
-    HttpProblem(Status.InternalServerError, title, detail, None)
+    HttpProblem(Status.InternalServerError, title, detail, data)
 
   def notFound = HttpProblem(Status.NotFound, "Not Found", None, None)
 
