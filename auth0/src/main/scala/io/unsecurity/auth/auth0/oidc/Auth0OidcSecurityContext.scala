@@ -59,15 +59,19 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
   def validateXsrf(xsrfHeader: String, xsrfCookievalue: String, xForwardedFor: Option[String]): Directive[F, String] = {
     Directive
       .success(xsrfHeader)
-      .filter(hdr =>
-        (xsrfCookievalue == hdr).orF(
-          Sync[F].delay {
-            log.error(
-              s"XsrfCookie does not match Xsrf header, possible CSRF-Attack! X-Forwarded-For: ${xForwardedFor.getOrElse("")}"
-            )
-            HttpProblem.badRequest("xsrf check failed").toResponse[F]
-          }
-      ))
+      .filter(
+        hdr =>
+          (xsrfCookievalue == hdr).orF(
+            Sync[F].delay {
+              HttpProblem
+                .badRequest(
+                  "xsrf check failed, possible CSRF-Attack!",
+                  Some(s"XsrfCookie does not match Xsrf header, possible CSRF-Attack! X-Forwarded-For: ${xForwardedFor
+                    .getOrElse("")}")
+                )
+                .toResponse[F]
+            }
+        ))
   }
 
   def xsrfHeader(xForwardedFor: Option[String]): Directive[F, String] = {
@@ -76,9 +80,10 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
       xsrfToken <- Directive.getOrElseF(
                     header,
                     Sync[F].delay {
-                      log.error("No x-xsrf-token header, possible CSRF-attack!")
                       HttpProblem
-                        .badRequest(s"No x-xsrf-token header found. X-Forwarded-For: ${xForwardedFor.getOrElse("")}")
+                        .badRequest(
+                          "No x-xsrf-token header, possible CSRF-attack!",
+                          Some(s"No x-xsrf-token header found. X-Forwarded-For: ${xForwardedFor.getOrElse("")}"))
                         .toResponse
                     }
                   )
@@ -94,9 +99,12 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
       xsrfCookie <- Directive.getOrElseF(
                      maybeCookie,
                      Sync[F].delay {
-                       log.error(
-                         s"No xsrf-cookie, possible CSRF-Attack from ${xForwardedfor.map(_.value).getOrElse("")}")
-                       HttpProblem.badRequest("No xsrf-token cookie found").toResponse
+                       HttpProblem
+                         .badRequest(
+                           "No xsrf-token cookie found, possible CSRF-Attack",
+                           Some(
+                             s"No xsrf-cookie, possible CSRF-Attack from ${xForwardedfor.map(_.value).getOrElse("")}"))
+                         .toResponse
                      }
                    )
     } yield {
@@ -108,8 +116,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
     Directive.getOrElseF(
       sessionStore.getSession(cookie.content),
       Sync[F].delay {
-        log.warn("Could not extract user profile: {}, session timed out")
-        unauthorizedResponse(Some("Could not extract user profile from the cookie"))
+        unauthorizedResponse(Some("Could not extract user profile from the cookie, session timed out"))
       }
     )
   }
@@ -128,17 +135,18 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
       sessionState <- Directive.getOrElseF(
                        sessionStore.getState(stateCookie.content),
                        Sync[F].delay {
-                         log.error(
-                           s"Invalid state, possible CSRF-attack on login. X-Forwarded-For: ${xForwardedFor.getOrElse("")}")
-                         HttpProblem.badRequest("Invalid state, possible csrf-attack").toResponse
+                         HttpProblem
+                           .badRequest(
+                             s"Invalid state, possible CSRF-attack on login. X-Forwarded-For: ${xForwardedFor.getOrElse("")}")
+                           .toResponse
                        }
                      )
       if (state == sessionState.state).orF(
         Sync[F].delay {
-          log.error(
-            s"State values does not match, possible XSRF-attack! X-Forwarded-For: ${xForwardedFor.getOrElse("")} "
-          )
-          HttpProblem.badRequest("Illegal state value").toResponse
+          HttpProblem
+            .badRequest(
+              s"State values does not match, possible XSRF-attack! X-Forwarded-For: ${xForwardedFor.getOrElse("")}")
+            .toResponse
         }
       )
     } yield sessionState

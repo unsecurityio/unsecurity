@@ -70,8 +70,7 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
 
   private def decodedJWT(token: String): Directive[F, DecodedJWT] = {
     Try(JWT.decode(token)).toSuccess { throwable =>
-      log.warn(throwable)("Could not extract token from request")
-      Unauthorized("Could not extract token from request")
+      Unauthorized(s"Could not extract token from request [${throwable.getMessage}]")
     }
   }
 
@@ -79,7 +78,6 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
     for {
       decodedHeaderString <- decodeBase64(jwtToken.getHeader)
       header <- decode[JwtHeader](decodedHeaderString).toDirective { error =>
-                 log.warn(error)("Could not decode jwt header")
                  Unauthorized("Could not decode jwt header")
                }
     } yield header
@@ -115,8 +113,7 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
     Try {
       verifier.verify(accessToken)
     }.toSuccess { throwable =>
-      log.warn(throwable)(s"Could not verify token for path: $attemptedPath")
-      Unauthorized("Could not verify token")
+      Unauthorized(s"Could not verify token path: $attemptedPath [${throwable.getMessage}]")
     }
   }
 
@@ -124,8 +121,7 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
     for {
       base64Token <- decodeBase64(verifiedToken.getPayload) // TODO: Base64 URL decode !!!
       jwtToken <- decode[JwtToken](base64Token).toDirective { decodeError =>
-                   log.warn(s"Unable to decode JWT payload: $decodeError")
-                   Unauthorized("Unable to decode JWT payload")
+                   Unauthorized(s"Unable to decode JWT payload: $decodeError")
                  }
     } yield {
       jwtToken

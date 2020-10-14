@@ -65,9 +65,11 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
 
     def json[W: Encoder]: W => ResponseDirective[F] = json(Status.Ok)
 
-    def json[W: Encoder] (status: Status): W => ResponseDirective[F] = jsonWithContentType(`Content-Type`(MediaType.application.json), status)
+    def json[W: Encoder](status: Status): W => ResponseDirective[F] =
+      jsonWithContentType(`Content-Type`(MediaType.application.json), status)
 
-    def jsonWithContentType[W: Encoder](contentType: `Content-Type`, status:Status = Status.Ok): W => ResponseDirective[F] =
+    def jsonWithContentType[W: Encoder](contentType: `Content-Type`,
+                                        status: Status = Status.Ok): W => ResponseDirective[F] =
       w =>
         Http4sDirective.success(
           Response[F](status)
@@ -86,7 +88,8 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
         )
       }
 
-    def stream[W](status: Status = Status.Ok) (implicit encoder: EntityEncoder[F, Stream[F, W]]): Stream[F, W] => ResponseDirective[F] =
+    def stream[W](status: Status = Status.Ok)(
+        implicit encoder: EntityEncoder[F, Stream[F, W]]): Stream[F, W] => ResponseDirective[F] =
       s => {
         Http4sDirective.success(
           Response[F](status)
@@ -97,9 +100,11 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
     object F {
       def json[W: Encoder]: F[W] => ResponseDirective[F] = json(Status.Ok)
 
-      def json[W: Encoder](status: Status): F[W] => ResponseDirective[F] = jsonWithContentType(`Content-Type`(MediaType.application.json), status)
+      def json[W: Encoder](status: Status): F[W] => ResponseDirective[F] =
+        jsonWithContentType(`Content-Type`(MediaType.application.json), status)
 
-      def jsonWithContentType[W: Encoder](contentType: `Content-Type`, status: Status = Status.Ok): F[W] => ResponseDirective[F] = f => {
+      def jsonWithContentType[W: Encoder](contentType: `Content-Type`,
+                                          status: Status = Status.Ok): F[W] => ResponseDirective[F] = f => {
         Http4sDirective
           .liftF(f)
           .map(
@@ -115,15 +120,17 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
 
       def json[E: Encoder]: Http4sDirective[F, E] => ResponseDirective[F] = json[E](Status.Ok)
 
-      def json[E: Encoder](status: Status): Http4sDirective[F, E] => ResponseDirective[F] = jsonWithContentType(`Content-Type`(MediaType.application.json), status)
+      def json[E: Encoder](status: Status): Http4sDirective[F, E] => ResponseDirective[F] =
+        jsonWithContentType(`Content-Type`(MediaType.application.json), status)
 
-      def jsonWithContentType[E: Encoder](
-          contentType: `Content-Type`, status: Status = Status.Ok): Http4sDirective[F, E] => ResponseDirective[F] = { eDir: Http4sDirective[F, E] =>
-        eDir.map(
-          e =>
-            Response[F](status)
-              .withEntity(e)(org.http4s.circe.jsonEncoderOf[F, E])
-              .withContentType(contentType))
+      def jsonWithContentType[E: Encoder](contentType: `Content-Type`,
+                                          status: Status = Status.Ok): Http4sDirective[F, E] => ResponseDirective[F] = {
+        eDir: Http4sDirective[F, E] =>
+          eDir.map(
+            e =>
+              Response[F](status)
+                .withEntity(e)(org.http4s.circe.jsonEncoderOf[F, E])
+                .withContentType(contentType))
       }
 
       val EmptyBody: Http4sDirective[F, Unit] => ResponseDirective[F] = { unitDir =>
@@ -172,7 +179,9 @@ case class MediaRangeMap[A](mr2a2rdf: List[(Set[MediaRange], A)]) {
       .find {
         case (mrs, _) =>
           mrs.exists { mr =>
-            mr.satisfiedBy(mediaRange) && mediaRange.extensions.forall{case (prop, value) => mr.extensions.get(prop).contains(value)}
+            mr.satisfiedBy(mediaRange) && mediaRange.extensions.forall {
+              case (prop, value) => mr.extensions.get(prop).contains(value)
+            }
           }
       }
       .map(_._2)

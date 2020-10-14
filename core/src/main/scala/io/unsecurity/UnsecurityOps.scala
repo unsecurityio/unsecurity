@@ -46,10 +46,8 @@ trait UnsecurityOps[F[_]] extends DirectiveOps[F] with RequestDirectives[F] {
   def cookie(cookieName: String)(implicit sync: Sync[F]): Directive[F, RequestCookie] = {
     request
       .cookie(cookieName)
-      .flatMap(
-        opt =>
-          opt.toDirective(
-            HttpProblem.badRequest(s"Cookie '$cookieName' not found in request").toDirectiveError))
+      .flatMap(opt =>
+        opt.toDirective(HttpProblem.badRequest(s"Cookie '$cookieName' not found in request").toDirectiveError))
   }
 
   def requestCookies()(implicit sync: Sync[F]): Directive[F, List[RequestCookie]] = {

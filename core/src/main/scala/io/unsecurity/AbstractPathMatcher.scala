@@ -31,10 +31,10 @@ abstract class AbstractPathMatcher[F[_]: Monad] {
 
         value match {
           case Left(errorMsg) =>
-            log.error(s"""Error converting "$v1" = $simpleRoute: $errorMsg""")
-
             Http4sDirective.failure(
-              HttpProblem.badRequest("Bad Request", Some(errorMsg)).toResponse
+              HttpProblem
+                .badRequest("Bad Request", Some(s"""Error converting "$v1" = $simpleRoute: $errorMsg"""))
+                .toResponse
             )
 
           case Right(params) =>

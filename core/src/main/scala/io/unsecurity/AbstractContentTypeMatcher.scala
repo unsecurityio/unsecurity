@@ -2,7 +2,7 @@ package io.unsecurity
 
 import cats.Monad
 import no.scalabin.http4s.directives.Directive
-import org.http4s.Method.{GET, DELETE}
+import org.http4s.Method.{DELETE, GET}
 import org.http4s.implicits._
 import org.http4s.headers.`Content-Type`
 
@@ -13,8 +13,8 @@ abstract class AbstractContentTypeMatcher[F[_]: Monad] extends AbstractMethodMat
   def matchContentType[A](mediaRangeMap: MediaRangeMap[A]): Directive[F, A] = {
 
     for {
-      request <- Directive.request[F]
-      method  = request.method
+      request             <- Directive.request[F]
+      method              = request.method
       suppliedContentType = request.headers.get(`Content-Type`)
       contentType <- suppliedContentType
                       .orElse { if (method == GET || method == DELETE) Some(`Content-Type`.apply(WILDCARD)) else None }
@@ -30,7 +30,8 @@ abstract class AbstractContentTypeMatcher[F[_]: Monad] extends AbstractMethodMat
                 mediaRangeMap.get(contentType.mediaType).toDirective { supportedMediaTypes =>
                   Directive.error(
                     HttpProblem
-                      .unsupportedMediaType(s"Content-Type '${contentType.mediaType}' invalid or unsupported mediatype", supportedMediaTypes)
+                      .unsupportedMediaType(s"Content-Type '${contentType.mediaType}' invalid or unsupported mediatype",
+                                            supportedMediaTypes)
                       .toResponse
                   )
                 }
