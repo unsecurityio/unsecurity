@@ -125,8 +125,6 @@ object Main extends IOApp {
     }
 
   override def run(args: List[String]): IO[ExitCode] = {
-    import cats.implicits._
-
     new Server[IO](port = 8088, host = "0.0.0.0", httpExecutionContext = scala.concurrent.ExecutionContext.Implicits.global)
       .serve(
         List(

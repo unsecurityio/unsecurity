@@ -63,7 +63,7 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
                 .map(header => header.value.split(" "))
                 .filter(_.head.equalsIgnoreCase("bearer"))
                 .map(_.last)
-                .toSuccess(
+                .toDirective(
                   HttpProblem.unauthorized("Authorization header with Bearer scheme not found").toDirectiveError)
     } yield token
   }
@@ -78,7 +78,7 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
   private def jwtHeader(jwtToken: DecodedJWT): Directive[F, JwtHeader] = {
     for {
       decodedHeaderString <- decodeBase64(jwtToken.getHeader)
-      header <- decode[JwtHeader](decodedHeaderString).toSuccess { error =>
+      header <- decode[JwtHeader](decodedHeaderString).toDirective { error =>
                  log.warn(error)("Could not decode jwt header")
                  Unauthorized("Could not decode jwt header")
                }
@@ -123,7 +123,7 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
   private def jwtToken(verifiedToken: DecodedJWT): Directive[F, JwtToken] = {
     for {
       base64Token <- decodeBase64(verifiedToken.getPayload) // TODO: Base64 URL decode !!!
-      jwtToken <- decode[JwtToken](base64Token).toSuccess { decodeError =>
+      jwtToken <- decode[JwtToken](base64Token).toDirective { decodeError =>
                    log.warn(s"Unable to decode JWT payload: $decodeError")
                    Unauthorized("Unable to decode JWT payload")
                  }

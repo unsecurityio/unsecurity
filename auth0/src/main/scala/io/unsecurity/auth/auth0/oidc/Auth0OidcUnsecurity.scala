@@ -38,13 +38,13 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HPath[HNil],
           _                     = log.trace(s"/login returnToUrlParam: $returnToUrlParam")
           auth0CallbackUrlParam <- queryParamAs[URI]("auth0Callback")
           _                     = log.trace(s"/login auth0CallbackUrlParam: $auth0CallbackUrlParam")
-          state                 <- sc.randomString(32).successF
+          state                 <- sc.randomString(32).toDirective
           callbackUrl           = auth0CallbackUrlParam.getOrElse(sc.authConfig.defaultAuth0CallbackUrl)
           returnToUrl           = returnToUrlParam.getOrElse(sc.authConfig.defaultReturnToUrl)
           stateCookie <- sc.Cookies
                           .createStateCookie(secureCookie = callbackUrl.getScheme.equalsIgnoreCase("https"))
-                          .successF
-          _        <- sc.sessionStore.storeState(stateCookie.content, State(state, returnToUrl, callbackUrl, "")).successF
+                          .toDirective
+          _        <- sc.sessionStore.storeState(stateCookie.content, State(state, returnToUrl, callbackUrl, "")).toDirective
           auth0Url = sc.createAuth0Url(state, callbackUrl)
           _        <- break(Redirect(auth0Url).addCookie(stateCookie))
         } yield {
@@ -77,8 +77,8 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HPath[HNil],
                             .createSessionCookie(
                               secureCookie = state.callbackUrl.getScheme.equalsIgnoreCase("https")
                             )
-                            .successF
-          _ <- sc.sessionStore.storeSession(sessionCookie.content, oidcUser).successF
+                            .toDirective
+          _ <- sc.sessionStore.storeSession(sessionCookie.content, oidcUser).toDirective
           returnToUrl = if (sc.isReturnUrlWhitelisted(state.returnToUrl)) {
             state.returnToUrl
           } else {
@@ -86,8 +86,8 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HPath[HNil],
               s"/callback returnToUrl (${state.returnToUrl}) not whitelisted; falling back to ${sc.authConfig.defaultReturnToUrl}")
             sc.authConfig.defaultReturnToUrl
           }
-          xsrf <- sc.Cookies.createXsrfCookie(secureCookie = returnToUrl.getScheme.equalsIgnoreCase("https")).successF
-          _    <- sc.sessionStore.removeState(stateCookie.content).successF
+          xsrf <- sc.Cookies.createXsrfCookie(secureCookie = returnToUrl.getScheme.equalsIgnoreCase("https")).toDirective
+          _    <- sc.sessionStore.removeState(stateCookie.content).toDirective
           _ <- break(
                 Redirect(returnToUrl)
                   .addCookie(ResponseCookie(name = sc.Cookies.Keys.STATE, content = "", maxAge = Option(-1)))
@@ -112,7 +112,7 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HPath[HNil],
         _ =>
           for {
             cookie <- sc.sessionCookie
-            _      <- sc.sessionStore.removeSession(cookie.content).successF
+            _      <- sc.sessionStore.removeSession(cookie.content).toDirective
             _ <- break(
                   Redirect(sc.authConfig.afterLogoutUrl)
                     .addCookie(

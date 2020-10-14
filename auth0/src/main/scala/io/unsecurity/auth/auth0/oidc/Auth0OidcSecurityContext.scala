@@ -178,7 +178,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
       .withEntity(payload)
 
     val res = client.use { c =>
-      c.fetch(req)(res => res.attemptAs[String].fold(_ => res.status -> None, s => res.status -> Some(s)))
+      c.run(req).use(res => res.attemptAs[String].fold(_ => res.status -> None, s => res.status -> Some(s)))
     }
 
     EitherT(
@@ -196,7 +196,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
               Left(Json.obj("msg" := "Invalid response from IDP"))
             }
         })
-      .toSuccess(failure =>
+      .toDirective(failure =>
         Directive.failure(HttpProblem.internalServerError("Internal Server Error", None, Some(failure)).toResponse))
   }
 
@@ -219,7 +219,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
       oidcUser.copy(rawToken = tokenResponse.idToken)
     }
 
-    eitherUser.toSuccess(failure => Directive.failure(HttpProblem.internalServerError(failure).toResponse))
+    eitherUser.toDirective(failure => Directive.failure(HttpProblem.internalServerError(failure).toResponse))
   }
 
   def randomString(lengthInBytes: Int)(implicit randomProvider: RandomProvider[F]): F[String] = {

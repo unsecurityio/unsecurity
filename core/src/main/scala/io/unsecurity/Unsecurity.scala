@@ -76,7 +76,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
         methodMap = methodMap.map {
           case (method, a2dc) =>
             method -> a2dc.andThen { dc =>
-              dc.flatMap(c => f(c).successF)
+              dc.flatMap(c => f(c).toDirective)
             }
         },
         produces = produces,
@@ -117,7 +117,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
             user <- Directive.commit(
                      Directive.getOrElseF(
                        sc.transformUser(rawUser),
-                       HttpProblem.unauthorized("Unauthorized").toResponseF[F]
+                       HttpProblem.forbidden("Forbidden").toResponseF[F]
                      )
                    )
             r <- request.bodyAs[R] { error: DecodeFailure =>
@@ -219,7 +219,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
         methodMap = methodMap.map {
           case (method, a2dc) =>
             method -> a2dc.andThen { dc =>
-              dc.flatMap(c => f(c).successF)
+              dc.flatMap(c => f(c).toDirective)
             }
         },
         producer = producer

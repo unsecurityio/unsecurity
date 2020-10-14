@@ -14,7 +14,7 @@ abstract class AbstractMethodMatcher[F[_]: Monad] extends AbstractPathMatcher[F]
       req <- Directive.request[F]
       a <- methodMap
             .get(req.method)
-            .toSuccess(
+            .toDirective(
               Directive.error(
                 HttpProblem
                   .methodNotAllowed("Method not allowed", methodMap.keySet)
