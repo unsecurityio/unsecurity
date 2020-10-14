@@ -8,17 +8,11 @@ trait UnsecurityTestSuite extends AnyFunSuite {
   case object Ok                 extends TestResult
   case class Fail(error: String) extends TestResult
 
-  implicit class Where[A](a: A) {
+  implicit class Where[A](result: A) {
     def where(pf: PartialFunction[A, TestResult]): Assertion = {
-      assertResult(a, pf)
-    }
-
-    private def assertResult(result: A, pf: PartialFunction[A, TestResult]) = {
       if (!pf.isDefinedAt(result)) fail("not defined for: " + result.toString)
       else {
-        val r: TestResult = pf(result)
-
-        r match {
+        pf(result) match {
           case Ok          => succeed
           case Fail(error) => fail(error)
         }

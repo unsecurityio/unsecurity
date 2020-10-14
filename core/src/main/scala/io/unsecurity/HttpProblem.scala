@@ -70,12 +70,13 @@ object HttpProblem {
   implicit val statusDecoder: Decoder[Status] =
     Decoder.decodeInt.emapTry(i => Status.fromInt(i).toTry.orElse(Success(Status.InternalServerError)))
 
-  def methodNotAllowed(title: String, allowedMethods: Set[Method]) =
-    HttpProblem(Status.MethodNotAllowed,
-                title,
-                None,
-                Some(Json.arr(allowedMethods.map(m => Json.fromString(m.name)).toSeq: _*)))
-
+  def methodNotAllowed(title: String, allowedMethods: Set[Method]) = HttpProblem(
+    Status.MethodNotAllowed,
+    title,
+    None,
+    Some(Json.arr(allowedMethods.map(m => Json.fromString(m.name)).toSeq: _*))
+  )
+  
   def badRequest(title: String, detail: Option[String] = None) =
     HttpProblem(Status.BadRequest, title, detail, None)
 
@@ -97,7 +98,23 @@ object HttpProblem {
       Some(detail),
       Some(
         Json.obj(
-          "supportedTypes" := Json.arr(supportedRanges.map(range => Json.fromString(range.toString())).toSeq: _*)))
+          "supportedTypes" := Json.arr(supportedRanges.map(range => Json.fromString(range.toString)).toSeq: _*)
+        )
+      )
+    )
+
+  def notAcceptable(detail: String, responseMediaTypes: Set[MediaType]) =
+    HttpProblem(
+      Status.NotAcceptable,
+      "Not Acceptable",
+      Some(detail),
+      Some(
+        Json.obj(
+          "responseMediaTypes" := Json.arr(
+            responseMediaTypes.map(mediaType => Json.fromString(mediaType.toString)).toSeq: _*
+          )
+        )
+      )
     )
 
   def decodingFailure(failure: DecodingFailure) =

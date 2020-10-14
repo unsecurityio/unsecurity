@@ -10,6 +10,8 @@ sealed trait SimpleLinx extends Ordered[SimpleLinx] {
       case (a: SimpleStatic, b: SimpleVariable)   => -1
       case (a: SimpleVariable, b: SimpleStatic)   => 1
       case (a: SimpleVariable, b: SimpleVariable) => a.name.compare(b.name)
+      case (a: SimpleParams, b)                   => -1
+      case (a, b: SimpleParams)                   => 1
     }
 }
 case class SimpleStatic(segment: String) extends SimpleLinx {
@@ -18,3 +20,8 @@ case class SimpleStatic(segment: String) extends SimpleLinx {
 case class SimpleVariable(name: String) extends SimpleLinx {
   override def toString: String = s"{$name}"
 }
+
+case class SimpleParams(name: String) extends SimpleLinx {
+  override def toString: String = s"{$name}"
+}
+
