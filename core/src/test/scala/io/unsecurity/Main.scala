@@ -3,7 +3,9 @@ package io.unsecurity
 import cats.effect.{ExitCode, IO, IOApp}
 import io.circe.Decoder
 import io.unsecurity.hlinx.HLinx._
+import org.http4s.server.blaze.BlazeServerBuilder
 import org.http4s.{MediaType, Method}
+import org.http4s.implicits._
 
 object Main extends IOApp {
   val unsecurity: Unsecurity[IO, String, String] = new Unsecurity[IO, String, String] {
@@ -46,7 +48,7 @@ object Main extends IOApp {
       )
     ).run { pathParam =>
       for {
-          qp <- requiredQueryParamAs[String]("qp")
+        qp <- requiredQueryParamAs[String]("qp")
       } yield {
         println(pathParam)
         println(qp)
@@ -55,20 +57,21 @@ object Main extends IOApp {
     }
 
   val pathParamAndQueryParamCodec: unsecurity.Complete =
-      unsecure(
-        Endpoint(
-          "Show how to use query params",
-          Method.GET,
-          Root / "decode" / "pathParam".as[String] / "pathparamandqueryparam" :? "qp".as[String] & "qps".as[String].* & "qpOpt".as[String].?,
-          Produces.json[String]
-        )
-      ).run { case (pathParam, qp, qps, qpOpt) =>
-          println(pathParam)
-          println(qp)
-          println(qps)
-          println(qpOpt)
-          pathParam + qp + qps + qpOpt
-      }
+    unsecure(
+      Endpoint(
+        "Show how to use query params",
+        Method.GET,
+        Root / "decode" / "pathParam".as[String] / "pathparamandqueryparam" :? "qp".as[String] & "qps".as[String].* & "qpOpt".as[String].?,
+        Produces.json[String]
+      )
+    ).run {
+      case (pathParam, qp, qps, qpOpt) =>
+        println(pathParam)
+        println(qp)
+        println(qps)
+        println(qpOpt)
+        pathParam + qp + qps + qpOpt
+    }
 
   case class StringAndInt(s: String, i: Int)
 
@@ -115,7 +118,8 @@ object Main extends IOApp {
         "Check if a post request crashes if x09 is sent",
         Method.POST,
         Root / "does" / "this" / "work",
-        SupportedRequestContent.jsonWithMediaType[Fjon](MediaType.parse("application/fjon").getOrElse(throw new RuntimeException("could not parse media range"))),
+        SupportedRequestContent.jsonWithMediaType[Fjon](
+          MediaType.parse("application/fjon").getOrElse(throw new RuntimeException("could not parse media range"))),
         Produces.json[String]
       )
     ).run {
@@ -125,17 +129,28 @@ object Main extends IOApp {
     }
 
   override def run(args: List[String]): IO[ExitCode] = {
-    new Server[IO](port = 8088, host = "0.0.0.0", httpExecutionContext = scala.concurrent.ExecutionContext.Implicits.global)
-      .serve(
-        List(
-          helloWorld,
-          collidingHello,
-          pathParamAndQueryParamCodec,
-          queryParamCodec,
-          twoParams,
-          post,
-          post2
-        ))
+
+    BlazeServerBuilder[IO](scala.concurrent.ExecutionContext.Implicits.global)
+      .bindHttp(8088, "0.0.0.0")
+      .enableHttp2(false)
+      .withWebSockets(true)
+      .withNio2(true)
+      .withHttpApp(
+        Server
+          .toHttpRoutes(
+            List(
+              helloWorld,
+              collidingHello,
+              pathParamAndQueryParamCodec,
+              queryParamCodec,
+              twoParams,
+              post,
+              post2
+            )
+          )
+          .orNotFound
+      )
+      .serve
       .compile
       .drain
       .as(ExitCode.Success)

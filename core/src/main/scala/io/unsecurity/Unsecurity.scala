@@ -121,7 +121,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
                      )
                    )
             r <- request.bodyAs[R] { error: DecodeFailure =>
-                  HttpProblem.handleAndLogError(error).toResponse[F]
+                  HttpProblem.handleError(error).toResponse[F]
                 }(endpoint.supportedRequestContent, Sync[F])
           } yield {
             transformParams(tup, (r, user))
@@ -144,7 +144,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
         endpoint.method -> { tup: TUP =>
           for {
             r <- request.bodyAs[R] { error: DecodeFailure =>
-                  HttpProblem.handleAndLogError(error).toResponse[F]
+                  HttpProblem.handleError(error).toResponse[F]
                 }(endpoint.supportedRequestContent, Sync[F])
           } yield {
             transformParam(tup, Tuple1(r))

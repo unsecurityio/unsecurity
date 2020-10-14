@@ -94,10 +94,16 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
     )
 
     def stream[W](status: Status = Status.Ok)(
-       implicit encoder: EntityEncoder[F, Stream[F, W]]): Produces[Stream[F, W]] =
+        implicit encoder: EntityEncoder[F, Stream[F, W]]): Produces[Stream[F, W]] =
       Produces(
         None,
         s => Http4sDirective.success(Response[F](status).withEntity(s))
+      )
+
+    def SSE: Produces[Stream[F, ServerSentEvent]] =
+      Produces(
+        Some(`Content-Type`(MediaType.`text/event-stream`)),
+        events => Http4sDirective.success(Response[F](Status.Ok).withEntity(events))
       )
 
     object F {
@@ -189,7 +195,8 @@ case class MediaRangeMap[A](mr2a2rdf: List[MediaRangeItem[A]]) {
   def supportedMediaRanges: Set[MediaRange] = mr2a2rdf.flatMap(_.supportedRequestContent.toList).toSet
 
   def get(mediaRange: MediaRange): Either[Set[MediaRange], NonEmptyList[ResponseAlternativeForContent[A]]] = {
-    NonEmptyList.fromList(
+    NonEmptyList
+      .fromList(
         mr2a2rdf.collect {
           case mri @ MediaRangeItem(supportedRequestContent, _, _) if supportedRequestContent.exists { rc =>
                 rc.satisfiedBy(mediaRange) && mediaRange.extensions.forall {
@@ -198,7 +205,7 @@ case class MediaRangeMap[A](mr2a2rdf: List[MediaRangeItem[A]]) {
               } =>
             ResponseAlternativeForContent(mri.responseContentType, mri.value)
         }
-    )
+      )
       .toRight(supportedMediaRanges)
   }
 }

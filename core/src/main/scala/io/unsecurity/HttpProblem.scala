@@ -8,7 +8,6 @@ import io.circe.syntax._
 import no.scalabin.http4s.directives.Directive
 import org.http4s.circe.DecodingFailures
 import org.http4s._
-import org.log4s.getLogger
 
 import scala.util.Success
 import scala.util.control.NonFatal
@@ -40,8 +39,6 @@ case class HttpProblem(status: Status,
 }
 
 object HttpProblem {
-
-  private[this] val log = getLogger
 
   implicit val encoder: Encoder[HttpProblem] = Encoder.instance(
     p =>
@@ -76,7 +73,7 @@ object HttpProblem {
     None,
     Some(Json.arr(allowedMethods.map(m => Json.fromString(m.name)).toSeq: _*))
   )
-  
+
   def badRequest(title: String, detail: Option[String] = None) =
     HttpProblem(Status.BadRequest, title, detail, None)
 
@@ -147,10 +144,12 @@ object HttpProblem {
         None
       )
     case NonFatal(e) =>
-      HttpProblem(status = Status.InternalServerError,
-                  title = "Internal server error",
-                  detail = Option(e.getMessage),
-                  data = None,
-                  cause = Some(e))
+      HttpProblem(
+        status = Status.InternalServerError,
+        title = "Internal server error",
+        detail = Option(e.getMessage),
+        data = None,
+        cause = Some(e)
+      )
   }
 }
