@@ -94,7 +94,7 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
     )
 
     def stream[W](status: Status = Status.Ok)(
-        implicit encoder: EntityEncoder[F, Stream[F, W]]): Produces[Stream[F, W]] =
+       implicit encoder: EntityEncoder[F, Stream[F, W]]): Produces[Stream[F, W]] =
       Produces(
         None,
         s => Http4sDirective.success(Response[F](status).withEntity(s))
@@ -119,7 +119,6 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
                     .withContentType(contentType))
           }
         )
-
     }
 
     object Directive {

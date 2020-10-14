@@ -83,11 +83,14 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HPath[HNil],
             state.returnToUrl
           } else {
             log.warn(
-              s"/callback returnToUrl (${state.returnToUrl}) not whitelisted; falling back to ${sc.authConfig.defaultReturnToUrl}")
+              s"/callback returnToUrl (${state.returnToUrl}) not whitelisted; falling back to ${sc.authConfig.defaultReturnToUrl}"
+            )
             sc.authConfig.defaultReturnToUrl
           }
-          xsrf <- sc.Cookies.createXsrfCookie(secureCookie = returnToUrl.getScheme.equalsIgnoreCase("https")).toDirective
-          _    <- sc.sessionStore.removeState(stateCookie.content).toDirective
+          xsrf <- sc.Cookies
+                   .createXsrfCookie(secureCookie = returnToUrl.getScheme.equalsIgnoreCase("https"))
+                   .toDirective
+          _ <- sc.sessionStore.removeState(stateCookie.content).toDirective
           _ <- break(
                 Redirect(returnToUrl)
                   .addCookie(ResponseCookie(name = sc.Cookies.Keys.STATE, content = "", maxAge = Option(-1)))
