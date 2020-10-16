@@ -24,11 +24,11 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
       new Endpoint[P, Unit, Http4sDirective[F, Unit]](desc,
                                                       method,
                                                       path,
-                                                      SupportedRequestContent.EmptyBody,
+                                                      Consumes.EmptyBody,
                                                       Produces.Directive.EmptyBody)
 
     def apply[P <: HList, W](desc: String, method: Method, path: HLinx[P], produces: Produces[W]) =
-      new Endpoint[P, Unit, W](desc, method, path, SupportedRequestContent.EmptyBody, produces)
+      new Endpoint[P, Unit, W](desc, method, path, Consumes.EmptyBody, produces)
 
     def apply[P <: HList, R](desc: String, method: Method, path: HLinx[P], accepts: EntityDecoder[F, R]) =
       new Endpoint[P, R, Http4sDirective[F, Unit]](desc, method, path, accepts, Produces.Directive.EmptyBody)
@@ -44,18 +44,15 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
       transformParams: TransformParams.Aux[TUP, Tuple1[R], TUP2]
   ): Completable[TUP2, W]
 
-  object SupportedRequestContent {
-    def EmptyBody: EntityDecoder[F, Unit] =
-      implicitly[EntityDecoder[F, Unit]]
+  object Consumes {
+    def EmptyBody: EntityDecoder[F, Unit] = implicitly[EntityDecoder[F, Unit]]
 
-    def json[R: Decoder]: EntityDecoder[F, R] =
-      org.http4s.circe.jsonOf[F, R]
+    def json[R: Decoder]: EntityDecoder[F, R] = org.http4s.circe.jsonOf[F, R]
 
     def jsonWithMediaType[R: Decoder](mediaType: MediaType): EntityDecoder[F, R] =
       org.http4s.circe.jsonOfWithMedia[F, R](mediaType)
 
-    def raw: EntityDecoder[F, String] =
-      implicitly[EntityDecoder[F, String]]
+    def raw: EntityDecoder[F, String] = implicitly[EntityDecoder[F, String]]
   }
 
   case class Produces[W](contentType: Option[`Content-Type`], response: W => ResponseDirective[F])
@@ -129,6 +126,12 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
 
     object Directive {
 
+      def SSE: Produces[Http4sDirective[F, Stream[F, ServerSentEvent]]] =
+        Produces(
+          Some(`Content-Type`(MediaType.`text/event-stream`)),
+          events => events.map(sse => Response(Status.Ok).withEntity(sse))
+        )
+
       def json[E: Encoder]: Produces[Http4sDirective[F, E]] = json[E](Status.Ok)
 
       def json[E: Encoder](status: Status): Produces[Http4sDirective[F, E]] =
@@ -146,11 +149,12 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
                   .withContentType(contentType))
         )
 
-      val EmptyBody = Produces[Http4sDirective[F, Unit]](contentType = None,
-                                                         unitDir =>
-                                                           unitDir.map { _: Unit =>
-                                                             Response[F](Status.NoContent)
-                                                         })
+      val EmptyBody: Produces[Http4sDirective[F, Unit]] = Produces[Http4sDirective[F, Unit]](
+        contentType = None,
+        unitDir =>
+          unitDir.map { _: Unit =>
+            Response[F](Status.NoContent)
+        })
     }
   }
 

@@ -13,7 +13,7 @@ object Main extends IOApp {
   }
   import unsecurity._
 
-  val helloWorld: unsecurity.Complete =
+  val helloWorld: Complete =
     unsecure(
       Endpoint(
         "Hello world; endpoint as simple as it gets",
@@ -25,7 +25,7 @@ object Main extends IOApp {
       "Hello world"
     }
 
-  val collidingHello =
+  val collidingHello: Complete =
     unsecure(
       Endpoint(
         "Endpoint that collides with hello-world-endpoint, showing that static fragments gets precedense over variable fragments",
@@ -33,12 +33,11 @@ object Main extends IOApp {
         Root / "collideWithHello".as[String],
         Produces.json[String]
       )
-    ).run {
-      case collide =>
+    ).run { collide =>
         s"Hello, $collide"
     }
 
-  val queryParamCodec: unsecurity.Complete =
+  val queryParamCodec: Complete =
     unsecure(
       Endpoint(
         "Show how to use query params",
@@ -56,7 +55,7 @@ object Main extends IOApp {
       }
     }
 
-  val pathParamAndQueryParamCodec: unsecurity.Complete =
+  val pathParamAndQueryParamCodec: Complete =
     unsecure(
       Endpoint(
         "Show how to use query params",
@@ -75,7 +74,7 @@ object Main extends IOApp {
 
   case class StringAndInt(s: String, i: Int)
 
-  val twoParams =
+  val twoParams: Complete =
     unsecure(
       Endpoint(
         "endpoint taking two path params",
@@ -97,33 +96,31 @@ object Main extends IOApp {
     }
   }
 
-  val post =
+  val post: Complete =
     unsecure(
       Endpoint(
         "Check if a post request carshes if x09 is sent",
         Method.POST,
         Root / "does" / "this" / "work",
-        SupportedRequestContent.json[Fjon],
+        Consumes.json[Fjon],
         Produces.json[String]
       )
-    ).run {
-      case body =>
+    ).run { body =>
         println(body)
         "OK"
     }
 
-  val post2 =
+  val post2: Complete =
     unsecure(
       Endpoint(
         "Check if a post request crashes if x09 is sent",
         Method.POST,
         Root / "does" / "this" / "work",
-        SupportedRequestContent.jsonWithMediaType[Fjon](
+        Consumes.jsonWithMediaType[Fjon](
           MediaType.parse("application/fjon").getOrElse(throw new RuntimeException("could not parse media range"))),
         Produces.json[String]
       )
-    ).run {
-      case body =>
+    ).run { body =>
         println(body)
         "Fjonsvar"
     }

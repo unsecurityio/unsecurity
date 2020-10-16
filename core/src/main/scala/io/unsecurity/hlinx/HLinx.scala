@@ -14,7 +14,6 @@ object HLinx {
   sealed trait HLinx[T <: HList] {
     final def capture[TUP](s: String)(implicit revTup: ReversedTupled.Aux[T, TUP]): Option[Either[String, TUP]] = {
       val (paths, queryParams) = splitPathAndQueryParams(s)
-      println(s"(paths=$paths, queryParams=$queryParams)")
       extract(paths.reverse, queryParams)
         .map(e => e.map(t => revTup(t)))
     }
