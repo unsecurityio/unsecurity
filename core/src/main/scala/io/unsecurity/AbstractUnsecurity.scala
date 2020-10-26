@@ -17,7 +17,7 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
   case class Endpoint[P <: HList, R, W](description: String = "",
                                         method: Method,
                                         path: HLinx[P],
-                                        supportedRequestContent: EntityDecoder[F, R],
+                                        consumes: EntityDecoder[F, R],
                                         produces: Produces[W])
   object Endpoint {
     def apply[P <: HList, R, W](desc: String, method: Method, path: HLinx[P]) =
@@ -30,8 +30,8 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
     def apply[P <: HList, W](desc: String, method: Method, path: HLinx[P], produces: Produces[W]) =
       new Endpoint[P, Unit, W](desc, method, path, Consumes.EmptyBody, produces)
 
-    def apply[P <: HList, R](desc: String, method: Method, path: HLinx[P], accepts: EntityDecoder[F, R]) =
-      new Endpoint[P, R, Http4sDirective[F, Unit]](desc, method, path, accepts, Produces.Directive.EmptyBody)
+    def apply[P <: HList, R](desc: String, method: Method, path: HLinx[P], consumes: EntityDecoder[F, R]) =
+      new Endpoint[P, R, Http4sDirective[F, Unit]](desc, method, path, consumes, Produces.Directive.EmptyBody)
   }
 
   def secure[P <: HList, R, W, TUP, TUP2](endpoint: Endpoint[P, R, W])(

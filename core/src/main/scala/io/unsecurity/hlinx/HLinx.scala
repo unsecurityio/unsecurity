@@ -28,9 +28,9 @@ object HLinx {
           Static[T](acc, e)
         }
     }
-    def /[H](h: Param[H])   = Variable(this, h.converter, h.name)
-    def :?[A](h: Param[A])  = QueryParam(this, ParamsConverter.singleParamConverter(h.converter), h.name)
-    def :?[A](h: Params[A]) = QueryParam[A, T](this, h.converter, h.name)
+    def /[H](h: Param[H]): Variable[H, T]     = Variable(this, h.converter, h.name)
+    def :?[A](h: Param[A]): QueryParam[A, T]  = QueryParam(this, ParamsConverter.singleParamConverter(h.converter), h.name)
+    def :?[A](h: Params[A]): QueryParam[A, T] = QueryParam[A, T](this, h.converter, h.name)
 
     def overlaps[O <: HList](other: HPath[O]): Boolean
 
@@ -93,8 +93,8 @@ object HLinx {
   }
 
   case class QueryParam[H, T <: HList](parent: HLinx[T], P: ParamsConverter[H], field: String) extends HLinx[H :: T] {
-    def &[A](h: Param[A])  = QueryParam(this, ParamsConverter.singleParamConverter(h.converter), h.name)
-    def &[A](h: Params[A]) = QueryParam[A, H :: T](this, h.converter, h.name)
+    def &[A](h: Param[A]): QueryParam[A, H :: T]  = QueryParam(this, ParamsConverter.singleParamConverter(h.converter), h.name)
+    def &[A](h: Params[A]): QueryParam[A, H :: T] = QueryParam[A, H :: T](this, h.converter, h.name)
 
     override def extract(path: List[String], queryParams: Map[String, List[String]]): Option[Either[String, H :: T]] = {
       val value          = queryParams.getOrElse(field, Nil)

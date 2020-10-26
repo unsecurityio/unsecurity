@@ -3,6 +3,7 @@ package io.unsecurity
 import cats.Monad
 import cats.data.NonEmptyList
 import no.scalabin.http4s.directives.Directive
+import org.http4s.MediaType
 import org.http4s.Method.{DELETE, GET}
 import org.http4s.implicits._
 import org.http4s.headers.{Accept, `Content-Type`}
@@ -46,17 +47,17 @@ abstract class AbstractContentTypeMatcher[F[_]: Monad] extends AbstractMethodMat
   def matchAcceptContentType[A](responseAlternatives: NonEmptyList[ResponseAlternativeForContent[A]]): Directive[F, A] = {
     NonEmptyList
       .fromList(
-        responseAlternatives.collect{ case ResponseAlternativeForContent(Some(responseContentType), a ) => responseContentType.mediaType -> a }
+        responseAlternatives.collect{ case ResponseAlternativeForContent(Some(ct), a ) =>  new MediaType(ct.mediaType.mainType.toLowerCase, ct.mediaType.subType.toLowerCase, ct.mediaType.compressible,ct.mediaType.binary, ct.mediaType.fileExtensions, ct.mediaType.extensions.map(kv => kv._1.toLowerCase -> kv._2.toLowerCase) ) -> a }
       )
-      .map[Directive[F, A]]{ contentTypeResponses =>
+      .map[Directive[F, A]]{ consumes =>
         Directive.request[F].flatMap{ req =>
           req.headers.get(Accept).map(_.values.toList) match {
             case Some(accepts) =>
-              ContentNegotiation.accept(accepts, contentTypeResponses) match {
+              ContentNegotiation.accept(accepts, consumes) match {
                 case Some(a) => Directive.pure(a)
                 case None    => Directive.error(
                                 HttpProblem
-                                    .notAcceptable(s"Accept '${accepts.mkString("[", ", ", "]")}' unsupported mediatype", contentTypeResponses.map(_._1).toList.toSet)
+                                    .notAcceptable(s"Accept '${accepts.mkString("[", ", ", "]")}' unsupported mediatype", consumes.map(_._1).toList.toSet)
                                     .toResponse
                                 )
               }
@@ -65,7 +66,7 @@ abstract class AbstractContentTypeMatcher[F[_]: Monad] extends AbstractMethodMat
                 .map(accepts =>
                   Directive.failure[F, A](
                      HttpProblem
-                         .notAcceptable(s"Accept '${accepts.value}' invalid mediatype", contentTypeResponses.map(_._1).toList.toSet)
+                         .notAcceptable(s"Accept '${accepts.value}' invalid mediatype", consumes.map(_._1).toList.toSet)
                          .toResponse
                      )
                 )

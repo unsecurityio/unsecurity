@@ -67,28 +67,28 @@ object HttpProblem {
   implicit val statusDecoder: Decoder[Status] =
     Decoder.decodeInt.emapTry(i => Status.fromInt(i).toTry.orElse(Success(Status.InternalServerError)))
 
-  def methodNotAllowed(title: String, allowedMethods: Set[Method]) = HttpProblem(
+  def methodNotAllowed(title: String, allowedMethods: Set[Method]): HttpProblem = HttpProblem(
     Status.MethodNotAllowed,
     title,
     None,
     Some(Json.arr(allowedMethods.map(m => Json.fromString(m.name)).toSeq: _*))
   )
 
-  def badRequest(title: String, detail: Option[String] = None) =
+  def badRequest(title: String, detail: Option[String] = None): HttpProblem =
     HttpProblem(Status.BadRequest, title, detail, None)
 
-  def forbidden(title: String, detail: Option[String] = None, data: Option[Json] = None) =
+  def forbidden(title: String, detail: Option[String] = None, data: Option[Json] = None): HttpProblem =
     HttpProblem(Status.Forbidden, title, detail, data)
 
-  def unauthorized(title: String, detail: Option[String] = None) =
+  def unauthorized(title: String, detail: Option[String] = None): HttpProblem =
     HttpProblem(Status.Unauthorized, title, detail, None)
 
-  def internalServerError(title: String, detail: Option[String] = None, data: Option[Json] = None) =
+  def internalServerError(title: String, detail: Option[String] = None, data: Option[Json] = None): HttpProblem =
     HttpProblem(Status.InternalServerError, title, detail, data)
 
-  def notFound = HttpProblem(Status.NotFound, "Not Found", None, None)
+  def notFound: HttpProblem = HttpProblem(Status.NotFound, "Not Found", None, None)
 
-  def unsupportedMediaType(detail: String, supportedRanges: Set[MediaRange]) =
+  def unsupportedMediaType(detail: String, supportedRanges: Set[MediaRange]): HttpProblem =
     HttpProblem(
       Status.UnsupportedMediaType,
       "Unsupported Media-Type",
@@ -100,7 +100,7 @@ object HttpProblem {
       )
     )
 
-  def notAcceptable(detail: String, responseMediaTypes: Set[MediaType]) =
+  def notAcceptable(detail: String, responseMediaTypes: Set[MediaType]): HttpProblem =
     HttpProblem(
       Status.NotAcceptable,
       "Not Acceptable",
@@ -114,7 +114,7 @@ object HttpProblem {
       )
     )
 
-  def decodingFailure(failure: DecodingFailure) =
+  def decodingFailure(failure: DecodingFailure): Json =
     Json.obj(
       "path" := CursorOp.opsToPath(failure.history),
       "message" := failure.message

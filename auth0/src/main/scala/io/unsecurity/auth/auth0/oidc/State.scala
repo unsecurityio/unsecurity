@@ -27,23 +27,21 @@ object State {
   implicit val encodeURI: Encoder[URI] =
     uri => Json.fromString(uri.toString)
 
-  implicit val decodeState =
-    Decoder[State](
-      c =>
-        for {
-          state          <- c.downField("state").as[String]
-          returnToUrl    <- c.downField("returnToUrl").as[URI]
-          callbackUrl    <- c.downField("callbackUrl").as[URI]
-          additionalData <- c.downField("additionalData").as[String]
-        } yield {
-          State(
-            state = state,
-            returnToUrl = returnToUrl,
-            callbackUrl = callbackUrl,
-            additionalData = additionalData
-          )
-      }
-    )
+  implicit val decodeState: Decoder[State] = Decoder[State] { c =>
+    for {
+      state          <- c.downField("state").as[String]
+      returnToUrl    <- c.downField("returnToUrl").as[URI]
+      callbackUrl    <- c.downField("callbackUrl").as[URI]
+      additionalData <- c.downField("additionalData").as[String]
+    } yield {
+      State(
+        state = state,
+        returnToUrl = returnToUrl,
+        callbackUrl = callbackUrl,
+        additionalData = additionalData
+      )
+    }
+  }
 
   implicit val encodeState: Encoder[State] =
     (s: State) =>

@@ -7,7 +7,7 @@ import org.http4s.server.blaze.BlazeServerBuilder
 import org.http4s.{MediaType, Method}
 import org.http4s.implicits._
 
-object Main extends IOApp {
+object Example extends IOApp {
   val unsecurity: Unsecurity[IO, String, String] = new Unsecurity[IO, String, String] {
     override def sc: SecurityContext[IO, String, String] = ???
   }

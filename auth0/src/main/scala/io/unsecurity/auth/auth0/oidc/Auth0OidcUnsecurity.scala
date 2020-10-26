@@ -21,9 +21,9 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HPath[HNil],
 
   private[this] val log = getLogger
 
-  implicit val uriParamConverter = ParamConverter.createSimple(s => new URI(s))
+  implicit val uriParamConverter: ParamConverter[URI] = ParamConverter.createSimple(s => new URI(s))
 
-  val login =
+  val login: Complete = {
     unsecure(
       Endpoint(
         "oidc login endpoint",
@@ -51,8 +51,9 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HPath[HNil],
           ()
       }
     )
+  }
 
-  val callback =
+  val callback: Complete = {
     unsecure(
       Endpoint(
         "oidc callback endpoint",
@@ -101,8 +102,9 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HPath[HNil],
           ()
       }
     )
+  }
 
-  val logout =
+  val logout: Complete = {
     secure(
       Endpoint(
         "oidc logout endpoint",
@@ -129,6 +131,7 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HPath[HNil],
             ()
         }
       )
+  }
 
   val endpoints = List(login, callback, logout)
 

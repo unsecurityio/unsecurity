@@ -14,7 +14,6 @@ import io.unsecurity.{HttpProblem, SecurityContext, UnsecurityOps}
 import no.scalabin.http4s.directives.Directive
 import okio.ByteString
 import org.http4s.headers.Authorization
-import org.log4s.getLogger
 
 import scala.util.Try
 
@@ -24,8 +23,6 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
                                              jwkProvider: JwkProvider)
     extends SecurityContext[F, OauthAuthenticatedApplication, U]
     with UnsecurityOps[F] {
-
-  private[this] val log = getLogger
 
   override def authenticate: Directive[F, OauthAuthenticatedApplication] = {
     for {
@@ -77,9 +74,7 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
   private def jwtHeader(jwtToken: DecodedJWT): Directive[F, JwtHeader] = {
     for {
       decodedHeaderString <- decodeBase64(jwtToken.getHeader)
-      header <- decode[JwtHeader](decodedHeaderString).toDirective { error =>
-                 Unauthorized("Could not decode jwt header")
-               }
+      header              <- decode[JwtHeader](decodedHeaderString).toDirective(_ => Unauthorized("Could not decode jwt header"))
     } yield header
   }
 

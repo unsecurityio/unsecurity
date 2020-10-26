@@ -22,9 +22,6 @@ abstract class AbstractMethodMatcher[F[_]: Monad] extends AbstractPathMatcher[F]
                   .putHeaders(allow(methodMap.keySet))
               )
             )
-    } yield {
-      a
-    }
+    } yield a
   }
-
 }

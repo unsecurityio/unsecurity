@@ -4,7 +4,6 @@ package unsecurity
 import cats.effect.Sync
 import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}
 import no.scalabin.http4s.directives.Directive
-import org.http4s.headers.Allow
 import org.http4s.{DecodeFailure, MediaRange, Method, Response}
 import shapeless.HList
 
@@ -99,7 +98,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
     MySecured[TUP2, W](
       key = endpoint.path.toSimple.reverse,
       pathMatcher = createPathMatcher(endpoint.path).asInstanceOf[PathMatcher[Any]],
-      consumes = endpoint.supportedRequestContent.consumes,
+      consumes = endpoint.consumes.consumes,
       methodMap = Map(
         endpoint.method -> { tup: TUP =>
           val checkXsrfOrNothing: Directive[F, String] =
@@ -122,7 +121,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
                    )
             r <- request.bodyAs[R] { error: DecodeFailure =>
                   HttpProblem.handleError(error).toResponse[F]
-                }(endpoint.supportedRequestContent, Sync[F])
+                }(endpoint.consumes, Sync[F])
           } yield {
             transformParams(tup, (r, user))
           }
@@ -139,13 +138,13 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
     MyCompletable[TUP2, W](
       key = endpoint.path.toSimple.reverse,
       pathMatcher = createPathMatcher[P, TUP](endpoint.path).asInstanceOf[PathMatcher[Any]],
-      consumes = endpoint.supportedRequestContent.consumes,
+      consumes = endpoint.consumes.consumes,
       methodMap = Map(
         endpoint.method -> { tup: TUP =>
           for {
             r <- request.bodyAs[R] { error: DecodeFailure =>
                   HttpProblem.handleError(error).toResponse[F]
-                }(endpoint.supportedRequestContent, Sync[F])
+                }(endpoint.consumes, Sync[F])
           } yield {
             transformParam(tup, Tuple1(r))
           }

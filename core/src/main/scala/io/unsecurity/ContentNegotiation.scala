@@ -1,8 +1,8 @@
 package io.unsecurity
 
 import cats.data.NonEmptyList
-import org.http4s.{MediaRange, MediaType, QValue, Request}
-import org.http4s.headers.{Accept, MediaRangeAndQValue}
+import org.http4s.headers.MediaRangeAndQValue
+import org.http4s.{MediaRange, MediaType, QValue}
 
 object ContentNegotiation {
 
