@@ -1,7 +1,5 @@
 package io.unsecurity.http
 
-import java.net.ServerSocket
-
 import cats.effect.{ContextShift, IO, Resource, Timer}
 
 abstract class IOSuite extends munit.FunSuite {
@@ -9,12 +7,6 @@ abstract class IOSuite extends munit.FunSuite {
   implicit val timer: Timer[IO]          = IO.timer(munitExecutionContext)
   private val fixtures                   = List.newBuilder[Fixture[_]]
 
-  def availablePort: Int = {
-    val server = new ServerSocket(0)
-    val port   = server.getLocalPort
-    server.close()
-    port
-  }
 
   class SuiteResourceFixture[A](resource: Resource[IO, A], name: String) extends Fixture[A](name) {
     private var value: Option[A]  = None
