@@ -138,7 +138,7 @@ class ContentTypeMatcherTest extends UnsecurityTestSuite {
       case Result.Success(_) =>
         Fail(
           "Expected to reach version 2 endpoint, as it was defined first in list and no versiopn specified in request")
-      case Result.Error(r) => Fail(r.bodyAsText.compile.last.toString)
+      case Result.Error(r) => Fail(r.body.through(fs2.text.utf8Decode).compile.last.toString)
     }
   }
 

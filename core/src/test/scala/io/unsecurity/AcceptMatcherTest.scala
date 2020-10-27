@@ -10,30 +10,30 @@ import org.http4s.{Request, _}
 class AcceptMatcherTest extends UnsecurityTestSuite {
   val contentTypeMatcher: AbstractContentTypeMatcher[Id] = new AbstractContentTypeMatcher[Id] {}
 
-  val problemJsonContentType = `Content-Type`(mediaType"application/problem+json")
+  val problemJsonContentType: `Content-Type` = `Content-Type`(mediaType"application/problem+json")
 
-  val versionOneAcceptReq = Request[Id](
+  val versionOneAcceptReq: Request[Id] = Request[Id](
     method = Method.POST,
     uri = uri"/whatever",
     headers = Headers.of(Header("Accept", "application/vnd.custom;version=1"))
   )
-  val unversionedAcceptReq = Request[Id](
+  val unversionedAcceptReq: Request[Id] = Request[Id](
     method = Method.POST,
     uri = uri"/whatever",
     headers = Headers.of(Header("Accept", "application/vnd.custom"))
   )
 
-  val invalidAcceptRequest = Request[Id](
+  val invalidAcceptRequest: Request[Id] = Request[Id](
     method = Method.POST,
     uri = uri"/whatever",
     headers = Headers.of(Header("Accept", "foobar"))
   )
-  val notAcceptableRequest = Request[Id](
+  val notAcceptableRequest: Request[Id] = Request[Id](
     method = Method.POST,
     uri = uri"/whatever",
     headers = Headers.of(Header("Accept", "application/foobar"))
   )
-  val supportedAcceptResquest = Request[Id](
+  val supportedAcceptResquest: Request[Id] = Request[Id](
     method = Method.POST,
     uri = uri"/whatever",
     headers = Headers.of(Header("Accept", "application/fjon"))
@@ -41,7 +41,7 @@ class AcceptMatcherTest extends UnsecurityTestSuite {
 
   val Right(fjonMediaRange: `Content-Type`) = `Content-Type`.parse("application/fjon")
 
-  val supportedContentType = ResponseAlternativeForContent(Some(fjonMediaRange), "dingdong")
+  val supportedContentType: ResponseAlternativeForContent[String] = ResponseAlternativeForContent(Some(fjonMediaRange), "dingdong")
 
   test("Invalid media-type is not accepted") {
     val responseAlternatives      = NonEmptyList.of(supportedContentType)
@@ -134,7 +134,7 @@ class AcceptMatcherTest extends UnsecurityTestSuite {
       case Result.Success(_) =>
         Fail(
           "Expected to reach version 2 endpoint, as it was defined first in list and no versiopn specified in request")
-      case Result.Error(r) => Fail(r.bodyAsText.compile.last.toString)
+      case Result.Error(r) => Fail(r.body.through(fs2.text.utf8Decode).compile.last.toString)
     }
   }
 

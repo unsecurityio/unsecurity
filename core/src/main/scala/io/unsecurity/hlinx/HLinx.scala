@@ -11,13 +11,31 @@ object HLinx {
     def as[A: ParamConverter]: Param[A] = Param(s, ParamConverter[A])
   }
 
-  sealed trait HLinx[T <: HList] {
-    final def capture[TUP](s: String)(implicit revTup: ReversedTupled.Aux[T, TUP]): Option[Either[String, TUP]] = {
-      val (paths, queryParams) = splitPathAndQueryParams(s)
-      extract(paths.reverse, queryParams)
-        .map(e => e.map(t => revTup(t)))
+  sealed trait CaptureFailure {
+    def errorMessage: String = this match {
+      case MissingPathParam(name)              => s"Missing required path parameter [$name]"
+      case MissingStaticPath(name)             => s"Missing required static path segment [$name]"
+      case MissingQueryParam(name)             => s"Missing required query parameter [$name]"
+      case PathParamConvertFailure(name, msg)  => s"Could not convert path parameter $name"
+      case QueryParamConvertFailure(name, msg) => s"Could not convert query parameter $name"
+      case EmptyPath                           => "Could not match on an empty path"
     }
-    def extract(path: List[String], queryParams: Map[String, List[String]]): Option[Either[String, T]]
+  }
+  sealed trait ContinueMatching                                    extends CaptureFailure
+  sealed trait StopMatching                                        extends CaptureFailure
+  case class MissingPathParam(name: String)                        extends StopMatching
+  case class MissingStaticPath(name: String)                       extends StopMatching
+  case object EmptyPath                                            extends StopMatching
+  case class PathParamConvertFailure(name: String, error: String)  extends ContinueMatching
+  case class MissingQueryParam(name: String)                       extends ContinueMatching
+  case class QueryParamConvertFailure(name: String, error: String) extends ContinueMatching
+
+  sealed trait HLinx[T <: HList] {
+    final def capture[TUP](s: String)(implicit revTup: ReversedTupled.Aux[T, TUP]): Either[CaptureFailure, TUP] = {
+      val (paths, queryParams) = splitPathAndQueryParams(s)
+      extract(paths.reverse, queryParams).map(e => revTup(e))
+    }
+    def extract(path: List[String], queryParams: Map[String, List[String]]): Either[CaptureFailure, T]
     def toSimple: List[SimpleLinx]
   }
   trait HPath[T <: HList] extends HLinx[T] {
@@ -37,8 +55,8 @@ object HLinx {
   }
 
   case object Root extends HPath[HNil] {
-    override def extract(path: List[String], queryParams: Map[String, List[String]]): Option[Either[String, HNil]] =
-      if (path.isEmpty) Some(Right(HNil)) else None
+    override def extract(path: List[String], queryParams: Map[String, List[String]]): Either[CaptureFailure, HNil] =
+      if (path.isEmpty) Right(HNil) else Left(EmptyPath)
 
     override def overlaps[O <: HList](other: HPath[O]): Boolean =
       other match {
@@ -50,9 +68,9 @@ object HLinx {
 
   case class Static[A <: HList](parent: HPath[A], element: String) extends HPath[A] {
     import shapeless.HList.ListCompat.::
-    override def extract(s: List[String], queryParams: Map[String, List[String]]): Option[Either[String, A]] = s match {
+    override def extract(s: List[String], queryParams: Map[String, List[String]]): Either[CaptureFailure, A] = s match {
       case `element` :: rest => parent.extract(rest, queryParams)
-      case _                 => None
+      case _                 => Left(MissingStaticPath(element))
     }
     override def overlaps[O <: HList](other: HPath[O]): Boolean =
       other match {
@@ -66,19 +84,15 @@ object HLinx {
   }
   case class Variable[H, T <: HList](parent: HPath[T], P: ParamConverter[H], element: String) extends HPath[H :: T] {
     import shapeless.HList.ListCompat.::
-    override def extract(path: List[String], queryParams: Map[String, List[String]]): Option[Either[String, H :: T]] =
+    override def extract(path: List[String], queryParams: Map[String, List[String]]): Either[CaptureFailure, H :: T] =
       path match {
         case h :: rest =>
           parent
             .extract(rest, queryParams)
-            .map(t =>
-              for {
-                hlist          <- t
-                convertedParam <- P.convert(URLDecoder.decode(h, "UTF-8"))
-              } yield {
-                convertedParam :: hlist
-            })
-        case _ => None
+            .flatMap { (t: T) =>
+              P.convert(URLDecoder.decode(h, "UTF-8")).left.map(msg => PathParamConvertFailure(element, msg)).map(_ :: t)
+            }
+        case _ => Left(MissingPathParam(element))
       }
 
     def overlaps[A <: HList](hlinx: HPath[A]): Boolean = {
@@ -96,20 +110,17 @@ object HLinx {
     def &[A](h: Param[A]): QueryParam[A, H :: T]  = QueryParam(this, ParamsConverter.singleParamConverter(h.converter), h.name)
     def &[A](h: Params[A]): QueryParam[A, H :: T] = QueryParam[A, H :: T](this, h.converter, h.name)
 
-    override def extract(path: List[String], queryParams: Map[String, List[String]]): Option[Either[String, H :: T]] = {
-      val value          = queryParams.getOrElse(field, Nil)
-      val convertedValue = P.convert(value)
+    override def extract(path: List[String], queryParams: Map[String, List[String]]): Either[CaptureFailure, H :: T] = {
+      val value: List[String]               = queryParams.getOrElse(field, Nil)
+      val convertedValue: Either[String, H] = P.convert(value)
       (value, convertedValue) match {
-        case (Nil, Left(_)) => None
-        case _ =>
+        case (Nil, Left(_)) => Left(MissingQueryParam(field))
+        case (_, Left(msg)) => Left(QueryParamConvertFailure(field, msg))
+        case (_, Right(value)) =>
           parent
             .extract(path, queryParams)
-            .map(
-              _.flatMap(t =>
-                convertedValue
-                  .map(h => h :: t)))
+            .map(t => value :: t)
       }
-
     }
 
     def toSimple: List[SimpleLinx] =

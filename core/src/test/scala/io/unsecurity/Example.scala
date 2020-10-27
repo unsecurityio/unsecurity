@@ -34,13 +34,13 @@ object Example extends IOApp {
         Produces.json[String]
       )
     ).run { collide =>
-        s"Hello, $collide"
+      s"Hello, $collide"
     }
 
   val queryParamCodec: Complete =
     unsecure(
       Endpoint(
-        "Show how to use query params",
+        "Show how to use query params outside dsl using Directives",
         Method.GET,
         Root / "decode" / "pathParam".as[String] / "queryparam",
         Produces.Directive.json[String]
@@ -58,13 +58,13 @@ object Example extends IOApp {
   val pathParamAndQueryParamCodec: Complete =
     unsecure(
       Endpoint(
-        "Show how to use query params",
+        "Show how to use query params with the dsl",
         Method.GET,
         Root / "decode" / "pathParam".as[String] / "pathparamandqueryparam" :? "qp".as[String] & "qps".as[String].* & "qpOpt".as[String].?,
         Produces.json[String]
       )
     ).run {
-      case (pathParam, qp, qps, qpOpt) =>
+      case (pathParam: String, qp: String, qps: Seq[String], qpOpt: Option[String]) =>
         println(pathParam)
         println(qp)
         println(qps)
@@ -87,14 +87,8 @@ object Example extends IOApp {
         sai.toString
       }
 
-  case class Fjon(name: String)
-  implicit val fjonDecoder: Decoder[Fjon] = Decoder { c =>
-    for {
-      name <- c.downField("name").as[String]
-    } yield {
-      Fjon(name)
-    }
-  }
+  case class ClientPayload(name: String)
+  implicit val clientPayloadDecoder: Decoder[ClientPayload] = Decoder.forProduct1("name")(ClientPayload)
 
   val post: Complete =
     unsecure(
@@ -102,12 +96,12 @@ object Example extends IOApp {
         "Check if a post request carshes if x09 is sent",
         Method.POST,
         Root / "does" / "this" / "work",
-        Consumes.json[Fjon],
+        Consumes.json[ClientPayload],
         Produces.json[String]
       )
     ).run { body =>
-        println(body)
-        "OK"
+      println(body)
+      "OK"
     }
 
   val post2: Complete =
@@ -116,13 +110,13 @@ object Example extends IOApp {
         "Check if a post request crashes if x09 is sent",
         Method.POST,
         Root / "does" / "this" / "work",
-        Consumes.jsonWithMediaType[Fjon](
-          MediaType.parse("application/fjon").getOrElse(throw new RuntimeException("could not parse media range"))),
+        Consumes.jsonWithMediaType[ClientPayload](
+          MediaType.parse("application/clientpayload").getOrElse(throw new RuntimeException("could not parse media range"))),
         Produces.json[String]
       )
     ).run { body =>
-        println(body)
-        "Fjonsvar"
+      println(body)
+      "Some Reply"
     }
 
   override def run(args: List[String]): IO[ExitCode] = {

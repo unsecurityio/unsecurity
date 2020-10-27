@@ -7,7 +7,7 @@ import org.http4s.implicits._
 import org.http4s.{Request, Status}
 
 class PathMatcherTest extends UnsecurityTestSuite {
-  val pathMatchers = new AbstractPathMatcher[Id] {}
+  val pathMatchers: AbstractPathMatcher[Id] = new AbstractPathMatcher[Id] {}
 
   test("/test") {
     val req: Request[Id] = Request[Id](uri = uri"/test")
@@ -30,6 +30,7 @@ class PathMatcherTest extends UnsecurityTestSuite {
     assert(!pathMatcher.isDefinedAt("/test"))
     assert(!pathMatcher.isDefinedAt("/test/aaa/aaa"))
     assert(pathMatcher.isDefinedAt("/test/aaa"))
+    assert(pathMatcher.isDefinedAt("/test/123"))
     assert(pathMatcher.isDefinedAt(uri.renderString))
 
     pathMatcher

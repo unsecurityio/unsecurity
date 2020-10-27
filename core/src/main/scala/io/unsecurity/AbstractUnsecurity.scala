@@ -14,24 +14,22 @@ import shapeless.HList
 
 abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatcher {
 
-  case class Endpoint[P <: HList, R, W](description: String = "",
-                                        method: Method,
-                                        path: HLinx[P],
-                                        consumes: EntityDecoder[F, R],
-                                        produces: Produces[W])
+  case class Endpoint[P <: HList, R, W](description: String = "", method: Method, path: HLinx[P], consumes: EntityDecoder[F, R], produces: Produces[W])
   object Endpoint {
     def apply[P <: HList, R, W](desc: String, method: Method, path: HLinx[P]) =
-      new Endpoint[P, Unit, Http4sDirective[F, Unit]](desc,
-                                                      method,
-                                                      path,
-                                                      Consumes.EmptyBody,
-                                                      Produces.Directive.EmptyBody)
+      new Endpoint[P, Unit, Http4sDirective[F, Unit]](desc, method, path, Consumes.EmptyBody, Produces.Directive.EmptyBody)
 
     def apply[P <: HList, W](desc: String, method: Method, path: HLinx[P], produces: Produces[W]) =
       new Endpoint[P, Unit, W](desc, method, path, Consumes.EmptyBody, produces)
 
+    def apply[P <: HList, W](method: Method, path: HLinx[P], produces: Produces[W]) =
+      new Endpoint[P, Unit, W]("", method, path, Consumes.EmptyBody, produces)
+
     def apply[P <: HList, R](desc: String, method: Method, path: HLinx[P], consumes: EntityDecoder[F, R]) =
       new Endpoint[P, R, Http4sDirective[F, Unit]](desc, method, path, consumes, Produces.Directive.EmptyBody)
+
+    def apply[P <: HList, R](method: Method, path: HLinx[P], consumes: EntityDecoder[F, R]) =
+      new Endpoint[P, R, Http4sDirective[F, Unit]]("", method, path, consumes, Produces.Directive.EmptyBody)
   }
 
   def secure[P <: HList, R, W, TUP, TUP2](endpoint: Endpoint[P, R, W])(
@@ -90,8 +88,7 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
       }
     )
 
-    def stream[W](status: Status = Status.Ok)(
-        implicit encoder: EntityEncoder[F, Stream[F, W]]): Produces[Stream[F, W]] =
+    def stream[W](status: Status = Status.Ok)(implicit encoder: EntityEncoder[F, Stream[F, W]]): Produces[Stream[F, W]] =
       Produces(
         None,
         s => Http4sDirective.success(Response[F](status).withEntity(s))
@@ -137,8 +134,7 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
       def json[E: Encoder](status: Status): Produces[Http4sDirective[F, E]] =
         jsonWithContentType(`Content-Type`(MediaType.application.json), status)
 
-      def jsonWithContentType[E: Encoder](contentType: `Content-Type`,
-                                          status: Status = Status.Ok): Produces[Http4sDirective[F, E]] =
+      def jsonWithContentType[E: Encoder](contentType: `Content-Type`, status: Status = Status.Ok): Produces[Http4sDirective[F, E]] =
         Produces(
           Some(contentType),
           (eDir: Http4sDirective[F, E]) =>
@@ -149,12 +145,11 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
                   .withContentType(contentType))
         )
 
-      val EmptyBody: Produces[Http4sDirective[F, Unit]] = Produces[Http4sDirective[F, Unit]](
-        contentType = None,
-        unitDir =>
-          unitDir.map { _: Unit =>
-            Response[F](Status.NoContent)
-        })
+      val EmptyBody: Produces[Http4sDirective[F, Unit]] = Produces[Http4sDirective[F, Unit]](contentType = None,
+                                                                                             unitDir =>
+                                                                                               unitDir.map { _: Unit =>
+                                                                                                 Response[F](Status.NoContent)
+                                                                                             })
     }
   }
 
@@ -169,8 +164,7 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
     def map[C2](f: C => C2): Secured[C2, W]
     def mapF[C2](f: C => F[C2]): Secured[C2, W]
     def mapD[C2](f: C => Http4sDirective[F, C2]): Secured[C2, W]
-    def authorization(predicate: C => Boolean,
-                      ifUnauthorized: => HttpProblem = HttpProblem.forbidden("Forbidden")): Completable[C, W]
+    def authorization(predicate: C => Boolean, ifUnauthorized: => HttpProblem = HttpProblem.forbidden("Forbidden")): Completable[C, W]
     def noAuthorization: Completable[C, W]
   }
 
@@ -186,9 +180,7 @@ trait Complete[F[_]] {
   def methodMap: Map[Method, MediaRangeMap[Any => ResponseDirective[F]]]
 }
 
-case class MediaRangeItem[A](supportedRequestContent: Set[MediaRange],
-                             responseContentType: Option[`Content-Type`],
-                             value: A)
+case class MediaRangeItem[A](supportedRequestContent: Set[MediaRange], responseContentType: Option[`Content-Type`], value: A)
 
 case class MediaRangeMap[A](mr2a2rdf: List[MediaRangeItem[A]]) {
   def merge(other: MediaRangeMap[A]): MediaRangeMap[A] = {

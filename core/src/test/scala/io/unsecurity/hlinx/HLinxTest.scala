@@ -12,19 +12,19 @@ class HLinxTest extends AnyFunSpec {
         val link = Root / "foo" / "bar"
 
         it("should match equal path") {
-          assert(link.capture("/foo/bar").isDefined)
+          assert(link.capture("/foo/bar").isRight)
         }
 
         it("should not match shorter path") {
-          assert(link.capture("/foo") === None)
+          assert(link.capture("/foo").isLeft)
         }
 
         it("should not match different path") {
-          assert(link.capture("/foo/baz") === None)
+          assert(link.capture("/foo/baz").isLeft)
         }
 
         it("should not match longer path") {
-          assert(link.capture("/foo/bar/baz") === None)
+          assert(link.capture("/foo/bar/baz").isLeft)
         }
       }
     }
@@ -34,23 +34,23 @@ class HLinxTest extends AnyFunSpec {
         val link = Root / "foo" / param[String]("str") / "bar"
 
         it("should not match shorter path") {
-          assert(link.capture("/foo") === None)
+          assert(link.capture("/foo").isLeft)
         }
 
         it("should not match longer path") {
-          assert(link.capture("/foo/str/bar/longer") === None)
+          assert(link.capture("/foo/str/bar/longer").isLeft)
         }
 
         it("should not match different path") {
-          assert(link.capture("/bar/str/foo") === None)
+          assert(link.capture("/bar/str/foo").isLeft)
         }
 
         it("should not match if static part of varfragment doesn't match") {
-          assert(link.capture("/foo/str") === None)
+          assert(link.capture("/foo/str").isLeft)
         }
 
         it("should match equal path") {
-          assert(link.capture("/foo/str/bar") === Some(Right(Tuple1("str"))))
+          assert(link.capture("/foo/str/bar") === Right(Tuple1("str")))
         }
       }
 
@@ -59,15 +59,15 @@ class HLinxTest extends AnyFunSpec {
           Root / "foo" / param[String]("str") / param[Int]("int") / "bar"
 
         it("should not match shorter path") {
-          assert(link.capture("/foo") === None)
+          assert(link.capture("/foo").isLeft)
         }
 
         it("should not match if static in varfragment doesn't match") {
-          assert(link.capture("/foo/str/1/baz") === None)
+          assert(link.capture("/foo/str/1/baz").isLeft)
         }
 
         it("should match equal path") {
-          assert(link.capture("/foo/str/1/bar") === Some(Right(("str", 1))))
+          assert(link.capture("/foo/str/1/bar") === Right(("str", 1)))
         }
       }
     }
@@ -77,23 +77,23 @@ class HLinxTest extends AnyFunSpec {
         val link = Root / "foo" / "bar" :? param[String]("str")
 
         it("should not match shorter path") {
-          assert(link.capture("/foo") === None)
+          assert(link.capture("/foo").isLeft)
         }
 
         it("should not match longer path") {
-          assert(link.capture("/foo/bar/longer") === None)
+          assert(link.capture("/foo/bar/longer").isLeft)
         }
 
         it("should not match different path") {
-          assert(link.capture("/bar/str/foo") === None)
+          assert(link.capture("/bar/str/foo").isLeft)
         }
 
         it("should not match if static part of varfragment doesn't match") {
-          assert(link.capture("/foo/bar") === None)
+          assert(link.capture("/foo/bar").isLeft)
         }
 
         it("should match equal path") {
-          assert(link.capture("/foo/bar?str=p1") === Some(Right(Tuple1("p1"))))
+          assert(link.capture("/foo/bar?str=p1") === Right(Tuple1("p1")))
         }
       }
 
@@ -101,23 +101,23 @@ class HLinxTest extends AnyFunSpec {
         val link = Root / "foo" / "bar" :? "str".as[String].?
 
         it("should not match shorter path") {
-          assert(link.capture("/foo") === None)
+          assert(link.capture("/foo").isLeft)
         }
 
         it("should not match longer path") {
-          assert(link.capture("/foo/bar/longer") === None)
+          assert(link.capture("/foo/bar/longer").isLeft)
         }
 
         it("should not match different path") {
-          assert(link.capture("/bar/str/foo") === None)
+          assert(link.capture("/bar/str/foo").isLeft)
         }
 
         it("should not match if static part of varfragment doesn't match") {
-          assert(link.capture("/foo/str") === None)
+          assert(link.capture("/foo/str").isLeft)
         }
 
         it("should match equal path") {
-          assert(link.capture("/foo/bar?str=p1") === Some(Right(Tuple1(Some("p1")))))
+          assert(link.capture("/foo/bar?str=p1") === Right(Tuple1(Some("p1"))))
         }
       }
 
@@ -125,31 +125,31 @@ class HLinxTest extends AnyFunSpec {
         val link = Root / "foo" / "bar" :? "str".as[String].*
 
         it("should not match shorter path") {
-          assert(link.capture("/foo") === None)
+          assert(link.capture("/foo").isLeft)
         }
 
         it("should not match longer path") {
-          assert(link.capture("/foo/bar/longer") === None)
+          assert(link.capture("/foo/bar/longer").isLeft)
         }
 
         it("should not match different path") {
-          assert(link.capture("/bar/str/foo") === None)
+          assert(link.capture("/bar/str/foo").isLeft)
         }
 
         it("should not match if static part of varfragment doesn't match") {
-          assert(link.capture("/foo/str") === None)
+          assert(link.capture("/foo/str").isLeft)
         }
 
         it("should match equal path") {
-          assert(link.capture("/foo/bar") === Some(Right(Tuple1(List()))))
+          assert(link.capture("/foo/bar") === Right(Tuple1(List())))
         }
 
         it("should match equal path with param") {
-           assert(link.capture("/foo/bar?str=p1") === Some(Right(Tuple1(List("p1")))))
+           assert(link.capture("/foo/bar?str=p1") === Right(Tuple1(List("p1"))))
         }
 
         it("should match equal path with params") {
-           assert(link.capture("/foo/bar?str=p1&str=p2") === Some(Right(Tuple1(List("p1", "p2")))))
+           assert(link.capture("/foo/bar?str=p1&str=p2") === Right(Tuple1(List("p1", "p2"))))
         }
       }
 
@@ -157,15 +157,15 @@ class HLinxTest extends AnyFunSpec {
         val link = Root / "foo" / "bar" :? param[String]("str") & param[Int]("int")
 
         it("should not match shorter path") {
-          assert(link.capture("/foo") === None)
+          assert(link.capture("/foo").isLeft)
         }
 
         it("should not match if static in varfragment doesn't match") {
-          assert(link.capture("/foo/str/baz") === None)
+          assert(link.capture("/foo/str/baz").isLeft)
         }
 
         it("should match equal path") {
-          assert(link.capture("/foo/bar?str=txt&int=1") === Some(Right(("txt", 1))))
+          assert(link.capture("/foo/bar?str=txt&int=1") === Right(("txt", 1)))
         }
       }
 
