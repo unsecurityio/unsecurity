@@ -4,6 +4,8 @@ import java.net.URLDecoder
 
 import shapeless.{::, HList, HNil}
 
+import scala.util.Try
+
 object HLinx {
   def param[A: ParamConverter](name: String): Param[A] = Param(name, ParamConverter[A])
 
@@ -111,15 +113,21 @@ object HLinx {
     def &[A](h: Params[A]): QueryParam[A, H :: T] = QueryParam[A, H :: T](this, h.converter, h.name)
 
     override def extract(path: List[String], queryParams: Map[String, List[String]]): Either[CaptureFailure, H :: T] = {
-      val value: List[String]               = queryParams.getOrElse(field, Nil)
-      val convertedValue: Either[String, H] = P.convert(value)
-      (value, convertedValue) match {
-        case (Nil, Left(_)) => Left(MissingQueryParam(field))
-        case (_, Left(msg)) => Left(QueryParamConvertFailure(field, msg))
-        case (_, Right(value)) =>
-          parent
-            .extract(path, queryParams)
-            .map(t => value :: t)
+      def urlDecode(undecoded: String): Either[QueryParamConvertFailure, String] =
+        Try {
+          URLDecoder.decode(undecoded, "UTF-8")
+        }.toEither.left.map(t => QueryParamConvertFailure(field, t.getMessage))
+
+      parent.extract(path, queryParams).flatMap { t =>
+        import cats.implicits._
+        val values: List[Either[QueryParamConvertFailure, String]] = queryParams.getOrElse(field, Nil).map(urlDecode)
+        val bah: Either[QueryParamConvertFailure, List[String]]    = values.sequence
+        val convertedValue: Either[QueryParamConvertFailure, H]    = bah.flatMap(vs => P.convert(vs).left.map(msg => QueryParamConvertFailure(field, msg)))
+        (values, convertedValue) match {
+          case (Nil, Left(_))    => Left(MissingQueryParam(field))
+          case (_, Left(cpcf))   => Left(cpcf)
+          case (_, Right(value)) => Right(value :: t)
+        }
       }
     }
 
@@ -132,7 +140,7 @@ object HLinx {
     (splitPath(arr.head), splitQueryParams(arr.tail.headOption.getOrElse("")))
   }
   private def splitPath(path: String): List[String] = path.split("/").toList.filter(_.nonEmpty)
-  private def splitQueryParams(s: String): Map[String, List[String]] =
+  private def splitQueryParams(s: String): Map[String, List[String]] = {
     s.split("&")
       .toList
       .map(qs => {
@@ -140,4 +148,5 @@ object HLinx {
         qa.head -> qa.tail.headOption
       })
       .groupMapReduce(_._1)(_._2.toList)(_ ++ _)
+  }
 }

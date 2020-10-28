@@ -8,8 +8,8 @@ import io.unsecurity.hlinx.HLinx._
 import org.http4s.Status.NotAcceptable
 import org.http4s._
 import org.http4s.circe._
-import org.http4s.client.UnexpectedStatus
-import org.http4s.headers.{Accept, MediaRangeAndQValue, `Content-Type`}
+import org.http4s.client.{Client, UnexpectedStatus}
+import org.http4s.headers.{`Content-Type`, Accept, MediaRangeAndQValue}
 import org.http4s.server.Server
 
 class AcceptHeadersTest extends HttpIOSuite {
@@ -131,7 +131,7 @@ class AcceptHeadersTest extends HttpIOSuite {
       .map(_ => false)
       .handleErrorWith {
         case st: UnexpectedStatus => IO(st.status == NotAcceptable)
-        case _                   => IO(false)
+        case _                    => IO(false)
       }
       .map(actual => assertEquals(actual, true, req))
   }
@@ -139,6 +139,14 @@ class AcceptHeadersTest extends HttpIOSuite {
   test("Using standard http4s implied accept") {
     val req = Request[IO](uri = Uri.unsafeFromString(s"http://localhost:$port/json"))
     httpClient()
+      .expect[Json](req)
+      .map(actual => assertEquals(actual, jsonPayload, req))
+  }
+
+  test("Calling without any accept header set") {
+    val client = Client[IO](req => httpClient().run(req.removeHeader(Accept)))
+    val req    = Request[IO](uri = Uri.unsafeFromString(s"http://localhost:$port/json"))
+    client
       .expect[Json](req)
       .map(actual => assertEquals(actual, jsonPayload, req))
   }
