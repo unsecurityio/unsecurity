@@ -33,13 +33,24 @@ object HLinx {
   case class QueryParamConvertFailure(name: String, error: String) extends ContinueMatching
 
   sealed trait HLinx[T <: HList] {
+    self =>
     final def capture[TUP](s: String)(implicit revTup: ReversedTupled.Aux[T, TUP]): Either[CaptureFailure, TUP] = {
       val (paths, queryParams) = splitPathAndQueryParams(s)
       extract(paths.reverse, queryParams).map(e => revTup(e))
     }
     def extract(path: List[String], queryParams: Map[String, List[String]]): Either[CaptureFailure, T]
     def toSimple: List[SimpleLinx]
+
+    def renderString = {
+      val (path, params) = self.toSimple.reverse.partition {
+        case _: SimpleParams => false
+        case _ => true
+      }
+      s"/${path.mkString("/")}?${params.mkString("&")}"
+    }
   }
+
+
   trait HPath[T <: HList] extends HLinx[T] {
     self =>
     def /(element: String): Static[T] = {

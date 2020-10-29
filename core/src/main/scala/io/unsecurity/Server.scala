@@ -33,17 +33,10 @@ object Server {
       )
     }
 
-    val compiledRoutes: List[PathMatcher[Response[F]]] =
-      mergedRoutes.map(_.compile)
-
+    val compiledRoutes: List[PathMatcher[Response[F]]] = mergedRoutes.map(_.compile)
     val reducedRoutes: PathMatcher[Response[F]] = compiledRoutes.reduce(_ orElse _)
-
     val PathMapping = new UnsecurityPlan[F].PathMapping
 
-    val service: HttpRoutes[F] = HttpRoutes.of[F](
-      PathMapping(reducedRoutes)
-    )
-
-    service
+    HttpRoutes.of[F](PathMapping(reducedRoutes))
   }
 }

@@ -175,5 +175,4 @@ class AcceptHeadersTest extends HttpIOSuite {
     def unsecurity(version: String): `Content-Type` = `Content-Type`(MediaTypes.unsecurity(version))
     def mixedCase: `Content-Type`                   = `Content-Type`(MediaTypes.mixedCase)
   }
-
 }
