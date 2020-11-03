@@ -25,7 +25,7 @@ class PathTest extends HttpIOSuite {
     unsecure(
       Endpoint(
         Method.GET,
-        Root / "collide/root" ,
+        Root / "collide" / "root" ,
         Produces.json[Json]
       )
     ).run { _ =>

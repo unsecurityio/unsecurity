@@ -21,5 +21,7 @@ class UnsecurityPlan[F[_]](implicit M: MonadError[F, Throwable]) {
     }
   }
 
-  lazy val PathMapping: Mapping[Uri.Path] = Mapping[Uri.Path](r => r.uri.renderString)
+  lazy val PathMapping: Mapping[Uri.Path] = Mapping[Uri.Path]{ r =>
+    s"${r.pathInfo}?${r.queryString}"
+  }
 }

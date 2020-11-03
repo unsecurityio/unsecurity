@@ -5,6 +5,7 @@ import java.net.ServerSocket
 import cats.effect.IO
 import io.unsecurity.{SecurityContext, Server, Unsecurity, UnsecurityOps}
 import no.scalabin.http4s.directives.Directive
+import org.http4s.HttpRoutes
 import org.http4s.client.Client
 import org.http4s.client.blaze.BlazeClientBuilder
 import org.http4s.server.Server
@@ -12,6 +13,7 @@ import org.http4s.server.blaze.BlazeServerBuilder
 
 import scala.concurrent.duration._
 import org.http4s.implicits._
+import cats.implicits._
 
 class HttpIOSuite extends IOSuite {
 
@@ -49,17 +51,27 @@ class HttpIOSuite extends IOSuite {
     "client"
   )
 
-  def server(routes: Complete*): Fixture[Server[IO]] = suiteResourceFixture(
+
+  def server(httpRoute: HttpRoutes[IO], routes: Complete*): Fixture[Server[IO]] = {
+    server(
+      Server
+        .toHttpRoutes(
+          routes: _*
+        ) <+> httpRoute)
+  }
+
+  def server(httpRoute: HttpRoutes[IO]): Fixture[Server[IO]] = suiteResourceFixture(
     BlazeServerBuilder[IO](scala.concurrent.ExecutionContext.Implicits.global)
       .bindHttp(port, "0.0.0.0")
-      .withHttpApp(
-        Server
-          .toHttpRoutes(
-            routes: _*
-          )
-          .orNotFound
-      )
+      .withHttpApp(httpRoute.orNotFound)
       .resource,
     "server"
   )
+
+  def server(routes: Complete*): Fixture[Server[IO]] =
+    server(
+      Server
+        .toHttpRoutes(
+          routes: _*
+        ))
 }
