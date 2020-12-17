@@ -15,7 +15,7 @@ val circeVersion      = "0.13.0"
 val shapelessVersion  = "2.3.3"
 val scalaTestVersion  = "3.2.2"
 val logbackVersion    = "1.2.3"
-val munitVersion      = "0.7.14"
+val munitVersion      = "0.7.20"
 val munitCatsVersion  = "0.4-759809d"
 
 libraryDependencies := Seq(
