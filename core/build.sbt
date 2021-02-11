@@ -10,12 +10,12 @@ testFrameworks += new TestFramework("munit.Framework")
 
 val http4sVersion     = "0.21.8"
 val directivesVersion = "0.21.5"
-val fs2Version        = "2.4.4"
+val fs2Version        = "2.4.6"
 val circeVersion      = "0.13.0"
 val shapelessVersion  = "2.3.3"
-val scalaTestVersion  = "3.2.2"
+val scalaTestVersion  = "3.2.3"
 val logbackVersion    = "1.2.3"
-val munitVersion      = "0.7.14"
+val munitVersion      = "0.7.21"
 val munitCatsVersion  = "0.4-759809d"
 
 libraryDependencies := Seq(
