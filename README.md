@@ -13,7 +13,7 @@
 
 ## Changelog
 
-### 3.0.1 (2021-03-15)
+### 3.0.2 (2021-03-15)
 
 * Added Produces..response to be able to return any Http4s Response directly from run
 * Updated http4s, fs2 and cats effetcs versions
