@@ -57,6 +57,8 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
 
   object Produces {
 
+    def response: Produces[Response[F]] = Produces(None, r => Http4sDirective.success(r))
+
     def EmptyBody: Produces[Unit] = Produces[Unit](None, _ => Http4sDirective.success(Response[F](Status.NoContent)))
 
     def json[W: Encoder]: Produces[W] = json(Status.Ok)
@@ -101,6 +103,8 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
       )
 
     object F {
+      def response: Produces[F[Response[F]]] = Produces(None, r => Http4sDirective.liftF(r))
+
       def json[W: Encoder]: Produces[F[W]] = json(Status.Ok)
 
       def json[W: Encoder](status: Status): Produces[F[W]] =
@@ -122,6 +126,8 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
     }
 
     object Directive {
+
+      def response: Produces[ResponseDirective[F]] = Produces(None, identity)
 
       def SSE: Produces[Http4sDirective[F, Stream[F, ServerSentEvent]]] =
         Produces(

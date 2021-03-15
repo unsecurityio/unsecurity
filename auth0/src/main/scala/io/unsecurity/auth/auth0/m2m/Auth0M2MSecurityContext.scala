@@ -1,8 +1,5 @@
 package io.unsecurity.auth.auth0.m2m
 
-import java.security.interfaces.{RSAPrivateKey, RSAPublicKey}
-import java.time.{Instant, OffsetDateTime, ZoneId, ZoneOffset}
-
 import cats.effect.Sync
 import com.auth0.jwk.JwkProvider
 import com.auth0.jwt.JWT
@@ -14,27 +11,28 @@ import io.unsecurity.{HttpProblem, SecurityContext, UnsecurityOps}
 import no.scalabin.http4s.directives.Directive
 import okio.ByteString
 import org.http4s.headers.Authorization
+import org.http4s.{Method, Uri}
 
+import java.security.interfaces.{RSAPrivateKey, RSAPublicKey}
+import java.time.{Instant, OffsetDateTime, ZoneId, ZoneOffset}
 import scala.util.Try
 
-class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplication => F[Option[U]],
-                                             issuer: String,
-                                             audience: String,
-                                             jwkProvider: JwkProvider)
+class Auth0M2MSecurityContext[F[_], U](lookup: OauthAuthenticatedApplication => F[Option[U]], issuer: String, audience: String, jwkProvider: JwkProvider)(
+    implicit F: Sync[F])
     extends SecurityContext[F, OauthAuthenticatedApplication, U]
     with UnsecurityOps[F] {
 
   override def authenticate: Directive[F, OauthAuthenticatedApplication] = {
     for {
+      attemptedMethod  <- Directive.request[F].map(_.method)
       attemptedPath    <- request.path
-      requestAuthToken <- requestAuthToken
-      decodedJWT       <- decodedJWT(requestAuthToken)
-      jwtHeader        <- jwtHeader(decodedJWT)
-      publicKey        = jwkProvider.get(jwtHeader.kid).getPublicKey.asInstanceOf[RSAPublicKey]
-      alg              = Algorithm.RSA256(createPublicKeyProvider(publicKey))
-      verifiedToken    <- verifyAccessToken(alg, requestAuthToken, attemptedPath)
-      jwtToken         <- jwtToken(verifiedToken)
-      _                <- checkExpiration(jwtToken)
+      requestAuthToken <- requestAuthToken(attemptedMethod, attemptedPath)
+      decodedJWT       <- decodedJWT(attemptedMethod, attemptedPath, requestAuthToken)
+      jwtHeader        <- jwtHeader(attemptedMethod, attemptedPath, decodedJWT)
+      alg              <- cryptoAlgorithm(attemptedMethod, attemptedPath, jwtHeader)
+      verifiedToken    <- verifyAccessToken(attemptedMethod, attemptedPath, alg, requestAuthToken)
+      jwtToken         <- jwtToken(attemptedMethod, attemptedPath, verifiedToken)
+      _                <- checkExpiration(attemptedMethod, attemptedPath, jwtToken)
       userProfile      <- extractProfile(jwtToken, requestAuthToken)
     } yield {
       userProfile
@@ -49,32 +47,38 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
     */
   override def xsrfCheck: Directive[F, String] = Directive.success("")
 
-  override def transformUser(rawUser: OauthAuthenticatedApplication): F[Option[U]] = {
-    lookup(rawUser)
-  }
+  override def transformUser(rawUser: OauthAuthenticatedApplication): F[Option[U]] = lookup(rawUser)
 
-  private[unsecurity] def requestAuthToken: Directive[F, String] = {
+  private[unsecurity] def requestAuthToken(attemptedMethod: Method, attemptedPath: Uri.Path): Directive[F, String] = {
     for {
       authHeader <- request.header(Authorization)
       token <- authHeader
                 .map(header => header.value.split(" "))
                 .filter(_.head.equalsIgnoreCase("bearer"))
                 .map(_.last)
-                .toDirective(
-                  HttpProblem.unauthorized("Authorization header with Bearer scheme not found").toDirectiveError)
+                .toDirective(HttpProblem.unauthorized(s"Authorization header with Bearer scheme not found [$attemptedMethod, $attemptedPath]").toDirectiveError)
     } yield token
   }
 
-  private def decodedJWT(token: String): Directive[F, DecodedJWT] = {
+  private def decodedJWT(attemptedMethod: Method, attemptedPath: Uri.Path, token: String): Directive[F, DecodedJWT] = {
     Try(JWT.decode(token)).toSuccess { throwable =>
-      Unauthorized(s"Could not extract token from request [${throwable.getMessage}]")
+      Unauthorized(s"Could not extract token from request [$attemptedMethod, $attemptedPath, ${throwable.getMessage}]")
     }
   }
 
-  private def jwtHeader(jwtToken: DecodedJWT): Directive[F, JwtHeader] = {
+  private def cryptoAlgorithm(attemptedMethod: Method, attemptedPath: Uri.Path, jwtHeader: JwtHeader): Directive[F, Algorithm] = {
+    Try {
+      val publicKey = jwkProvider.get(jwtHeader.kid).getPublicKey.asInstanceOf[RSAPublicKey]
+      Algorithm.RSA256(createPublicKeyProvider(publicKey))
+    }.toSuccess { throwable =>
+      Unauthorized(s"Could not get public key from jwt hedader [$attemptedMethod, $attemptedPath, ${throwable.getMessage}]")
+    }
+  }
+
+  private def jwtHeader(attemptedMethod: Method, attemptedPath: Uri.Path, jwtToken: DecodedJWT): Directive[F, JwtHeader] = {
     for {
       decodedHeaderString <- decodeBase64(jwtToken.getHeader)
-      header              <- decode[JwtHeader](decodedHeaderString).toDirective(_ => Unauthorized("Could not decode jwt header"))
+      header              <- decode[JwtHeader](decodedHeaderString).toDirective(_ => Unauthorized(s"Could not decode jwt header [$attemptedMethod, $attemptedPath]"))
     } yield header
   }
 
@@ -97,9 +101,7 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
     }
   }
 
-  private def verifyAccessToken(alg: Algorithm,
-                                accessToken: String,
-                                attemptedPath: String): Directive[F, DecodedJWT] = {
+  private def verifyAccessToken(attemptedMethod: Method, attemptedPath: Uri.Path, alg: Algorithm, accessToken: String): Directive[F, DecodedJWT] = {
     val verifier = JWT
       .require(alg)
       .withIssuer(issuer)
@@ -108,26 +110,24 @@ class Auth0M2MSecurityContext[F[_]: Sync, U](lookup: OauthAuthenticatedApplicati
     Try {
       verifier.verify(accessToken)
     }.toSuccess { throwable =>
-      Unauthorized(s"Could not verify token path: $attemptedPath [${throwable.getMessage}]")
+      Unauthorized(s"Could not verify token path: [$attemptedMethod, $attemptedPath, ${throwable.getMessage}]")
     }
   }
 
-  private def jwtToken(verifiedToken: DecodedJWT): Directive[F, JwtToken] = {
+  private def jwtToken(attemptedMethod: Method, attemptedPath: Uri.Path, verifiedToken: DecodedJWT): Directive[F, JwtToken] = {
     for {
-      base64Token <- decodeBase64(verifiedToken.getPayload) // TODO: Base64 URL decode !!!
-      jwtToken <- decode[JwtToken](base64Token).toDirective { decodeError =>
-                   Unauthorized(s"Unable to decode JWT payload: $decodeError")
-                 }
+      base64Token <- decodeBase64(verifiedToken.getPayload)
+      jwtToken    <- decode[JwtToken](base64Token).toDirective(decodeError => Unauthorized(s"Unable to decode JWT payload: [$attemptedMethod, $attemptedPath, $decodeError]"))
     } yield {
       jwtToken
     }
   }
 
-  private def checkExpiration(jwtToken: JwtToken): Directive[F, String] = {
+  private def checkExpiration(attemptedMethod: Method, attemptedPath: Uri.Path, jwtToken: JwtToken): Directive[F, String] = {
     val expirationTime = OffsetDateTime.from(Instant.ofEpochSecond(jwtToken.exp).atOffset(ZoneOffset.UTC))
     val now            = OffsetDateTime.now(ZoneId.from(ZoneOffset.UTC))
     if (now.isAfter(expirationTime)) {
-      Unauthorized(s"Token is expired! $now is after expirationTime: $expirationTime")
+      Unauthorized(s"Token is expired! $now is after expirationTime: $expirationTime for [sub ${jwtToken.sub}, iss ${jwtToken.iss}, aud ${jwtToken.aud}, method $attemptedMethod, path $attemptedPath]")
     } else {
       Directive.success("Valid token")
     }

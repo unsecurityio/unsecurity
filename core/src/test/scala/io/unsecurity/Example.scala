@@ -125,7 +125,6 @@ object Example extends IOApp {
       .bindHttp(8088, "0.0.0.0")
       .enableHttp2(false)
       .withWebSockets(true)
-      .withNio2(true)
       .withHttpApp(
         Server
           .toHttpRoutes(

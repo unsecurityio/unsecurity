@@ -14,7 +14,7 @@ class Auth0M2MSecurityContextTest extends UnsecurityTestSuite {
 
   test("Extracts Bearer token from Authorization header") {
     val get = Request[IO](headers = Headers.of(Header("Authorization", s"Bearer ${UUID.randomUUID().toString}")))
-    m2mSecurity.requestAuthToken.run(get).unsafeRunSync().where {
+    m2mSecurity.requestAuthToken(Method.GET, "/bah").run(get).unsafeRunSync().where {
       case Result.Success(token) => Ok
       case Result.Error(e)       => Fail(e.bodyText.compile.lastOrError.unsafeRunSync())
     }
