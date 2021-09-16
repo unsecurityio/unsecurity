@@ -10,7 +10,7 @@ testFrameworks += new TestFramework("munit.Framework")
 
 val http4sVersion     = "0.21.28"
 val directivesVersion = "0.21.24"
-val fs2Version        = "2.5.9"
+val fs2Version        = "3.1.2"
 val circeVersion      = "0.14.1"
 val shapelessVersion  = "2.3.7"
 val scalaTestVersion  = "3.2.9"
