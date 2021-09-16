@@ -2,8 +2,6 @@ package io.unsecurity.auth
 package auth0
 package oidc
 
-import java.net.URI
-
 import cats.effect.Sync
 import com.auth0.jwk.JwkProvider
 import io.unsecurity.Unsecurity
@@ -14,6 +12,8 @@ import org.http4s.{Method, Response, ResponseCookie}
 import org.log4s.getLogger
 import shapeless.HNil
 
+import java.net.URL
+
 class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HPath[HNil],
                                          val sc: Auth0OidcSecurityContext[F, U],
                                          jwkProvider: JwkProvider)
@@ -21,7 +21,11 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HPath[HNil],
 
   private[this] val log = getLogger
 
-  implicit val uriParamConverter: ParamConverter[URI] = ParamConverter.createSimple(s => new URI(s))
+  implicit val urlParamConverter: ParamConverter[URL] = ParamConverter.create { s =>
+    Right(new URL(s))
+      .filterOrElse(_.getProtocol.matches("^https?$"), s"Invalid protocol in URL parameter '$s'. Only http(s) is supported.")
+      .filterOrElse(_.getHost.nonEmpty, s"Invalid host in URL parameter '$s'")
+  }
 
   val login: Complete = {
     unsecure(
@@ -34,15 +38,15 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HPath[HNil],
     ).run(
       _ =>
         for {
-          returnToUrlParam      <- queryParamAs[URI]("next")
+          returnToUrlParam      <- queryParamAs[URL]("next")
           _                     = log.trace(s"/login returnToUrlParam: $returnToUrlParam")
-          auth0CallbackUrlParam <- queryParamAs[URI]("auth0Callback")
+          auth0CallbackUrlParam <- queryParamAs[URL]("auth0Callback")
           _                     = log.trace(s"/login auth0CallbackUrlParam: $auth0CallbackUrlParam")
           state                 <- sc.randomString(32).toDirective
           callbackUrl           = auth0CallbackUrlParam.getOrElse(sc.authConfig.defaultAuth0CallbackUrl)
           returnToUrl           = returnToUrlParam.getOrElse(sc.authConfig.defaultReturnToUrl)
           stateCookie <- sc.Cookies
-                          .createStateCookie(secureCookie = callbackUrl.getScheme.equalsIgnoreCase("https"))
+                          .createStateCookie(secureCookie = callbackUrl.getProtocol.equalsIgnoreCase("https"))
                           .toDirective
           _        <- sc.sessionStore.storeState(stateCookie.content, State(state, returnToUrl, callbackUrl, "")).toDirective
           auth0Url = sc.createAuth0Url(state, callbackUrl)
@@ -76,7 +80,7 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HPath[HNil],
           _             = log.trace(s"/callback userProfile: $oidcUser")
           sessionCookie <- sc.Cookies
                             .createSessionCookie(
-                              secureCookie = state.callbackUrl.getScheme.equalsIgnoreCase("https")
+                              secureCookie = state.callbackUrl.getProtocol.equalsIgnoreCase("https")
                             )
                             .toDirective
           _ <- sc.sessionStore.storeSession(sessionCookie.content, oidcUser).toDirective
@@ -89,11 +93,11 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HPath[HNil],
             sc.authConfig.defaultReturnToUrl
           }
           xsrf <- sc.Cookies
-                   .createXsrfCookie(secureCookie = returnToUrl.getScheme.equalsIgnoreCase("https"))
+                   .createXsrfCookie(secureCookie = returnToUrl.getProtocol.equalsIgnoreCase("https"))
                    .toDirective
           _ <- sc.sessionStore.removeState(stateCookie.content).toDirective
           _ <- break(
-                Redirect(returnToUrl)
+                Redirect(returnToUrl.toURI)
                   .addCookie(ResponseCookie(name = sc.Cookies.Keys.STATE, content = "", maxAge = Option(-1)))
                   .addCookie(sessionCookie)
                   .addCookie(xsrf)
@@ -119,7 +123,7 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HPath[HNil],
             cookie <- sc.sessionCookie
             _      <- sc.sessionStore.removeSession(cookie.content).toDirective
             _ <- break(
-                  Redirect(sc.authConfig.afterLogoutUrl)
+                  Redirect(sc.authConfig.afterLogoutUrl.toURI)
                     .addCookie(
                       ResponseCookie(name = sc.Cookies.Keys.K_SESSION_ID, content = "", maxAge = Option(-1))
                     )
