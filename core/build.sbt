@@ -8,14 +8,14 @@ scalacOptions := Seq(
 
 testFrameworks += new TestFramework("munit.Framework")
 
-val http4sVersion     = "0.21.20"
+val http4sVersion     = "0.21.28"
 val directivesVersion = "0.21.14"
 val fs2Version        = "2.5.3"
 val circeVersion      = "0.13.0"
 val shapelessVersion  = "2.3.3"
 val scalaTestVersion  = "3.2.5"
-val logbackVersion    = "1.2.3"
 val munitVersion      = "0.7.29"
+val logbackVersion    = "1.2.6"
 val munitCatsVersion  = "0.13.1"
 
 libraryDependencies := Seq(
