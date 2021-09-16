@@ -3,7 +3,7 @@ package io.unsecurity
 import cats.effect.{ExitCode, IO, IOApp}
 import io.circe.Decoder
 import io.unsecurity.hlinx.HLinx._
-import org.http4s.server.blaze.BlazeServerBuilder
+import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.{MediaType, Method}
 import org.http4s.implicits._
 

@@ -7,9 +7,9 @@ import io.unsecurity.{SecurityContext, Server, Unsecurity, UnsecurityOps}
 import no.scalabin.http4s.directives.Directive
 import org.http4s.HttpRoutes
 import org.http4s.client.Client
-import org.http4s.client.blaze.BlazeClientBuilder
+import org.http4s.blaze.client.BlazeClientBuilder
 import org.http4s.server.Server
-import org.http4s.server.blaze.BlazeServerBuilder
+import org.http4s.blaze.server.BlazeServerBuilder
 
 import scala.concurrent.duration._
 import org.http4s.implicits._
