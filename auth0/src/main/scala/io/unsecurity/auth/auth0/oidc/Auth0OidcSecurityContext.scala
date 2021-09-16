@@ -2,7 +2,7 @@ package io.unsecurity
 package auth.auth0
 package oidc
 
-import java.net.URI
+import java.net.URL
 import java.security.interfaces.RSAPublicKey
 
 import cats.data.EitherT
@@ -121,7 +121,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
     )
   }
 
-  def createAuth0Url(state: String, auth0CallbackUrl: URI): String = {
+  def createAuth0Url(state: String, auth0CallbackUrl: URL): String = {
     new AuthAPI(authConfig.issuer, authConfig.clientId, authConfig.clientSecret)
       .authorizeUrl(auth0CallbackUrl.toString)
       .withScope("openid profile email")
@@ -152,7 +152,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
     } yield sessionState
   }
 
-  def isReturnUrlWhitelisted(uri: URI): Boolean = {
+  def isReturnUrlWhitelisted(uri: URL): Boolean = {
     authConfig.returnToUrlDomainWhitelist.contains(uri.getHost)
   }
 
@@ -168,7 +168,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
     }
   }
 
-  def fetchTokenFromAuth0(code: String, auth0CallbackUrl: URI): Directive[F, TokenResponse] = {
+  def fetchTokenFromAuth0(code: String, auth0CallbackUrl: URL): Directive[F, TokenResponse] = {
     val tokenUrl      = Uri.unsafeFromString(authConfig.issuer) / "oauth" / "token"
     val jsonMediaType = MediaType.application.json
     val payload = TokenRequest(grantType = "authorization_code",
@@ -283,7 +283,7 @@ class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
 
 }
 
-case class TokenRequest(grantType: String, clientId: String, clientSecret: String, code: String, redirectUri: URI)
+case class TokenRequest(grantType: String, clientId: String, clientSecret: String, code: String, redirectUri: URL)
 
 object TokenRequest {
   implicit val tokenRequestEncoder: Encoder[TokenRequest] = Encoder { tr =>
