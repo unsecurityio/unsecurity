@@ -31,6 +31,14 @@ class AcceptHeadersTest extends HttpIOSuite {
     "version" := "mixed"
   )
 
+  val qParamRootPayload: Json = Json.obj(
+    "version" := "qParamRoot"
+  )
+
+  val qParamAltPayload: Json = Json.obj(
+    "version" := "qParamAlt"
+  )
+
   val versionOneService: Complete =
     unsecure(
       Endpoint(
@@ -75,11 +83,33 @@ class AcceptHeadersTest extends HttpIOSuite {
       jsonPayload
     }
 
+  val qParamRootService: Complete =
+    unsecure(
+      Endpoint(
+        Method.GET,
+        Root / "qparam",
+        Produces.jsonWithContentType[Json](ContentTypes.qParamRoot)
+      )
+    ).run { _ =>
+      qParamRootPayload
+    }
+
+  val qParamAltService: Complete =
+    unsecure(
+      Endpoint(
+        Method.GET,
+        Root / "qparam" :? "param".as[String] ,
+        Produces.jsonWithContentType[Json](ContentTypes.qParamAlt)
+      )
+    ).run { _  =>
+      qParamAltPayload
+    }
+
   /**
     * Serving version 2 (the latest version) as the first route so that it should be picked if a wildcard or content-type
     * with no extensions are used
     */
-  val server: Fixture[Server[IO]] = server(versionTwoService, versionOneService, mixedCaseService, jsonService)
+  val server: Fixture[Server[IO]] = server(versionTwoService, versionOneService, mixedCaseService, jsonService, qParamAltService, qParamRootService )
 
   val baseReq: Request[IO] = Request[IO](uri = Uri.unsafeFromString(s"http://localhost:$port/accept-header"))
   test("Wildcard accept header should result in the first served route that matches the Uri") {
@@ -158,21 +188,39 @@ class AcceptHeadersTest extends HttpIOSuite {
       .map(actual => assertEquals(actual, mixedCasePayload, req))
   }
 
+
+  test("Alternative paths based on query params") {
+    val req = Request[IO](uri = Uri.unsafeFromString(s"http://localhost:$port/qparam?param=1")).withHeaders(AcceptHeaders.qParamAlt)
+    httpClient()
+      .expect[Json](req)
+      .map(actual => assertEquals(actual, qParamAltPayload, req))
+  }
+
   object MediaTypes {
     def unsecurity(version: String) =
       new MediaType("application", "vnd.unsecurity+json", compressible = true, binary = false, extensions = Map[String, String]("version" -> version))
 
     def mixedCase =
       new MediaType("application", "vnd.unsecurity.mixedCase+json", compressible = true, binary = false)
+
+    def qParamRoot =
+      new MediaType("application", "vnd.unsecurity.qParamRoot", compressible = true, binary = false)
+
+    def qParamAlt =
+      new MediaType("application", "vnd.unsecurity.qParamAlt", compressible = true, binary = false)
   }
 
   object AcceptHeaders {
     def unsecurity(version: String): Accept = Accept(NonEmptyList.one(MediaRangeAndQValue(MediaTypes.unsecurity(version))))
     def mixedCase: Accept                   = Accept(NonEmptyList.one(MediaRangeAndQValue(MediaTypes.mixedCase)))
+    def qParamRoot: Accept                   = Accept(NonEmptyList.one(MediaRangeAndQValue(MediaTypes.qParamRoot)))
+    def qParamAlt: Accept                   = Accept(NonEmptyList.one(MediaRangeAndQValue(MediaTypes.qParamAlt)))
   }
 
   object ContentTypes {
     def unsecurity(version: String): `Content-Type` = `Content-Type`(MediaTypes.unsecurity(version))
     def mixedCase: `Content-Type`                   = `Content-Type`(MediaTypes.mixedCase)
+    def qParamRoot: `Content-Type`                   = `Content-Type`(MediaTypes.qParamRoot)
+    def qParamAlt: `Content-Type`                   = `Content-Type`(MediaTypes.qParamAlt)
   }
 }
