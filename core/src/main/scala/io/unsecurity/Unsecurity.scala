@@ -1,18 +1,19 @@
 package io
 package unsecurity
 
-import cats.effect.Sync
+import cats.effect.{Async, Concurrent, Sync}
 import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}
 import no.scalabin.http4s.directives.Directive
 import org.http4s.{DecodeFailure, MediaRange, Method, Response}
 import shapeless.HList
 
-abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
+abstract class Unsecurity[F[_]: Async, RU, U] extends AbstractUnsecurity[F, U] {
 
   def sc: SecurityContext[F, RU, U]
 
   case class MySecured[C, W](
       key: List[SimpleLinx],
+      queryParams: List[String],
       pathMatcher: PathMatcher[Any],
       consumes: Set[MediaRange],
       methodMap: Map[Method, Any => Directive[F, C]],
@@ -23,6 +24,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
         ifUnauthorized: => HttpProblem = HttpProblem.forbidden("Forbidden")): Completable[C, W] = {
       MyCompletable(
         key = key,
+        queryParams = queryParams,
         pathMatcher = pathMatcher,
         consumes = consumes,
         methodMap = methodMap.map {
@@ -42,6 +44,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
     override def mapD[C2](f: C => Directive[F, C2]): Secured[C2, W] = {
       MySecured(
         key = key,
+        queryParams = queryParams,
         pathMatcher = pathMatcher,
         consumes = consumes,
         methodMap = methodMap.map {
@@ -56,6 +59,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
     override def map[C2](f: C => C2): Secured[C2, W] = {
       MySecured(
         key = key,
+        queryParams = queryParams,
         pathMatcher = pathMatcher,
         consumes = consumes,
         methodMap = methodMap.map {
@@ -70,6 +74,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
     override def mapF[C2](f: C => F[C2]): Secured[C2, W] = {
       MySecured(
         key = key,
+        queryParams = queryParams,
         pathMatcher = pathMatcher,
         consumes = consumes,
         methodMap = methodMap.map {
@@ -84,6 +89,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
     def noAuthorization: Completable[C, W] =
       MyCompletable(
         key = key,
+        queryParams = queryParams,
         pathMatcher = pathMatcher,
         consumes = consumes,
         methodMap = methodMap,
@@ -97,6 +103,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
   ): Secured[TUP2, W] = {
     MySecured[TUP2, W](
       key = endpoint.path.toSimple.reverse,
+      queryParams = endpoint.path.params,
       pathMatcher = createPathMatcher(endpoint.path).asInstanceOf[PathMatcher[Any]],
       consumes = endpoint.consumes.consumes,
       methodMap = Map(
@@ -137,6 +144,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
   ): Completable[TUP2, W] = {
     MyCompletable[TUP2, W](
       key = endpoint.path.toSimple.reverse,
+      queryParams = endpoint.path.params,
       pathMatcher = createPathMatcher[P, TUP](endpoint.path).asInstanceOf[PathMatcher[Any]],
       consumes = endpoint.consumes.consumes,
       methodMap = Map(
@@ -156,6 +164,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
 
   case class MyCompletable[C, W](
       key: List[SimpleLinx],
+      queryParams: List[String],
       pathMatcher: PathMatcher[Any],
       consumes: Set[MediaRange],
       methodMap: Map[Method, Any => Directive[F, C]],
@@ -164,6 +173,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
     override def run(f: C => W): Complete = {
       MyComplete(
         key = key,
+        queryParams = queryParams,
         pathMatcher = pathMatcher,
         consumes = consumes,
         methodMap = methodMap.map {
@@ -183,6 +193,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
     override def map[C2](f: C => C2): Completable[C2, W] = {
       MyCompletable(
         key = key,
+        queryParams = queryParams,
         pathMatcher = pathMatcher,
         consumes = consumes,
         methodMap = methodMap.map {
@@ -198,6 +209,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
     override def mapD[C2](f: C => Directive[F, C2]): Completable[C2, W] = {
       MyCompletable(
         key = key,
+        queryParams = queryParams,
         pathMatcher = pathMatcher,
         consumes = consumes,
         methodMap = methodMap.map {
@@ -213,6 +225,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
     override def mapF[C2](f: C => F[C2]): Completable[C2, W] = {
       MyCompletable(
         key = key,
+        queryParams = queryParams,
         pathMatcher = pathMatcher,
         consumes = consumes,
         methodMap = methodMap.map {
@@ -228,6 +241,7 @@ abstract class Unsecurity[F[_]: Sync, RU, U] extends AbstractUnsecurity[F, U] {
 
   case class MyComplete(
       override val key: List[SimpleLinx],
+      override val queryParams: List[String],
       pathMatcher: PathMatcher[Any],
       override val consumes: Set[MediaRange],
       override val methodMap: Map[Method, MediaRangeMap[Any => ResponseDirective[F]]]

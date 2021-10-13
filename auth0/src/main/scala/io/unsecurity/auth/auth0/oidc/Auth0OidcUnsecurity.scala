@@ -2,7 +2,7 @@ package io.unsecurity.auth
 package auth0
 package oidc
 
-import cats.effect.Sync
+import cats.effect.{Async, Sync}
 import com.auth0.jwk.JwkProvider
 import io.unsecurity.Unsecurity
 import io.unsecurity.hlinx.HLinx.HPath
@@ -10,11 +10,12 @@ import io.unsecurity.hlinx.ParamConverter
 import no.scalabin.http4s.directives.Directive
 import org.http4s.{Method, Response, ResponseCookie}
 import org.log4s.getLogger
+import org.typelevel.ci.CIStringSyntax
 import shapeless.HNil
 
 import java.net.URL
 
-class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HPath[HNil],
+class Auth0OidcUnsecurity[F[_]: Async, U](baseUrl: HPath[HNil],
                                          val sc: Auth0OidcSecurityContext[F, U],
                                          jwkProvider: JwkProvider)
     extends Unsecurity[F, OidcAuthenticatedUser, U] {
@@ -70,8 +71,8 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HPath[HNil],
         for {
           stateCookie   <- cookie(sc.Cookies.Keys.STATE)
           stateParam    <- requiredQueryParam("state")
-          xForwardedFor <- request.header("X-Forwarded-For")
-          state         <- sc.validateState(stateCookie, stateParam, xForwardedFor.map(_.value))
+          xForwardedFor <- request.header(ci"X-Forwarded-For")
+          state         <- sc.validateState(stateCookie, stateParam, xForwardedFor.map(_.head.value))
           _             = log.trace("/callback state cookie matches state param")
           codeParam     <- requiredQueryParam("code")
           _             = log.trace(s"/callback callbackUrl: ${state.callbackUrl}")

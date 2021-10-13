@@ -11,7 +11,8 @@ import io.unsecurity.{HttpProblem, SecurityContext, UnsecurityOps}
 import no.scalabin.http4s.directives.Directive
 import okio.ByteString
 import org.http4s.headers.Authorization
-import org.http4s.{Method, Uri}
+import org.http4s.{Credentials, Method, Uri}
+import org.typelevel.ci.CIStringSyntax
 
 import java.security.interfaces.{RSAPrivateKey, RSAPublicKey}
 import java.time.{Instant, OffsetDateTime, ZoneId, ZoneOffset}
@@ -51,11 +52,10 @@ class Auth0M2MSecurityContext[F[_], U](lookup: OauthAuthenticatedApplication => 
 
   private[unsecurity] def requestAuthToken(attemptedMethod: Method, attemptedPath: Uri.Path): Directive[F, String] = {
     for {
-      authHeader <- request.header(Authorization)
+      authHeader <- request.header[Authorization]
       token <- authHeader
-                .map(header => header.value.split(" "))
-                .filter(_.head.equalsIgnoreCase("bearer"))
-                .map(_.last)
+                .map(_.credentials)
+                .collect { case Credentials.Token(ci"Bearer", value) => value }
                 .toDirective(HttpProblem.unauthorized(s"Authorization header with Bearer scheme not found [$attemptedMethod, $attemptedPath]").toDirectiveError)
     } yield token
   }
@@ -117,7 +117,8 @@ class Auth0M2MSecurityContext[F[_], U](lookup: OauthAuthenticatedApplication => 
   private def jwtToken(attemptedMethod: Method, attemptedPath: Uri.Path, verifiedToken: DecodedJWT): Directive[F, JwtToken] = {
     for {
       base64Token <- decodeBase64(verifiedToken.getPayload)
-      jwtToken    <- decode[JwtToken](base64Token).toDirective(decodeError => Unauthorized(s"Unable to decode JWT payload: [$attemptedMethod, $attemptedPath, $decodeError]"))
+      jwtToken <- decode[JwtToken](base64Token).toDirective(decodeError =>
+                   Unauthorized(s"Unable to decode JWT payload: [$attemptedMethod, $attemptedPath, $decodeError]"))
     } yield {
       jwtToken
     }
@@ -127,7 +128,8 @@ class Auth0M2MSecurityContext[F[_], U](lookup: OauthAuthenticatedApplication => 
     val expirationTime = OffsetDateTime.from(Instant.ofEpochSecond(jwtToken.exp).atOffset(ZoneOffset.UTC))
     val now            = OffsetDateTime.now(ZoneId.from(ZoneOffset.UTC))
     if (now.isAfter(expirationTime)) {
-      Unauthorized(s"Token is expired! $now is after expirationTime: $expirationTime for [sub ${jwtToken.sub}, iss ${jwtToken.iss}, aud ${jwtToken.aud}, method $attemptedMethod, path $attemptedPath]")
+      Unauthorized(
+        s"Token is expired! $now is after expirationTime: $expirationTime for [sub ${jwtToken.sub}, iss ${jwtToken.iss}, aud ${jwtToken.aud}, method $attemptedMethod, path $attemptedPath]")
     } else {
       Directive.success("Valid token")
     }
