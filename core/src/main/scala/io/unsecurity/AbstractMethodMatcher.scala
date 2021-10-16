@@ -10,7 +10,7 @@ abstract class AbstractMethodMatcher[F[_]: Monad] extends AbstractPathMatcher[F]
   def matchMethod[A](methodMap: Map[Method, A]): Directive[F, A] = {
     def allow(methods: Set[Method]): Allow = Allow(methods.toList: _*)
 
-    for {
+    for
       req <- Directive.request[F]
       a <- methodMap
             .get(req.method)
@@ -22,6 +22,6 @@ abstract class AbstractMethodMatcher[F[_]: Monad] extends AbstractPathMatcher[F]
                   .putHeaders(allow(methodMap.keySet))
               )
             )
-    } yield a
+    yield a
   }
 }

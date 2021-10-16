@@ -3,6 +3,7 @@ package io.unsecurity.http
 import cats.effect.IO
 import io.circe.Json
 import io.circe.syntax._
+import io.unsecurity.hlinx._
 import io.unsecurity.hlinx.HLinx._
 import io.unsecurity.hlinx.ParamConverter
 import org.http4s.circe._
@@ -24,7 +25,7 @@ class QueryParamsTest extends HttpIOSuite {
         Root / "single-query-param" :? "counter".as[Int],
         Produces.json[Json]
       )
-    ).run { counter =>
+    ).run { case counter =>
       counterExpected(counter)
     }
 
@@ -65,7 +66,7 @@ class QueryParamsTest extends HttpIOSuite {
   def encodedParamExpected(encoded: String): Json = Json.obj {
     "encoded" := encoded
   }
-  implicit val encodedParamConverter: ParamConverter[EncodedParam] = ParamConverter.createSimple[EncodedParam](EncodedParam)
+  implicit val encodedParamConverter: ParamConverter[EncodedParam] = ParamConverter.createSimple[EncodedParam](EncodedParam(_))
   val encodedQueryParamService: Complete =
     unsecure(
       Endpoint(

@@ -33,7 +33,7 @@ object Server {
 
     log.trace("Ordered and grouped endpoints:")
     mergedRoutes.foreach { r =>
-      val query = if(r.queryParams.isEmpty) "" else s"?${r.queryParams.mkString("&")}"
+      val query = if r.queryParams.isEmpty then "" else s"?${r.queryParams.mkString("&")}"
       log.info(
         s"""/${r.key.mkString("/")}$query: ${r.methodMap.keys.map { _.name }.mkString(", ")}"""
       )

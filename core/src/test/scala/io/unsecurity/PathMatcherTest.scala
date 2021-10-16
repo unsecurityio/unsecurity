@@ -20,13 +20,13 @@ class PathMatcherTest extends UnsecurityTestSuite {
   test("/test") {
     val req: Request[Id] = Request[Id](uri = uri"/test")
 
-    val pathMatcher: pathMatchers.PathMatcher[Unit] = pathMatchers.createPathMatcher(Root / "test")
+    val pathMatcher: pathMatchers.PathMatcher[EmptyTuple] = pathMatchers.createPathMatcher(Root / "test")
     assert(pathMatcher.isDefinedAt("/test"))
 
     pathMatcher
       .apply("/test")
       .run(req)
-      .where { case Result.Success(()) => Ok }
+      .where { case Result.Success(EmptyTuple) => Ok }
   }
 
   test("/test/{int}") {

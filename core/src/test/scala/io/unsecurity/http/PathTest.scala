@@ -2,9 +2,12 @@ package io.unsecurity.http
 
 import cats.effect.IO
 import io.circe.Json
-import io.circe.syntax._
-import io.unsecurity.hlinx.HLinx._
-import org.http4s.circe._
+import io.circe.syntax.*
+import io.unsecurity.hlinx.*
+import io.unsecurity.hlinx.HLinx.*
+import io.unsecurity.hlinx.TransformParams.NotUnit
+import io.unsecurity.hlinx.{TransformParams, UnwrapTuple1}
+import org.http4s.circe.*
 import org.http4s.client.UnexpectedStatus
 import org.http4s.server.Server
 import org.http4s.{Method, Request, Status, Uri}
@@ -39,9 +42,17 @@ class PathTest extends HttpIOSuite {
         Root / "collide" / "root".as[String] ,
         Produces.json[Json]
       )
-    ).run { root =>
+    ).run { case root =>
       rootExpected(root)
     }
+
+  val uw: String = Tuple1("s").unwrap
+  val uw0 = ("a", "a").unwrap
+  val uw01: (String, String) = uw0
+
+  val trs
+      = TransformParams[String *: EmptyTuple, Unit *: EmptyTuple]
+  val tp: String = trs.apply(Tuple1("s"), Tuple1(()))
 
   val singlePathParamService: Complete =
     unsecure(
@@ -50,7 +61,7 @@ class PathTest extends HttpIOSuite {
         Root / "single-path-param" / "counter".as[Int],
         Produces.json[Json]
       )
-    ).run { counter =>
+    ).run { case counter =>
       counterExpected(counter)
     }
 

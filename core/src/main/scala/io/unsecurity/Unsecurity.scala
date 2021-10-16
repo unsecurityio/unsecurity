@@ -2,10 +2,10 @@ package io
 package unsecurity
 
 import cats.effect.{Async, Concurrent, Sync}
-import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}
+import io.unsecurity.hlinx.{Reversed, SimpleLinx, TransformParams, UnwrapTuple1}
 import no.scalabin.http4s.directives.Directive
 import org.http4s.{DecodeFailure, MediaRange, Method, Response}
-import shapeless.HList
+
 
 abstract class Unsecurity[F[_]: Async, RU, U] extends AbstractUnsecurity[F, U] {
 
@@ -97,27 +97,24 @@ abstract class Unsecurity[F[_]: Async, RU, U] extends AbstractUnsecurity[F, U] {
       )
   }
 
-  override def secure[P <: HList, R, W, TUP, TUP2](endpoint: Endpoint[P, R, W])(
-      implicit reversedTupled: ReversedTupled.Aux[P, TUP],
-      transformParams: TransformParams.Aux[TUP, (R, U), TUP2]
-  ): Secured[TUP2, W] = {
-    MySecured[TUP2, W](
+  override def secure[P <: Tuple, R, W](endpoint: Endpoint[P, R, W]): Secured[TransformParams[Reversed[P], (R, U)], W] = {
+    MySecured[TransformParams[Reversed[P], (R, U)], W](
       key = endpoint.path.toSimple.reverse,
       queryParams = endpoint.path.params,
       pathMatcher = createPathMatcher(endpoint.path).asInstanceOf[PathMatcher[Any]],
       consumes = endpoint.consumes.consumes,
       methodMap = Map(
-        endpoint.method -> { tup: TUP =>
+        endpoint.method -> { (tup: Reversed[P]) =>
           val checkXsrfOrNothing: Directive[F, String] =
-            if (endpoint.method == Method.PUT ||
+            if endpoint.method == Method.PUT ||
                 endpoint.method == Method.POST ||
-                endpoint.method == Method.DELETE) {
+                endpoint.method == Method.DELETE then {
               sc.xsrfCheck
             } else {
               Directive.success("xsrf not checked")
             }
 
-          for {
+          for
             _       <- checkXsrfOrNothing
             rawUser <- sc.authenticate
             user <- Directive.commit(
@@ -126,37 +123,35 @@ abstract class Unsecurity[F[_]: Async, RU, U] extends AbstractUnsecurity[F, U] {
                        HttpProblem.forbidden("Forbidden").toResponseF[F]
                      )
                    )
-            r <- request.bodyAs[R] { error: DecodeFailure =>
+            r <- request.bodyAs[R] { (error: DecodeFailure) =>
                   HttpProblem.handleError(error).toResponse[F]
                 }(endpoint.consumes, Sync[F])
-          } yield {
-            transformParams(tup, (r, user))
+          yield {
+            TransformParams(tup, (r, user))
           }
-        }.asInstanceOf[Any => Directive[F, TUP2]]
+        }.asInstanceOf[Any => Directive[F, TransformParams[Reversed[P], (R, U)]]]
       ),
       produces = endpoint.produces
     )
   }
 
-  override def unsecure[P <: HList, R, W, TUP, TUP2](endpoint: Endpoint[P, R, W])(
-      implicit revGen: ReversedTupled.Aux[P, TUP],
-      transformParam: TransformParams.Aux[TUP, Tuple1[R], TUP2]
-  ): Completable[TUP2, W] = {
-    MyCompletable[TUP2, W](
+  override def unsecure[P <: Tuple, R, W](endpoint: Endpoint[P, R, W]):
+  Completable[TransformParams[Reversed[P], Tuple1[R]], W] = {
+    MyCompletable[TransformParams[Reversed[P], Tuple1[R]], W](
       key = endpoint.path.toSimple.reverse,
       queryParams = endpoint.path.params,
-      pathMatcher = createPathMatcher[P, TUP](endpoint.path).asInstanceOf[PathMatcher[Any]],
+      pathMatcher = createPathMatcher[P](endpoint.path).asInstanceOf[PathMatcher[Any]],
       consumes = endpoint.consumes.consumes,
       methodMap = Map(
-        endpoint.method -> { tup: TUP =>
-          for {
-            r <- request.bodyAs[R] { error: DecodeFailure =>
+        endpoint.method -> { (tup: Reversed[P]) =>
+          for
+            r <- request.bodyAs[R] { (error: DecodeFailure) =>
                   HttpProblem.handleError(error).toResponse[F]
                 }(endpoint.consumes, Sync[F])
-          } yield {
-            transformParam(tup, Tuple1(r))
+          yield {
+            TransformParams(tup, Tuple1(r))
           }
-        }.asInstanceOf[Any => Directive[F, TUP2]]
+        }.asInstanceOf[Any => Directive[F, TransformParams[Reversed[P], Tuple1[R]]]]
       ),
       producer = endpoint.produces
     )
@@ -179,10 +174,10 @@ abstract class Unsecurity[F[_]: Async, RU, U] extends AbstractUnsecurity[F, U] {
         methodMap = methodMap.map {
           case (method, a2dc) =>
             method -> MediaRangeMap(List(MediaRangeItem(consumes, producer.contentType, a2dc.andThen { dc =>
-              for {
+              for
                 c <- dc
                 w <- producer.response(f(c))
-              } yield {
+              yield {
                 w
               }
             })))
@@ -256,13 +251,13 @@ abstract class Unsecurity[F[_]: Async, RU, U] extends AbstractUnsecurity[F, U] {
     override def compile: PathMatcher[Response[F]] = {
 
       pathMatcher.andThen { pathParamsDirective =>
-        for {
+        for
           pathParams      <- pathParamsDirective
           mediaRangeMap   <- matchMethod(methodMap)
           mediaRangeItems <- matchRequestContentType(mediaRangeMap)
           a2rdf           <- matchAcceptContentType(mediaRangeItems)
           res             <- a2rdf(pathParams)
-        } yield {
+        yield {
           res
         }
       }

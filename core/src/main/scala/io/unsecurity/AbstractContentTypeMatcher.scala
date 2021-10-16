@@ -15,13 +15,13 @@ abstract class AbstractContentTypeMatcher[F[_]: Monad] extends AbstractMethodMat
 
   def matchRequestContentType[A](mediaRangeMap: MediaRangeMap[A]): Directive[F, NonEmptyList[ResponseAlternativeForContent[A]]] = {
 
-    for {
+    for
       request             <- Directive.request[F]
       method              = request.method
       suppliedContentType = request.headers.get[`Content-Type`]
       contentType <- suppliedContentType
                       .orElse {
-                        if (method == GET || method == DELETE) Some(`Content-Type`(WILDCARD)) else None
+                        if method == GET || method == DELETE then Some(`Content-Type`(WILDCARD)) else None
                       }
                       .toDirective(
                         HttpProblem
@@ -40,7 +40,7 @@ abstract class AbstractContentTypeMatcher[F[_]: Monad] extends AbstractMethodMat
                   )
                 }
               }
-    } yield a2rdf
+    yield a2rdf
   }
 
   def matchAcceptContentType[A](responseAlternatives: NonEmptyList[ResponseAlternativeForContent[A]]): Directive[F, A] = {

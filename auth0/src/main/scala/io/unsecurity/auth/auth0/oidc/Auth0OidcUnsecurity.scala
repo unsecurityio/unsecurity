@@ -11,11 +11,10 @@ import no.scalabin.http4s.directives.Directive
 import org.http4s.{Method, Response, ResponseCookie}
 import org.log4s.getLogger
 import org.typelevel.ci.CIStringSyntax
-import shapeless.HNil
 
 import java.net.URL
 
-class Auth0OidcUnsecurity[F[_]: Async, U](baseUrl: HPath[HNil],
+class Auth0OidcUnsecurity[F[_]: Async, U](baseUrl: HPath[EmptyTuple],
                                          val sc: Auth0OidcSecurityContext[F, U],
                                          jwkProvider: JwkProvider)
     extends Unsecurity[F, OidcAuthenticatedUser, U] {

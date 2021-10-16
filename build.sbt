@@ -1,5 +1,6 @@
 ThisBuild / organization := "io.unsecurity"
-ThisBuild / scalaVersion := "2.13.6"
+ThisBuild / scalaVersion := "3.0.2"
+ThisBuild / crossScalaVersions := Seq("3.0.2", "2.13.6")
 
 bloopExportJarClassifiers in Global := Some(Set("sources"))
 

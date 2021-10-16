@@ -27,10 +27,10 @@ class HttpIOSuite extends IOSuite {
   val unsecurity: Unsecurity[IO, String, String] = new Unsecurity[IO, String, String] {
     override def sc: SecurityContext[IO, String, String] = new SecurityContext[IO, String, String] with UnsecurityOps[IO] {
       override def authenticate: Directive[IO, String] = {
-        for {
+        for
           user <- request.header(ci"User")
           d    <- user.filter(_.head.value == "valid").map(s => Directive.success[IO, String](s.head.value)).getOrElse(Forbidden[String])
-        } yield d
+        yield d
       }
 
       override def xsrfCheck: Directive[IO, String] = ???

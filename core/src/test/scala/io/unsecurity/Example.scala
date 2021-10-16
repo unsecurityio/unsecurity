@@ -3,6 +3,7 @@ package io.unsecurity
 import cats.effect.{ExitCode, IO, IOApp}
 import io.circe.Decoder
 import io.unsecurity.hlinx.HLinx._
+import io.unsecurity.hlinx._
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.{MediaType, Method}
 import org.http4s.implicits._
@@ -46,9 +47,9 @@ object Example extends IOApp {
         Produces.Directive.json[String]
       )
     ).run { pathParam =>
-      for {
+      for
         qp <- requiredQueryParamAs[String]("qp")
-      } yield {
+      yield {
         println(pathParam)
         println(qp)
         pathParam + qp
@@ -88,7 +89,7 @@ object Example extends IOApp {
       }
 
   case class ClientPayload(name: String)
-  implicit val clientPayloadDecoder: Decoder[ClientPayload] = Decoder.forProduct1("name")(ClientPayload)
+  implicit val clientPayloadDecoder: Decoder[ClientPayload] = Decoder.forProduct1("name")(ClientPayload(_))
 
   val post: Complete =
     unsecure(

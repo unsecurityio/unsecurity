@@ -3,7 +3,10 @@ name := "unsecurity-core"
 scalacOptions := Seq(
   "-deprecation",
   "-language:higherKinds",
-  "-Ywarn-value-discard"
+  "-source:3.0-migration",
+  "-new-syntax",
+  "-rewrite",
+  "-explain-types"
 )
 
 testFrameworks += new TestFramework("munit.Framework")
@@ -12,7 +15,6 @@ val http4sVersion     = "0.23.4"
 val directivesVersion = "0.23.1"
 val fs2Version        = "3.1.0"
 val circeVersion      = "0.14.1"
-val shapelessVersion  = "2.3.7"
 val scalaTestVersion  = "3.2.9"
 val logbackVersion    = "1.2.6"
 val munitVersion      = "0.7.29"
@@ -28,7 +30,6 @@ libraryDependencies := Seq(
   "co.fs2"             %% "fs2-core"            % fs2Version,
   "co.fs2"             %% "fs2-io"              % fs2Version,
   "no.scalabin.http4s" %% "http4s-directives"   % directivesVersion,
-  "com.chuusai"        %% "shapeless"           % shapelessVersion,
   "org.scalatest"      %% "scalatest"           % scalaTestVersion % Test,
   "org.scalameta"      %% "munit"               % munitVersion % Test,
   "org.typelevel"      %% "munit-cats-effect-2" % munitCatsVersion % Test,
