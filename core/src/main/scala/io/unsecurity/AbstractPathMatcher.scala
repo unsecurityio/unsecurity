@@ -24,6 +24,7 @@ abstract class AbstractPathMatcher[F[_]: Monad] {
       override def apply(v1: (Uri.Path, Query)): Http4sDirective[F, Reversed[PathParams]] = {
         log.trace(s"""Match: "$v1" = ${route.renderString}""")
         route.capture(v1) match {
+          case Right(params) => Http4sDirective.success(params)
           case Left(error) =>
             Http4sDirective.failure(
               HttpProblem
@@ -33,7 +34,6 @@ abstract class AbstractPathMatcher[F[_]: Monad] {
                 )
                 .toResponse
             )
-          case Right(params) => Http4sDirective.success(params)
         }
       }
     }
