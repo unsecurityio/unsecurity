@@ -54,9 +54,9 @@ class PathTest extends HttpIOSuite {
       counterExpected(counter)
     }
 
-  val server: Fixture[Server[IO]] = server(singlePathParamService, collidePathParamService, collideRootService)
+  val server: Fixture[Server] = server(singlePathParamService, collidePathParamService, collideRootService)
 
-  test("Static path segments should result in that to be chosen over path params on same level.") {
+  test("Static path segments should be chosen over path params on same level.") {
     val req = Request[IO](uri = Uri.unsafeFromString(s"http://localhost:$port/collide/root"))
     httpClient()
       .expect[Json](req)

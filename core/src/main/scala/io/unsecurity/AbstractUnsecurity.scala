@@ -1,7 +1,7 @@
 package io.unsecurity
 
 import cats.data.NonEmptyList
-import cats.effect.Sync
+import cats.effect.Concurrent
 import fs2.Stream
 import io.circe.{Decoder, Encoder}
 import io.unsecurity.hlinx.HLinx._
@@ -12,7 +12,7 @@ import org.http4s._
 import org.http4s.headers.`Content-Type`
 import shapeless.HList
 
-abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatcher {
+abstract class AbstractUnsecurity[F[_]: Concurrent, U] extends AbstractContentTypeMatcher {
 
   case class Endpoint[P <: HList, R, W](description: String = "", method: Method, path: HLinx[P], consumes: EntityDecoder[F, R], produces: Produces[W])
   object Endpoint {
@@ -180,8 +180,9 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
 
 trait Complete[F[_]] {
   def key: List[SimpleLinx]
+  def queryParams: List[String]
   def merge(other: Complete[F]): Complete[F]
-  def compile: PartialFunction[String, Http4sDirective[F, Response[F]]]
+  def compile: PartialFunction[(Uri.Path, Query), Http4sDirective[F, Response[F]]]
   def consumes: Set[MediaRange]
   def methodMap: Map[Method, MediaRangeMap[Any => ResponseDirective[F]]]
 }

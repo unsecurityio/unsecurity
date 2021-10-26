@@ -89,7 +89,7 @@ class QueryParamsTest extends HttpIOSuite {
     }
 
 
-  val server: Fixture[Server[IO]] = server(encodedListQueryParamService, encodedQueryParamService, singleRequiredQueryParamService, mulitpleQueryParamService, twoRequiredQueryParamService, singleOptionQueryParamService)
+  val server: Fixture[Server] = server(encodedListQueryParamService, encodedQueryParamService, singleRequiredQueryParamService, mulitpleQueryParamService, twoRequiredQueryParamService, singleOptionQueryParamService)
 
   test("Single required query Param with one value of correct type is supplied.") {
     val req = Request[IO](uri = Uri.unsafeFromString(s"http://localhost:$port/single-query-param?counter=1"))
