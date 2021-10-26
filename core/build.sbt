@@ -8,7 +8,7 @@ scalacOptions := Seq(
 
 testFrameworks += new TestFramework("munit.Framework")
 
-val http4sVersion     = "0.23.4"
+val http4sVersion     = "0.23.6"
 val directivesVersion = "0.23.1"
 val fs2Version        = "3.1.0"
 val circeVersion      = "0.14.1"
