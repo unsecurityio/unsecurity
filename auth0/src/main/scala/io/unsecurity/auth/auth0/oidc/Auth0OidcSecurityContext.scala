@@ -4,8 +4,9 @@ package oidc
 
 import java.net.URL
 import java.security.interfaces.RSAPublicKey
+
 import cats.data.EitherT
-import cats.effect.{Async, Resource, Sync}
+import cats.effect.{Resource, Sync}
 import cats.syntax.functor._
 import com.auth0.client.auth.AuthAPI
 import com.auth0.jwk.JwkProvider
@@ -20,10 +21,10 @@ import no.scalabin.http4s.directives.Directive
 import org.http4s._
 import org.http4s.client.Client
 import org.log4s.getLogger
-import org.typelevel.ci.CIStringSyntax
+
 import scodec.bits.BitVector
 
-class Auth0OidcSecurityContext[F[_]: Async, U](val authConfig: AuthConfig,
+class Auth0OidcSecurityContext[F[_]: Sync, U](val authConfig: AuthConfig,
                                               val sessionStore: SessionStore[F, OidcAuthenticatedUser],
                                               client: Resource[F, Client[F]],
                                               lookup: OidcAuthenticatedUser => F[Option[U]])
@@ -46,10 +47,10 @@ class Auth0OidcSecurityContext[F[_]: Async, U](val authConfig: AuthConfig,
 
   override def xsrfCheck: Directive[F, String] = {
     for {
-      xForwardedFor   <- request.header(ci"X-Forwarded-For")
-      xsrfHeader      <- xsrfHeader(xForwardedFor.map(_.head.value))
+      xForwardedFor   <- request.header("X-Forwarded-For")
+      xsrfHeader      <- xsrfHeader(xForwardedFor.map(_.value))
       xsrfCookie      <- xsrfCookie()
-      validatedHeader <- validateXsrf(xsrfHeader, xsrfCookie, xForwardedFor.map(_.head.value))
+      validatedHeader <- validateXsrf(xsrfHeader, xsrfCookie, xForwardedFor.map(_.value))
     } yield {
       validatedHeader
     }
@@ -75,7 +76,7 @@ class Auth0OidcSecurityContext[F[_]: Async, U](val authConfig: AuthConfig,
 
   def xsrfHeader(xForwardedFor: Option[String]): Directive[F, String] = {
     for {
-      header <- request.header(ci"x-xsrf-token")
+      header <- request.header("x-xsrf-token")
       xsrfToken <- Directive.getOrElseF(
                     header,
                     Sync[F].delay {
@@ -87,14 +88,14 @@ class Auth0OidcSecurityContext[F[_]: Async, U](val authConfig: AuthConfig,
                     }
                   )
     } yield {
-      xsrfToken.head.value
+      xsrfToken.value
     }
   }
 
   def xsrfCookie(): Directive[F, String] = {
     for {
       maybeCookie   <- request.cookie("xsrf-token")
-      xForwardedfor <- request.header(ci"X-Forwarded-For")
+      xForwardedfor <- request.header("X-Forwarded-For")
       xsrfCookie <- Directive.getOrElseF(
                      maybeCookie,
                      Sync[F].delay {
@@ -102,7 +103,7 @@ class Auth0OidcSecurityContext[F[_]: Async, U](val authConfig: AuthConfig,
                          .badRequest(
                            "No xsrf-token cookie found, possible CSRF-Attack",
                            Some(
-                             s"No xsrf-cookie, possible CSRF-Attack from ${xForwardedfor.map(_.head.value).getOrElse("")}"))
+                             s"No xsrf-cookie, possible CSRF-Attack from ${xForwardedfor.map(_.value).getOrElse("")}"))
                          .toResponse
                      }
                    )
