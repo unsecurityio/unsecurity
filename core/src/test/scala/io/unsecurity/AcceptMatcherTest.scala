@@ -6,7 +6,6 @@ import no.scalabin.http4s.directives.Result
 import org.http4s.headers.`Content-Type`
 import org.http4s.implicits._
 import org.http4s.{Request, _}
-import org.typelevel.ci.CIStringSyntax
 
 class AcceptMatcherTest extends UnsecurityTestSuite {
   val contentTypeMatcher: AbstractContentTypeMatcher[Id] = new AbstractContentTypeMatcher[Id] {}
@@ -16,28 +15,28 @@ class AcceptMatcherTest extends UnsecurityTestSuite {
   val versionOneAcceptReq: Request[Id] = Request[Id](
     method = Method.POST,
     uri = uri"/whatever",
-    headers = Headers(Header.Raw(ci"Accept", "application/vnd.custom;version=1"))
+    headers = Headers.of(Header("Accept", "application/vnd.custom;version=1"))
   )
   val unversionedAcceptReq: Request[Id] = Request[Id](
     method = Method.POST,
     uri = uri"/whatever",
-    headers = Headers(Header.Raw(ci"Accept", "application/vnd.custom"))
+    headers = Headers.of(Header("Accept", "application/vnd.custom"))
   )
 
   val invalidAcceptRequest: Request[Id] = Request[Id](
     method = Method.POST,
     uri = uri"/whatever",
-    headers = Headers(Header.Raw(ci"Accept", "foobar"))
+    headers = Headers.of(Header("Accept", "foobar"))
   )
   val notAcceptableRequest: Request[Id] = Request[Id](
     method = Method.POST,
     uri = uri"/whatever",
-    headers = Headers(Header.Raw(ci"Accept", "application/foobar"))
+    headers = Headers.of(Header("Accept", "application/foobar"))
   )
   val supportedAcceptResquest: Request[Id] = Request[Id](
     method = Method.POST,
     uri = uri"/whatever",
-    headers = Headers(Header.Raw(ci"Accept", "application/fjon"))
+    headers = Headers.of(Header("Accept", "application/fjon"))
   )
 
   val Right(fjonMediaRange: `Content-Type`) = `Content-Type`.parse("application/fjon")
@@ -135,7 +134,7 @@ class AcceptMatcherTest extends UnsecurityTestSuite {
       case Result.Success(_) =>
         Fail(
           "Expected to reach version 2 endpoint, as it was defined first in list and no versiopn specified in request")
-      case Result.Error(r) => Fail(r.body.through(fs2.text.utf8.decode).compile.last.toString)
+      case Result.Error(r) => Fail(r.body.through(fs2.text.utf8Decode).compile.last.toString)
     }
   }
 
@@ -144,7 +143,7 @@ class AcceptMatcherTest extends UnsecurityTestSuite {
     val textHtmlReponse            = ResponseAlternativeForContent(Some(textHtmlContentType), "dingdong")
     val responseAlternatives       = NonEmptyList.of(textHtmlReponse)
     val requestWithVersionedContentType =
-      Request[Id](method = Method.POST, uri = uri"/whatever", headers = Headers(Header.Raw(ci"Accept", "text/*")))
+      Request[Id](method = Method.POST, uri = uri"/whatever", headers = Headers.of(Header("Accept", "text/*")))
     val contentTypeMatchDirective = contentTypeMatcher.matchAcceptContentType(responseAlternatives)
     contentTypeMatchDirective.run(requestWithVersionedContentType).where {
       case Result.Success("dingdong") => Ok

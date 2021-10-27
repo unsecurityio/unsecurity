@@ -50,7 +50,7 @@ class PathWithRouterTest extends HttpIOSuite {
     "/combined/root" -> Server.toHttpRoutes(zero("combined"), one("combined"), two("combined")),
     "/otherroot"     -> Server.toHttpRoutes( zero("otherroot"), one("otherroot"), two("otherroot"))
   )
-  val server: Fixture[Server] = server(withRouter)
+  val server: Fixture[Server[IO]] = server(withRouter)
 
   test("Static path combined with http4s router. combined/one") {
     val req = Request[IO](uri = Uri.unsafeFromString(s"http://localhost:$port/combined/root/one"))

@@ -1,8 +1,7 @@
 package io.unsecurity.hlinx
 
-import org.http4s.{Query, Uri}
-
 import java.net.URLDecoder
+
 import shapeless.{::, HList, HNil}
 
 import scala.util.Try
@@ -35,23 +34,24 @@ object HLinx {
 
   sealed trait HLinx[T <: HList] {
     self =>
-    final def capture[TUP](s: (Uri.Path, Query))(implicit revTup: ReversedTupled.Aux[T, TUP]): Either[CaptureFailure, TUP] = {
-      val (paths, queryParams) = s
-      extract(paths.segments.toList.map(_.toString).reverse, queryParams.multiParams).map(e => revTup(e))
+    final def capture[TUP](s: String)(implicit revTup: ReversedTupled.Aux[T, TUP]): Either[CaptureFailure, TUP] = {
+      val (paths, queryParams) = splitPathAndQueryParams(s)
+      extract(paths.reverse, queryParams).map(e => revTup(e))
     }
-    def extract(path: List[String], queryParams: Map[String, Seq[String]]): Either[CaptureFailure, T]
+    def extract(path: List[String], queryParams: Map[String, List[String]]): Either[CaptureFailure, T]
     def toSimple: List[SimpleLinx]
 
-    def params: List[String]
-
-    final def renderString: String = {
-      val path = self.toSimple.reverse
+    def renderString = {
+      val (path, params) = self.toSimple.reverse.partition {
+        case _: SimpleParams => false
+        case _ => true
+      }
       s"/${path.mkString("/")}?${params.mkString("&")}"
     }
   }
 
 
-  sealed trait HPath[T <: HList] extends HLinx[T] {
+  trait HPath[T <: HList] extends HLinx[T] {
     self =>
     def /(element: String): Static[T] = {
       splitPath(element).tail
@@ -68,7 +68,7 @@ object HLinx {
   }
 
   case object Root extends HPath[HNil] {
-    override def extract(path: List[String], queryParams: Map[String, Seq[String]]): Either[CaptureFailure, HNil] =
+    override def extract(path: List[String], queryParams: Map[String, List[String]]): Either[CaptureFailure, HNil] =
       if (path.isEmpty) Right(HNil) else Left(EmptyPath)
 
     override def overlaps[O <: HList](other: HPath[O]): Boolean =
@@ -77,13 +77,11 @@ object HLinx {
         case _    => false
       }
     override def toSimple: List[SimpleLinx] = Nil
-
-    override def params: List[String] = Nil
   }
 
   case class Static[A <: HList](parent: HPath[A], element: String) extends HPath[A] {
     import shapeless.HList.ListCompat.::
-    override def extract(s: List[String], queryParams: Map[String, Seq[String]]): Either[CaptureFailure, A] = s match {
+    override def extract(s: List[String], queryParams: Map[String, List[String]]): Either[CaptureFailure, A] = s match {
       case `element` :: rest => parent.extract(rest, queryParams)
       case _                 => Left(MissingStaticPath(element))
     }
@@ -96,12 +94,10 @@ object HLinx {
 
     def toSimple: List[SimpleLinx] =
       SimpleStatic(element) :: parent.toSimple
-
-    override def params: List[String] = parent.params
   }
   case class Variable[H, T <: HList](parent: HPath[T], P: ParamConverter[H], element: String) extends HPath[H :: T] {
     import shapeless.HList.ListCompat.::
-    override def extract(path: List[String], queryParams: Map[String, Seq[String]]): Either[CaptureFailure, H :: T] =
+    override def extract(path: List[String], queryParams: Map[String, List[String]]): Either[CaptureFailure, H :: T] =
       path match {
         case h :: rest =>
           parent
@@ -121,15 +117,13 @@ object HLinx {
     }
     override def toSimple: List[SimpleLinx] =
       SimpleVariable(element) :: parent.toSimple
-
-    override def params: List[String] = parent.params
   }
 
   case class QueryParam[H, T <: HList](parent: HLinx[T], P: ParamsConverter[H], field: String) extends HLinx[H :: T] {
     def &[A](h: Param[A]): QueryParam[A, H :: T]  = QueryParam(this, ParamsConverter.singleParamConverter(h.converter), h.name)
     def &[A](h: Params[A]): QueryParam[A, H :: T] = QueryParam[A, H :: T](this, h.converter, h.name)
 
-    override def extract(path: List[String], queryParams: Map[String, Seq[String]]): Either[CaptureFailure, H :: T] = {
+    override def extract(path: List[String], queryParams: Map[String, List[String]]): Either[CaptureFailure, H :: T] = {
       def urlDecode(undecoded: String): Either[QueryParamConvertFailure, String] =
         Try {
           URLDecoder.decode(undecoded, "UTF-8")
@@ -137,7 +131,7 @@ object HLinx {
 
       parent.extract(path, queryParams).flatMap { t =>
         import cats.implicits._
-        val values: List[Either[QueryParamConvertFailure, String]] = queryParams.getOrElse(field, Nil).map(urlDecode).toList
+        val values: List[Either[QueryParamConvertFailure, String]] = queryParams.getOrElse(field, Nil).map(urlDecode)
         val bah: Either[QueryParamConvertFailure, List[String]]    = values.sequence
         val convertedValue: Either[QueryParamConvertFailure, H]    = bah.flatMap(vs => P.convert(vs).left.map(msg => QueryParamConvertFailure(field, msg)))
         (values, convertedValue) match {
@@ -148,9 +142,9 @@ object HLinx {
       }
     }
 
-    def toSimple: List[SimpleLinx] = parent.toSimple
+    def toSimple: List[SimpleLinx] =
+      SimpleParams(field) :: parent.toSimple
 
-    override def params: List[String] = parent.params :+ field
   }
   private def splitPathAndQueryParams(s: String): (List[String], Map[String, List[String]]) = {
     val arr = s.split("\\?", 2)

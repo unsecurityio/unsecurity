@@ -6,16 +6,8 @@ import no.scalabin.http4s.directives.Result
 import org.http4s.implicits._
 import org.http4s.{Request, Status}
 
-import scala.language.implicitConversions
-
 class PathMatcherTest extends UnsecurityTestSuite {
   val pathMatchers: AbstractPathMatcher[Id] = new AbstractPathMatcher[Id] {}
-
-  implicit def stringToQuery(in: String): (org.http4s.Uri.Path, org.http4s.Query) =
-    org.http4s.Uri.fromString(in) match {
-      case Right(t) => t.path -> t.query
-      case _        => ???
-    }
 
   test("/test") {
     val req: Request[Id] = Request[Id](uri = uri"/test")

@@ -4,12 +4,7 @@ import io.unsecurity.hlinx.HLinx._
 import org.scalatest.funspec.AnyFunSpec
 import shapeless.{::, HNil}
 
-import scala.language.implicitConversions
-
 class HLinxTest extends AnyFunSpec {
-
-  implicit def stringToQuery(in: String): (org.http4s.Uri.Path,org.http4s.Query) =
-    org.http4s.Uri.fromString(in).toOption.map(t => t.path -> t.query).get
 
   describe("capture") {
     describe("StaticFragment") {

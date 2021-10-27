@@ -1,18 +1,12 @@
 package io.unsecurity.http
 
-import cats.effect.unsafe.{IORuntime, IORuntimeConfig, Scheduler}
-import cats.effect.{IO, Resource}
+import cats.effect.{ContextShift, IO, Resource, Timer}
 
 abstract class IOSuite extends munit.FunSuite {
-  val (scheduler, fin) = Scheduler.createDefaultScheduler()
-  implicit val runtime: IORuntime = IORuntime(
-    munitExecutionContext,
-    munitExecutionContext,
-    scheduler,
-    fin,
-    IORuntimeConfig()
-  )
-  private val fixtures            = List.newBuilder[Fixture[_]]
+  implicit val context: ContextShift[IO] = IO.contextShift(munitExecutionContext)
+  implicit val timer: Timer[IO]          = IO.timer(munitExecutionContext)
+  private val fixtures                   = List.newBuilder[Fixture[_]]
+
 
   class SuiteResourceFixture[A](resource: Resource[IO, A], name: String) extends Fixture[A](name) {
     private var value: Option[A]  = None

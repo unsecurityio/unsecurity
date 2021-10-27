@@ -9,9 +9,8 @@ import org.http4s.Status.NotAcceptable
 import org.http4s._
 import org.http4s.circe._
 import org.http4s.client.{Client, UnexpectedStatus}
-import org.http4s.headers.{Accept, MediaRangeAndQValue, `Content-Type`}
+import org.http4s.headers.{`Content-Type`, Accept, MediaRangeAndQValue}
 import org.http4s.server.Server
-import org.typelevel.ci.CIStringSyntax
 
 class AcceptHeadersTest extends HttpIOSuite {
   import unsecurity._
@@ -110,26 +109,25 @@ class AcceptHeadersTest extends HttpIOSuite {
     * Serving version 2 (the latest version) as the first route so that it should be picked if a wildcard or content-type
     * with no extensions are used
     */
-  val server: Fixture[Server] = server(versionTwoService, versionOneService, mixedCaseService, jsonService, qParamAltService, qParamRootService )
+  val server: Fixture[Server[IO]] = server(versionTwoService, versionOneService, mixedCaseService, jsonService, qParamAltService, qParamRootService )
 
   val baseReq: Request[IO] = Request[IO](uri = Uri.unsafeFromString(s"http://localhost:$port/accept-header"))
-
   test("Wildcard accept header should result in the first served route that matches the Uri") {
-    val req = baseReq.withHeaders(Header.Raw(ci"Accept", "*/*"))
+    val req = baseReq.withHeaders(Header("Accept", "*/*"))
     httpClient()
       .expect[Json](req)
       .map(actual => assertEquals(actual, versionTwoPayload, req))
   }
 
   test("Partial wildcard accept header should result in the first served route that matches the Uri") {
-    val req = baseReq.withHeaders(Header.Raw(ci"Accept", "application/*"))
+    val req = baseReq.withHeaders(Header("Accept", "application/*"))
     httpClient()
       .expect[Json](req)
       .map(actual => assertEquals(actual, versionTwoPayload, req))
   }
 
   test("Using manual Accept header, not using extensions should result in the first served route that matches the Uri") {
-    val req = baseReq.withHeaders(Header.Raw(ci"Accept", "application/vnd.unsecurity+json"))
+    val req = baseReq.withHeaders(Header("Accept", "application/vnd.unsecurity+json"))
     httpClient()
       .expect[Json](req)
       .map(actual => assertEquals(actual, versionTwoPayload, req))
@@ -150,14 +148,14 @@ class AcceptHeadersTest extends HttpIOSuite {
   }
 
   test("Setting Accept header manually should work the same way as using Http4s types") {
-    val req = baseReq.withHeaders(Header.Raw(ci"Accept", "application/vnd.unsEcurity+json;version=1"))
+    val req = baseReq.withHeaders(Header("Accept", "application/vnd.unsEcurity+json;version=1"))
     httpClient()
       .expect[Json](req)
       .map(actual => assertEquals(actual, versionOnePayload, req))
   }
 
   test("Using manual Accept header, using unsupported extension should result in a 406 NotAcceptable") {
-    val req = baseReq.withHeaders(Header.Raw(ci"Accept", "application/vnd.unsecurity+json;version=3"))
+    val req = baseReq.withHeaders(Header("Accept", "application/vnd.unsecurity+json;version=3"))
     httpClient()
       .expect[Json](req)
       .map(_ => false)
@@ -176,7 +174,7 @@ class AcceptHeadersTest extends HttpIOSuite {
   }
 
   test("Calling without any accept header set") {
-    val client = Client[IO](req => httpClient().run(req.removeHeader[Accept]))
+    val client = Client[IO](req => httpClient().run(req.removeHeader(Accept)))
     val req    = Request[IO](uri = Uri.unsafeFromString(s"http://localhost:$port/json"))
     client
       .expect[Json](req)
