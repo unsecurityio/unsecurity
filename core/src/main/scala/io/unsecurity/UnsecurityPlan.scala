@@ -3,7 +3,7 @@ package io.unsecurity
 import cats.MonadError
 import cats.implicits._
 import no.scalabin.http4s.directives.Directive
-import org.http4s.{Request, Response, Uri}
+import org.http4s.{Query, Request, Response, Uri}
 
 class UnsecurityPlan[F[_]](implicit M: MonadError[F, Throwable]) {
   type Intent = PartialFunction[Request[F], F[Response[F]]]
@@ -21,7 +21,7 @@ class UnsecurityPlan[F[_]](implicit M: MonadError[F, Throwable]) {
     }
   }
 
-  lazy val PathMapping: Mapping[Uri.Path] = Mapping[Uri.Path]{ r =>
-    s"${r.pathInfo}?${r.queryString}"
+  lazy val PathMapping: Mapping[(Uri.Path, Query)] = Mapping[(Uri.Path, Query)]{ r =>
+    r.pathInfo -> r.uri.query
   }
 }

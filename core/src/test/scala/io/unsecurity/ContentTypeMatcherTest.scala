@@ -6,6 +6,7 @@ import no.scalabin.http4s.directives.Result
 import org.http4s.headers.`Content-Type`
 import org.http4s.implicits._
 import org.http4s.{Request, _}
+import org.typelevel.ci.CIStringSyntax
 
 class ContentTypeMatcherTest extends UnsecurityTestSuite {
   val contentTypeMatcher: AbstractContentTypeMatcher[Id] = new AbstractContentTypeMatcher[Id] {}
@@ -15,28 +16,28 @@ class ContentTypeMatcherTest extends UnsecurityTestSuite {
   val versionedMediaTypeReq = Request[Id](
     method = Method.POST,
     uri = uri"/whatever",
-    headers = Headers.of(Header("content-type", "application/vnd.custom;version=1"))
+    headers = Headers(Header.Raw(ci"content-type", "application/vnd.custom;version=1"))
   )
   val unversionedMediaTypeReq = Request[Id](
     method = Method.POST,
     uri = uri"/whatever",
-    headers = Headers.of(Header("content-type", "application/vnd.custom"))
+    headers = Headers(Header.Raw(ci"content-type", "application/vnd.custom"))
   )
 
   val invalidMediaType = Request[Id](
     method = Method.POST,
     uri = uri"/whatever",
-    headers = Headers.of(Header("content-type", "foobar"))
+    headers = Headers(Header.Raw(ci"content-type", "foobar"))
   )
   val unsupportedMediaType = Request[Id](
     method = Method.POST,
     uri = uri"/whatever",
-    headers = Headers.of(Header("content-type", "application/foobar"))
+    headers = Headers(Header.Raw(ci"content-type", "application/foobar"))
   )
   val supportedMediaType = Request[Id](
     method = Method.POST,
     uri = uri"/whatever",
-    headers = Headers.of(Header("content-type", "application/fjon"))
+    headers = Headers(Header.Raw(ci"content-type", "application/fjon"))
   )
   val fjonMediaRange: MediaRange =
     MediaRange.parse("application/fjon").getOrElse(throw new RuntimeException("could not parse media range"))
@@ -106,7 +107,7 @@ class ContentTypeMatcherTest extends UnsecurityTestSuite {
     val mediaRangeMap              = MediaRangeMap(List(versionedMediaType))
     val contentTypeMatchDirective  = contentTypeMatcher.matchRequestContentType(mediaRangeMap)
     contentTypeMatchDirective.run(versionedMediaTypeReq).map(_.head.value).where {
-      case Result.Error(r) if (r.status == Status.UnsupportedMediaType) => Ok
+      case Result.Error(r) if r.status == Status.UnsupportedMediaType => Ok
     }
   }
 
@@ -116,7 +117,7 @@ class ContentTypeMatcherTest extends UnsecurityTestSuite {
     val mediaRangeMap              = MediaRangeMap(List(versionedMediaType))
     val contentTypeMatchDirective  = contentTypeMatcher.matchRequestContentType(mediaRangeMap)
     contentTypeMatchDirective.run(versionedMediaTypeReq).map(_.head.value).where {
-      case Result.Error(r) if (r.status == Status.UnsupportedMediaType) => Ok
+      case Result.Error(r) if r.status == Status.UnsupportedMediaType => Ok
     }
   }
 
@@ -138,7 +139,7 @@ class ContentTypeMatcherTest extends UnsecurityTestSuite {
       case Result.Success(_) =>
         Fail(
           "Expected to reach version 2 endpoint, as it was defined first in list and no versiopn specified in request")
-      case Result.Error(r) => Fail(r.body.through(fs2.text.utf8Decode).compile.last.toString)
+      case Result.Error(r) => Fail(r.body.through(fs2.text.utf8.decode).compile.last.toString)
     }
   }
 
@@ -146,7 +147,7 @@ class ContentTypeMatcherTest extends UnsecurityTestSuite {
     val allText       = MediaRangeItem(Set(MediaRange.`text/*`), None, "dingdong")
     val mediaRangeMap = MediaRangeMap(List(allText))
     val requestWithVersionedContentType =
-      Request[Id](method = Method.POST, uri = uri"/whatever", headers = Headers.of(Header("content-type", "text/html")))
+      Request[Id](method = Method.POST, uri = uri"/whatever", headers = Headers(Header.Raw(ci"content-type", "text/html")))
     val contentTypeMatchDirective = contentTypeMatcher.matchRequestContentType(mediaRangeMap)
     contentTypeMatchDirective.run(requestWithVersionedContentType).map(_.head.value).where {
       case Result.Success("dingdong") => Ok

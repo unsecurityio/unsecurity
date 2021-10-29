@@ -35,7 +35,7 @@ trait UnsecurityOps[F[_]] extends DirectiveOps[F] with RequestDirectives[F] {
   implicit class BooleanDirectives(b: Boolean)(implicit S: Sync[F]) {
     @deprecated("use directive filter", "8/3 2019")
     def toSuccess(failure: Directive[F, Boolean]): Directive[F, Boolean] = {
-      if (b) {
+      if b then {
         Directive.success(b)
       } else {
         failure
@@ -55,7 +55,7 @@ trait UnsecurityOps[F[_]] extends DirectiveOps[F] with RequestDirectives[F] {
   }
 
   def queryParamAs[A: ParamConverter](name: String)(implicit sync: Sync[F]): Directive[F, Option[A]] = {
-    for {
+    for
       optParamValue <- request.queryParam(name)
       convertedParam <- optParamValue match {
                          case None => Directive.success(None)
@@ -65,7 +65,7 @@ trait UnsecurityOps[F[_]] extends DirectiveOps[F] with RequestDirectives[F] {
                              (s: String) => HttpProblem.badRequest(s).toResponse
                            ).map(Some(_))
                        }
-    } yield {
+    yield {
       convertedParam
     }
   }
@@ -75,13 +75,13 @@ trait UnsecurityOps[F[_]] extends DirectiveOps[F] with RequestDirectives[F] {
   }
 
   def requiredQueryParamAs[A: ParamConverter](name: String)(implicit sync: Sync[F]): Directive[F, A] = {
-    for {
+    for
       paramValue <- requiredQueryParam(name)
       convertedParam <- eitherToDirective(
                          ParamConverter[A].convert(paramValue),
                          (s: String) => HttpProblem.badRequest(s).toResponse
                        )
-    } yield {
+    yield {
       convertedParam
     }
   }

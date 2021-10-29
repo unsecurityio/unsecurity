@@ -1,46 +1,41 @@
 package io.unsecurity
 
 import cats.data.NonEmptyList
-import cats.effect.Sync
+import cats.effect.Concurrent
 import fs2.Stream
 import io.circe.{Decoder, Encoder}
-import io.unsecurity.hlinx.HLinx._
-import io.unsecurity.hlinx.{ReversedTupled, SimpleLinx, TransformParams}
-import no.scalabin.http4s.directives.{Directive => Http4sDirective}
+import io.unsecurity.hlinx.*
+import io.unsecurity.hlinx.HLinx.*
+import io.unsecurity.hlinx.TransformParams.NotUnit
+import io.unsecurity.hlinx.{Reversed, SimpleLinx, TransformParams}
+import no.scalabin.http4s.directives.Directive as Http4sDirective
 import org.http4s.EntityEncoder.entityBodyEncoder
-import org.http4s._
+import org.http4s.*
 import org.http4s.headers.`Content-Type`
-import shapeless.HList
 
-abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatcher {
+abstract class AbstractUnsecurity[F[_]: Concurrent, U] extends AbstractContentTypeMatcher[F] {
 
-  case class Endpoint[P <: HList, R, W](description: String = "", method: Method, path: HLinx[P], consumes: EntityDecoder[F, R], produces: Produces[W])
+  case class Endpoint[P <: Tuple, R, W](description: String = "", method: Method, path: HLinx[P], consumes: EntityDecoder[F, R], produces: Produces[W])
   object Endpoint {
-    def apply[P <: HList, R, W](desc: String, method: Method, path: HLinx[P]) =
+    def apply[P <: Tuple, W](desc: String, method: Method, path: HLinx[P]) =
       new Endpoint[P, Unit, Http4sDirective[F, Unit]](desc, method, path, Consumes.EmptyBody, Produces.Directive.EmptyBody)
 
-    def apply[P <: HList, W](desc: String, method: Method, path: HLinx[P], produces: Produces[W]) =
+    def apply[P <: Tuple, W](desc: String, method: Method, path: HLinx[P], produces: Produces[W]) =
       new Endpoint[P, Unit, W](desc, method, path, Consumes.EmptyBody, produces)
 
-    def apply[P <: HList, W](method: Method, path: HLinx[P], produces: Produces[W]) =
+    def apply[P <: Tuple, W](method: Method, path: HLinx[P], produces: Produces[W]) =
       new Endpoint[P, Unit, W]("", method, path, Consumes.EmptyBody, produces)
 
-    def apply[P <: HList, R](desc: String, method: Method, path: HLinx[P], consumes: EntityDecoder[F, R]) =
+    def apply[P <: Tuple, R](desc: String, method: Method, path: HLinx[P], consumes: EntityDecoder[F, R]) =
       new Endpoint[P, R, Http4sDirective[F, Unit]](desc, method, path, consumes, Produces.Directive.EmptyBody)
 
-    def apply[P <: HList, R](method: Method, path: HLinx[P], consumes: EntityDecoder[F, R]) =
+    def apply[P <: Tuple, R](method: Method, path: HLinx[P], consumes: EntityDecoder[F, R]) =
       new Endpoint[P, R, Http4sDirective[F, Unit]]("", method, path, consumes, Produces.Directive.EmptyBody)
   }
 
-  def secure[P <: HList, R, W, TUP, TUP2](endpoint: Endpoint[P, R, W])(
-      implicit revTup: ReversedTupled.Aux[P, TUP],
-      transformParams: TransformParams.Aux[TUP, (R, U), TUP2]
-  ): Secured[TUP2, W]
+  def secure[P <: Tuple, R, W](endpoint: Endpoint[P, R, W]): Secured[TransformParams[Reversed[P], (R, U)], W]
 
-  def unsecure[P <: HList, R, W, TUP, TUP2](endpoint: Endpoint[P, R, W])(
-      implicit revTup: ReversedTupled.Aux[P, TUP],
-      transformParams: TransformParams.Aux[TUP, Tuple1[R], TUP2]
-  ): Completable[TUP2, W]
+  def unsecure[P <: Tuple, R, W](endpoint: Endpoint[P, R, W]): Completable[TransformParams[Reversed[P], Tuple1[R]], W]
 
   object Consumes {
     def EmptyBody: EntityDecoder[F, Unit] = implicitly[EntityDecoder[F, Unit]]
@@ -153,7 +148,7 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
 
       val EmptyBody: Produces[Http4sDirective[F, Unit]] = Produces[Http4sDirective[F, Unit]](contentType = None,
                                                                                              unitDir =>
-                                                                                               unitDir.map { _: Unit =>
+                                                                                               unitDir.map { (_: Unit) =>
                                                                                                  Response[F](Status.NoContent)
                                                                                              })
     }
@@ -180,8 +175,9 @@ abstract class AbstractUnsecurity[F[_]: Sync, U] extends AbstractContentTypeMatc
 
 trait Complete[F[_]] {
   def key: List[SimpleLinx]
+  def queryParams: List[String]
   def merge(other: Complete[F]): Complete[F]
-  def compile: PartialFunction[String, Http4sDirective[F, Response[F]]]
+  def compile: PartialFunction[(Uri.Path, Query), Http4sDirective[F, Response[F]]]
   def consumes: Set[MediaRange]
   def methodMap: Map[Method, MediaRangeMap[Any => ResponseDirective[F]]]
 }

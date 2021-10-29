@@ -3,7 +3,9 @@ name := "unsecurity-auth0"
 scalacOptions := Seq(
   "-deprecation",
   "-language:higherKinds",
-  "-Ywarn-value-discard"
+  "-Ywarn-value-discard",
+  "-source:3.0-migration",
+  "-rewrite",
 )
 
 val auth0Version     = "1.34.0"

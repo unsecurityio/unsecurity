@@ -21,8 +21,8 @@ class MethodMatcherTest extends UnsecurityTestSuite {
     methodMatchDirective.run(deleteRequest).where {
       case Result.Error(r)
           if r.status == Status.MethodNotAllowed
-            && r.headers.get(Allow).get.methods.size == 1
-            && r.headers.get(Allow).get.methods.toList.contains(Method.GET) =>
+            && r.headers.get[Allow].get.methods.size == 1
+            && r.headers.get[Allow].get.methods.toList.contains(Method.GET) =>
         Ok
     }
   }
@@ -37,8 +37,8 @@ class MethodMatcherTest extends UnsecurityTestSuite {
     methodMatchDirective.run(deleteRequest).where {
       case Result.Error(r)
           if r.status == Status.MethodNotAllowed
-            && r.headers.get(Allow).get.methods.size == methodMap.values.size
-            && r.headers.get(Allow).get.methods.toList.toSet == methodMap.keySet =>
+            && r.headers.get[Allow].get.methods.size == methodMap.values.size
+            && r.headers.get[Allow].get.methods.toList.toSet == methodMap.keySet =>
         Ok
     }
   }

@@ -2,9 +2,13 @@ package io.unsecurity.hlinx
 
 import io.unsecurity.hlinx.HLinx._
 import org.scalatest.funspec.AnyFunSpec
-import shapeless.{::, HNil}
+
+import scala.language.implicitConversions
 
 class HLinxTest extends AnyFunSpec {
+
+  implicit def stringToQuery(in: String): (org.http4s.Uri.Path,org.http4s.Query) =
+    org.http4s.Uri.fromString(in).toOption.map(t => t.path -> t.query).get
 
   describe("capture") {
     describe("StaticFragment") {
@@ -175,7 +179,7 @@ class HLinxTest extends AnyFunSpec {
   describe("overlaps") {
     describe("StaticFragment") {
       describe("Root / foo / bar") {
-        val link: HPath[HNil] = Root / "foo" / "bar"
+        val link: HPath[EmptyTuple] = Root / "foo" / "bar"
 
         it("overlap /foo/bar") {
           assert(link.overlaps(Root / "foo" / "bar"))
@@ -201,7 +205,7 @@ class HLinxTest extends AnyFunSpec {
 
     describe("VarFragment") {
       describe("Root / param[String] / bar") {
-        val link: HPath[String :: HNil] = Root / param[String]("") / "bar"
+        val link: HPath[String *: EmptyTuple] = Root / param[String]("") / "bar"
 
         it("overlap /foo/bar") {
           assert(link.overlaps(Root / "foo" / "bar"))

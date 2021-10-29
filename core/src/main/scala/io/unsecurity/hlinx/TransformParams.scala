@@ -1,27 +1,35 @@
 package io.unsecurity.hlinx
 
-import shapeless.DepFn2
-import shapeless.ops.tuple.{FilterNot, Prepend}
+import io.unsecurity.hlinx.TransformParams.NotUnit
 
-trait TransformParams[T, RU] extends DepFn2[T, RU]
+import scala.Tuple.Filter
+
+type TransformParams[T <: Tuple, RU <: Tuple] = Filter[Tuple.Concat[T,RU], NotUnit]
+
+extension [Tup <: Tuple](tup: Tup){
+  def filter[P[_] <: Boolean](p : [t] => t => P[t]): Filter[Tup, P] = (tup match {
+    case e : EmptyTuple => e
+    case h *: tail => p(h) match {
+      case true => h *: tail.filter(p)
+      case false => tail
+    }
+  }).asInstanceOf[Filter[Tup, P]]
+}
 
 object TransformParams {
-  type Aux[T, RU, O] = TransformParams[T, RU] { type Out = O }
-  def apply[T, RU](implicit r: TransformParams[T, RU]): Aux[T, RU, r.Out] = r
 
-  implicit def transform[T, RU <: Product, T2, T3, T4](
-      implicit append: Prepend.Aux[T, RU, T2],
-      filterNot: FilterNot.Aux[T2, Unit, T3],
-      unwrap: UnwrapTuple1.Aux[T3, T4]
-  ): TransformParams.Aux[T, RU, T4] = {
-    new TransformParams[T, RU] {
-      type Out = T4
-      override def apply(tupled: T, ru: RU): T4 = {
-        val appended: T2  = append(tupled, ru)
-        val filtered: T3  = filterNot(appended)
-        val unwrapped: T4 = unwrap(filtered)
-        unwrapped
-      }
-    }
+  type NotUnit[T] <: Boolean = T match {
+    case Unit => false
+    case _ => true
+  }
+
+  def apply[T <: Tuple, RU <: Tuple](tupled: T, ru: RU): TransformParams[T, RU] = {
+    val appended: Tuple.Concat[T,RU] = tupled ++ ru
+    val notUnit: [T] => T => NotUnit[T] = [T] => (t : T) => (t match {
+      case _:Unit => false
+      case _ => true
+    }).asInstanceOf[NotUnit[T]]
+    val filtered: Tuple.Filter[Tuple.Concat[T,RU], NotUnit] = appended.filter(notUnit)
+    filtered
   }
 }

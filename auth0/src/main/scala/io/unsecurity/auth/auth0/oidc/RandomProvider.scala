@@ -12,7 +12,7 @@ trait RandomProvider[F[_]] {
 object RandomProvider {
   implicit def SecureR[F[_]: Sync]: RandomProvider[F] = {
     val secrand = new SecureRandom() //TODO: Expensive to create, should be moved to instance field (side effect as well)
-    size: Int =>
+    (size: Int) =>
       Sync[F].delay {
         val byteArray = Array.fill[Byte](size)(0)
         secrand.nextBytes(byteArray)

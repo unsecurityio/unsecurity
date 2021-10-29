@@ -7,6 +7,7 @@ import org.http4s.MediaType
 import org.http4s.Method.{DELETE, GET}
 import org.http4s.implicits._
 import org.http4s.headers.{`Content-Type`, Accept}
+import org.typelevel.ci.CIStringSyntax
 
 abstract class AbstractContentTypeMatcher[F[_]: Monad] extends AbstractMethodMatcher[F] {
 
@@ -14,13 +15,13 @@ abstract class AbstractContentTypeMatcher[F[_]: Monad] extends AbstractMethodMat
 
   def matchRequestContentType[A](mediaRangeMap: MediaRangeMap[A]): Directive[F, NonEmptyList[ResponseAlternativeForContent[A]]] = {
 
-    for {
+    for
       request             <- Directive.request[F]
       method              = request.method
-      suppliedContentType = request.headers.get(`Content-Type`)
+      suppliedContentType = request.headers.get[`Content-Type`]
       contentType <- suppliedContentType
                       .orElse {
-                        if (method == GET || method == DELETE) Some(`Content-Type`(WILDCARD)) else None
+                        if method == GET || method == DELETE then Some(`Content-Type`(WILDCARD)) else None
                       }
                       .toDirective(
                         HttpProblem
@@ -39,7 +40,7 @@ abstract class AbstractContentTypeMatcher[F[_]: Monad] extends AbstractMethodMat
                   )
                 }
               }
-    } yield a2rdf
+    yield a2rdf
   }
 
   def matchAcceptContentType[A](responseAlternatives: NonEmptyList[ResponseAlternativeForContent[A]]): Directive[F, A] = {
@@ -59,7 +60,7 @@ abstract class AbstractContentTypeMatcher[F[_]: Monad] extends AbstractMethodMat
       )
       .map[Directive[F, A]] { consumes =>
         Directive.request[F].flatMap { req =>
-          req.headers.get(Accept).map(_.values.toList) match {
+          req.headers.get[Accept].map(_.values.toList) match {
             case Some(accepts) =>
               ContentNegotiation.accept(accepts, consumes) match {
                 case Some(a) => Directive.pure(a)
@@ -71,8 +72,8 @@ abstract class AbstractContentTypeMatcher[F[_]: Monad] extends AbstractMethodMat
                   )
               }
             case None =>
-              req.headers
-                .find(_.name == Accept.name)
+              req.headers.headers
+                .find(_.name == ci"Accept")
                 .map { accepts =>
                   Directive.failure[F, A](
                     HttpProblem

@@ -1,28 +1,24 @@
-package io.unsecurity.hlinx
+package io.unsecurity
 
-import shapeless.DepFn1
+import scala.language.implicitConversions
 
-trait UnwrapTuple1[T] extends DepFn1[T] with Serializable
+package object hlinx {
 
-object UnwrapTuple1 extends LowPriorityUnwrapInstances {
-  def apply[T](implicit unwrap: UnwrapTuple1[T]): Aux[T, unwrap.Out] = unwrap
-
-  type Aux[T, Out0] = UnwrapTuple1[T] { type Out = Out0 }
-
-  implicit val unwrapUnit: Aux[Unit, Unit] = new UnwrapTuple1[Unit] {
-    type Out = Unit
-    def apply(t: Unit): Out = ()
+  type UnwrapTuple1[T <: Tuple] = T match {
+    case a *: EmptyTuple => a
+    case _ => T
   }
 
-  implicit def unwrapT1[A]: Aux[Tuple1[A], A] = new UnwrapTuple1[Tuple1[A]] {
-    type Out = A
-    def apply(t: Tuple1[A]): Out = t._1
+  extension [T <: Tuple](t: T) def unwrap: UnwrapTuple1[T] = {
+    t match {
+      case t *: EmptyTuple => t.asInstanceOf[UnwrapTuple1[T]]
+      case a => a.asInstanceOf[UnwrapTuple1[T]]
+    }
   }
+
+  implicit def unwrapTuple1[T](tup: T *: EmptyTuple): T = tup.head
+
 }
 
-trait LowPriorityUnwrapInstances {
-  implicit def unwrapTs[A <: Product]: UnwrapTuple1.Aux[A, A] = new UnwrapTuple1[A] {
-    type Out = A
-    def apply(t: A): Out = t
-  }
-}
+
+

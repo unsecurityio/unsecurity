@@ -10,7 +10,7 @@ trait UnsecurityTestSuite extends AnyFunSuite {
 
   implicit class Where[A](result: A) {
     def where(pf: PartialFunction[A, TestResult]): Assertion = {
-      if (!pf.isDefinedAt(result)) fail("not defined for: " + result.toString)
+      if !pf.isDefinedAt(result) then fail("not defined for: " + result.toString)
       else {
         pf(result) match {
           case Ok          => succeed
