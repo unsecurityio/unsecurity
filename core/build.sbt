@@ -14,9 +14,10 @@ val fs2Version        = "2.5.9"
 val circeVersion      = "0.14.1"
 val shapelessVersion  = "2.3.7"
 val scalaTestVersion  = "3.2.10"
-val logbackVersion    = "1.2.6"
+val logbackVersion    = "1.2.7"
 val munitVersion      = "0.7.29"
-val munitCatsVersion  = "1.0.5"
+val munitCatsVersion  = "1.0.6"
+val commonsVersion    = "1.15"
 
 libraryDependencies := Seq(
   "io.circe"           %% "circe-parser"        % circeVersion,
@@ -29,7 +30,8 @@ libraryDependencies := Seq(
   "no.scalabin.http4s" %% "http4s-directives"   % directivesVersion,
   "com.chuusai"        %% "shapeless"           % shapelessVersion,
   "org.scalatest"      %% "scalatest"           % scalaTestVersion % Test,
-  "org.scalameta"      %% "munit"               % munitVersion     % Test,
+  "org.scalameta"      %% "munit"               % munitVersion % Test,
   "org.typelevel"      %% "munit-cats-effect-2" % munitCatsVersion % Test,
-  "ch.qos.logback"     % "logback-classic"      % logbackVersion   % Test
+  "commons-codec"      % "commons-codec"        % commonsVersion,
+  "ch.qos.logback"     % "logback-classic"      % logbackVersion % Test
 )
