@@ -16,7 +16,7 @@ val shapelessVersion  = "2.3.7"
 val scalaTestVersion  = "3.2.9"
 val logbackVersion    = "1.2.7"
 val munitVersion      = "0.7.29"
-val munitCatsVersion  = "1.0.5"
+val munitCatsVersion  = "1.0.6"
 val commonsVersion    = "1.15"
 
 libraryDependencies := Seq(
