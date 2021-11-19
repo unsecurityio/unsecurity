@@ -6,7 +6,7 @@ scalacOptions := Seq(
   "-Ywarn-value-discard"
 )
 
-val auth0Version     = "1.34.1"
+val auth0Version     = "1.35.0"
 val jwksVersion      = "0.20.0"
 val jwtVersion       = "3.18.2"
 val scalaTestVersion = "3.2.10"
