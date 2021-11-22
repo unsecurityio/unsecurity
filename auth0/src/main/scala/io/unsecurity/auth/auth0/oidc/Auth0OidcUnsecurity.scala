@@ -123,7 +123,7 @@ class Auth0OidcUnsecurity[F[_]: Sync, U](baseUrl: HPath[HNil],
             cookie <- sc.sessionCookie
             _      <- sc.sessionStore.removeSession(cookie.content).toDirective
             _ <- break(
-                  Redirect(sc.authConfig.afterLogoutUrl.toURI)
+                  Redirect(s"${sc.authConfig.issuer}v2/logout?client_id=${sc.authConfig.clientId}&returnTo=${sc.authConfig.afterLogoutUrl.toURI}")
                     .addCookie(
                       ResponseCookie(name = sc.Cookies.Keys.K_SESSION_ID, content = "", maxAge = Option(-1))
                     )
